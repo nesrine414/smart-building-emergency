@@ -1,0 +1,66 @@
+<div class="ai-page">
+  <div class="page-header">
+    <h1>🤖 AI Safety Assistant</h1>
+    <p>Intelligent emergency guidance</p>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="quick-actions">
+    @for (action of quickActions; track action.label) {
+      <button class="quick-action-btn" (click)="sendQuickAction(action.prompt)">
+        {{ action.label }}
+      </button>
+    }
+  </div>
+
+  <!-- Chat Messages -->
+  <div class="chat-container" #chatContainer>
+    @for (message of messages(); track message.id) {
+      <div class="chat-message" [class]="'msg-' + message.role">
+        <div class="msg-avatar">
+          @if (message.role === 'assistant') {
+            🤖
+          } @else {
+            👤
+          }
+        </div>
+        <div class="msg-bubble">
+          <div class="msg-content">{{ message.content }}</div>
+          <span class="msg-time">
+            {{ message.timestamp | date:'HH:mm' }}
+          </span>
+        </div>
+      </div>
+    }
+
+    @if (isTyping()) {
+      <div class="chat-message msg-assistant">
+        <div class="msg-avatar">🤖</div>
+        <div class="msg-bubble typing-indicator">
+          <span class="dot"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Input Area -->
+  <div class="chat-input-area">
+    <input
+      type="text"
+      placeholder="Ask about safety, alerts, routes..."
+      [ngModel]="userInput()"
+      (ngModelChange)="userInput.set($event)"
+      (keydown.enter)="sendMessage()"
+      class="chat-input"
+    />
+    <button class="send-btn" (click)="sendMessage()" [disabled]="!userInput().trim()">
+      ➤
+    </button>
+  </div>
+
+  <p class="ai-disclaimer">
+    ⚠️ AI provides guidance only. Always follow official emergency procedures and deterministic alarm rules.
+  </p>
+</div>

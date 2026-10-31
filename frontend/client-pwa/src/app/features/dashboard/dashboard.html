@@ -1,0 +1,109 @@
+<div class="dashboard">
+  <!-- Safety Status Banner -->
+  <section class="safety-banner" [class]="statusConfig().class">
+    <div class="status-content">
+      <span class="status-icon">{{ statusConfig().icon }}</span>
+      <div>
+        <h2 class="status-label">{{ statusConfig().label }}</h2>
+        <p class="status-message">{{ statusConfig().message }}</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Welcome -->
+  <section class="welcome-section">
+    <h1>Welcome, {{ user()?.firstName ?? 'User' }}</h1>
+    <p class="welcome-subtitle">Smart Building Emergency Dashboard</p>
+  </section>
+
+  <!-- Quick Stats -->
+  <section class="stats-grid">
+    <div class="stat-card stat-danger">
+      <div class="stat-icon">🚨</div>
+      <div class="stat-info">
+        <span class="stat-value">{{ activeAlerts().length }}</span>
+        <span class="stat-label">Active Alerts</span>
+      </div>
+    </div>
+
+    <div class="stat-card stat-warning">
+      <div class="stat-icon">📋</div>
+      <div class="stat-info">
+        <span class="stat-value">{{ activeIncidents().length }}</span>
+        <span class="stat-label">Open Incidents</span>
+      </div>
+    </div>
+
+    <div class="stat-card stat-info">
+      <div class="stat-icon">🏢</div>
+      <div class="stat-info">
+        <span class="stat-value">{{ buildings().length }}</span>
+        <span class="stat-label">Buildings</span>
+      </div>
+    </div>
+
+    <div class="stat-card stat-notification">
+      <div class="stat-icon">🔔</div>
+      <div class="stat-info">
+        <span class="stat-value">{{ unreadNotifications() }}</span>
+        <span class="stat-label">Unread</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Active Alerts -->
+  @if (activeAlerts().length > 0) {
+    <section class="section">
+      <div class="section-header">
+        <h2>🚨 Active Alerts</h2>
+        <a routerLink="/alerts" class="view-all">View All →</a>
+      </div>
+      <div class="alerts-list">
+        @for (alert of activeAlerts(); track alert.id) {
+          <div class="alert-card" [class]="getSeverityClass(alert.severity)">
+            <div class="alert-icon">{{ getAlertIcon(alert.type) }}</div>
+            <div class="alert-content">
+              <h3>{{ alert.title }}</h3>
+              <p>{{ alert.description }}</p>
+              <div class="alert-meta">
+                <span class="badge" [class]="getSeverityClass(alert.severity)">{{ alert.severity }}</span>
+                <span class="time">{{ getTimeAgo(alert.triggeredAt) }}</span>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+  }
+
+  <!-- Quick Actions -->
+  <section class="section">
+    <h2>Quick Actions</h2>
+    <div class="actions-grid">
+      <a routerLink="/alerts" class="action-card">
+        <span class="action-icon">🚨</span>
+        <span class="action-label">Alerts</span>
+      </a>
+      <a routerLink="/building-map" class="action-card">
+        <span class="action-icon">🗺️</span>
+        <span class="action-label">Floor Plan</span>
+      </a>
+      <a routerLink="/incidents" class="action-card">
+        <span class="action-icon">📋</span>
+        <span class="action-label">Incidents</span>
+      </a>
+      <a routerLink="/ai-assistant" class="action-card">
+        <span class="action-icon">🤖</span>
+        <span class="action-label">AI Assistant</span>
+      </a>
+      <a routerLink="/notifications" class="action-card">
+        <span class="action-icon">🔔</span>
+        <span class="action-label">Notifications</span>
+      </a>
+      <a routerLink="/profile" class="action-card">
+        <span class="action-icon">👤</span>
+        <span class="action-label">Profile</span>
+      </a>
+    </div>
+  </section>
+</div>
