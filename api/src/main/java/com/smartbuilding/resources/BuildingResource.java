@@ -16,6 +16,7 @@ public class BuildingResource {
     private BuildingManager buildingManager;
 
     @GET
+    
     @Produces(MediaType.APPLICATION_JSON)
     public List<Building> getBuildings() {
         return buildingManager.getAllBuildings();
