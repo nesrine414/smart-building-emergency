@@ -14,6 +14,9 @@ public class SensorReading {
     private String sensorId;
 
     @Column
+    private String type;   // GAS, SMOKE, TEMPERATURE, HUMIDITY, MOTION
+
+    @Column
     private long timestamp;
 
     @Column
@@ -37,6 +40,9 @@ public class SensorReading {
 
     public String getSensorId() { return sensorId; }
     public void setSensorId(String sensorId) { this.sensorId = sensorId; }
+
+    public String getType() { return type; }
+    public void setType(String type) { this.type = type; }
 
     public long getTimestamp() { return timestamp; }
     public void setTimestamp(long timestamp) { this.timestamp = timestamp; }
