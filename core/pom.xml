@@ -17,27 +17,18 @@
 
     <dependencies>
 
-        <!-- Jakarta EE 11 -->
+        <!-- Jakarta EE 11 (inclut déjà l'API Jakarta Data) -->
         <dependency>
             <groupId>jakarta.platform</groupId>
             <artifactId>jakarta.jakartaee-api</artifactId>
         </dependency>
 
-        <!-- Jakarta NoSQL API 1.1.0-M3 -->
+        <!-- Eclipse JNoSQL pour MongoDB : implémentation de Jakarta Data et Jakarta NoSQL 1.0,
+             apporte aussi l'API Jakarta NoSQL et le driver MongoDB dans des versions compatibles -->
         <dependency>
-            <groupId>jakarta.nosql</groupId>
-            <artifactId>jakarta.nosql-api</artifactId>
+            <groupId>org.eclipse.jnosql.databases</groupId>
+            <artifactId>jnosql-mongodb</artifactId>
         </dependency>
-
-        <!-- MongoDB Java Driver -->
-        <dependency>
-            <groupId>org.mongodb</groupId>
-            <artifactId>mongodb-driver-sync</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>jakarta.data</groupId>
-            <artifactId>jakarta.data-api</artifactId>
-        </dependency> 
 
     </dependencies>
 

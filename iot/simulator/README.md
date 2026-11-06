@@ -1,0 +1,45 @@
+# Simulateur de capteurs MQTT
+
+Publie des mesures simulées sur HiveMQ, sans matériel.
+
+## Installation
+
+```bash
+cd iot/simulator
+python -m venv .venv
+.venv\Scripts\activate          # Windows (sous Linux/macOS : source .venv/bin/activate)
+pip install -r requirements.txt
+```
+
+Le broker doit tourner :
+
+```bash
+docker run --name hivemq-ce -d -p 1883:1883 hivemq/hivemq-ce
+```
+
+## Utilisation
+
+```bash
+python simulator.py                          # mesures normales toutes les 2 s
+python simulator.py --scenario gas-leak      # le gaz de la salle 101 monte de 300 à 2000 ppm
+python simulator.py --scenario fire          # fumée et température montent dans la salle 101
+python simulator.py --count 5 --interval 1   # 5 cycles, un par seconde, puis arrêt
+```
+
+Options : `--host`, `--port`, `--building` (défaut `bld-01`), `--rooms` (défaut `101,102,201`),
+`--scenario`, `--interval`, `--count`.
+
+À chaque cycle, chaque salle envoie 5 mesures (`GAS`, `SMOKE`, `TEMPERATURE`, `HUMIDITY`, `MOTION`).
+Dans un scénario, la valeur d'alerte est atteinte en 30 cycles (1 minute avec l'intervalle par défaut).
+
+## Format des messages
+
+Topic : `smartbuilding/{buildingId}/{roomId}/{type}`, par exemple `smartbuilding/bld-01/room-101/GAS`.
+
+```json
+{"sensorId": "gas-101", "type": "GAS", "value": 412.5, "unit": "ppm", "timestamp": 1762354800000}
+```
+
+`timestamp` est en millisecondes depuis 1970 (UTC).
+
+Pour voir passer les messages : MQTT Explorer, connecté à `localhost:1883`, abonné à `smartbuilding/#`.

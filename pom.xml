@@ -26,11 +26,8 @@
         <jakartaee.version>11.0.0</jakartaee.version>
         <microprofile.version>7.1</microprofile.version>
 
-        <!-- Jakarta NoSQL API -->
-        <nosql.version>1.1.0-M3</nosql.version>
-
-        <!-- MongoDB Java Driver -->
-        <mongo.version>5.2.1</mongo.version>
+        <!-- Eclipse JNoSQL (branche 1.x = Jakarta EE 11) -->
+        <jnosql.version>1.1.20</jnosql.version>
 
         <!-- WildFly -->
         <wildfly.maven.plugin.version>6.0.1.Final</wildfly.maven.plugin.version>
@@ -39,7 +36,7 @@
     <dependencyManagement>
         <dependencies>
 
-            <!-- Jakarta EE 11 -->
+            <!-- Jakarta EE 11 (inclut l'API Jakarta Data) -->
             <dependency>
                 <groupId>jakarta.platform</groupId>
                 <artifactId>jakarta.jakartaee-api</artifactId>
@@ -56,18 +53,12 @@
                 <scope>import</scope>
             </dependency>
 
-            <!-- Jakarta NoSQL API -->
+            <!-- Eclipse JNoSQL MongoDB : implémentation Jakarta Data + Jakarta NoSQL 1.0,
+                 apporte aussi le driver MongoDB -->
             <dependency>
-                <groupId>jakarta.nosql</groupId>
-                <artifactId>jakarta.nosql-api</artifactId>
-                <version>${nosql.version}</version>
-            </dependency>
-
-            <!-- MongoDB Java Driver -->
-            <dependency>
-                <groupId>org.mongodb</groupId>
-                <artifactId>mongodb-driver-sync</artifactId>
-                <version>${mongo.version}</version>
+                <groupId>org.eclipse.jnosql.databases</groupId>
+                <artifactId>jnosql-mongodb</artifactId>
+                <version>${jnosql.version}</version>
             </dependency>
 
             <!-- Internal Core Module -->
@@ -76,9 +67,11 @@
                 <artifactId>core</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
                        
             
  
+
 
 
         </dependencies>
