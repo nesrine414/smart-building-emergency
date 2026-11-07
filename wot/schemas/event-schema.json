@@ -1,0 +1,133 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "SmartBuildingEventSchemas",
+    "description": "Schémas JSON des événements temps réel diffusés via WebSocket",
+    "definitions": {
+        "ReadingEvent": {
+            "type": "object",
+            "properties": {
+                "kind": {
+                    "type": "string",
+                    "const": "reading"
+                },
+                "data": {
+                    "$ref": "property-schema.json#/definitions/SensorReading"
+                }
+            },
+            "required": [
+                "kind",
+                "data"
+            ]
+        },
+        "IncidentEvent": {
+            "type": "object",
+            "properties": {
+                "kind": {
+                    "type": "string",
+                    "const": "incident"
+                },
+                "change": {
+                    "type": "string",
+                    "enum": [
+                        "CREATED",
+                        "UPDATED",
+                        "RESOLVED"
+                    ]
+                },
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "id": {
+                            "type": "string"
+                        },
+                        "buildingId": {
+                            "type": "string"
+                        },
+                        "roomId": {
+                            "type": "string"
+                        },
+                        "type": {
+                            "type": "string",
+                            "enum": [
+                                "GAS_LEAK",
+                                "FIRE"
+                            ]
+                        },
+                        "severity": {
+                            "type": "string",
+                            "enum": [
+                                "LOW",
+                                "MEDIUM",
+                                "HIGH",
+                                "CRITICAL"
+                            ]
+                        },
+                        "status": {
+                            "type": "string",
+                            "enum": [
+                                "OPEN",
+                                "ACKNOWLEDGED",
+                                "RESOLVED"
+                            ]
+                        },
+                        "description": {
+                            "type": "string"
+                        },
+                        "occupied": {
+                            "type": "boolean"
+                        },
+                        "timestamp": {
+                            "type": "integer"
+                        }
+                    },
+                    "required": [
+                        "id",
+                        "type",
+                        "severity",
+                        "status"
+                    ]
+                }
+            },
+            "required": [
+                "kind",
+                "change",
+                "data"
+            ]
+        },
+        "ActuatorEvent": {
+            "type": "object",
+            "properties": {
+                "kind": {
+                    "type": "string",
+                    "const": "actuator"
+                },
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "roomId": {
+                            "type": "string"
+                        },
+                        "actuator": {
+                            "type": "string"
+                        },
+                        "state": {
+                            "type": "string"
+                        },
+                        "timestamp": {
+                            "type": "integer"
+                        }
+                    },
+                    "required": [
+                        "roomId",
+                        "actuator",
+                        "state"
+                    ]
+                }
+            },
+            "required": [
+                "kind",
+                "data"
+            ]
+        }
+    }
+}

@@ -1,0 +1,131 @@
+{
+    "@context": [
+        "https://www.w3.org/2022/wot/td/v1.1",
+        {
+            "saref": "https://saref.etsi.org/core/"
+        }
+    ],
+    "id": "urn:smartbuilding:bld-01",
+    "title": "Smart Building Emergency System - Main Tower",
+    "@type": "saref:Building",
+    "description": "Système de sécurité incendie et fuite de gaz conforme au standard W3C Web of Things (WoT)",
+    "version": {
+        "instance": "2.0.0"
+    },
+    "base": "http://localhost:8081/api/",
+    "securityDefinitions": {
+        "nosec_sc": {
+            "scheme": "nosec"
+        }
+    },
+    "security": "nosec_sc",
+    "links": [
+        {
+            "rel": "service-doc",
+            "href": "schemas/property-schema.json",
+            "type": "application/json"
+        },
+        {
+            "rel": "service-doc",
+            "href": "schemas/action-schema.json",
+            "type": "application/json"
+        },
+        {
+            "rel": "service-doc",
+            "href": "schemas/event-schema.json",
+            "type": "application/json"
+        }
+    ],
+    "properties": {
+        "readings": {
+            "title": "Mesures IoT récentes",
+            "type": "array",
+            "readOnly": true,
+            "forms": [
+                {
+                    "href": "readings",
+                    "contentType": "application/json",
+                    "op": [
+                        "readproperty"
+                    ]
+                }
+            ]
+        },
+        "buildingStatus": {
+            "title": "État de sécurité du bâtiment",
+            "type": "object",
+            "readOnly": true,
+            "forms": [
+                {
+                    "href": "buildings/bld-01/status",
+                    "contentType": "application/json",
+                    "op": [
+                        "readproperty"
+                    ]
+                }
+            ]
+        },
+        "rooms": {
+            "title": "Salles et cartographie (LBS)",
+            "type": "array",
+            "readOnly": true,
+            "forms": [
+                {
+                    "href": "buildings/bld-01/rooms",
+                    "contentType": "application/json",
+                    "op": [
+                        "readproperty"
+                    ]
+                }
+            ]
+        }
+    },
+    "actions": {
+        "triggerActuator": {
+            "title": "Commande d'un actionneur",
+            "input": {
+                "$ref": "schemas/action-schema.json#/definitions/TriggerActuatorInput"
+            },
+            "forms": [
+                {
+                    "href": "rooms/{roomId}/actuators",
+                    "contentType": "application/json",
+                    "op": [
+                        "invokeaction"
+                    ],
+                    "htv:methodName": "POST"
+                }
+            ]
+        },
+        "acknowledgeIncident": {
+            "title": "Prendre en charge un incident",
+            "input": {
+                "$ref": "schemas/action-schema.json#/definitions/AcknowledgeIncidentInput"
+            },
+            "forms": [
+                {
+                    "href": "incidents/{id}",
+                    "contentType": "application/json",
+                    "op": [
+                        "invokeaction"
+                    ],
+                    "htv:methodName": "PATCH"
+                }
+            ]
+        }
+    },
+    "events": {
+        "liveEvents": {
+            "title": "Flux d'événements temps réel",
+            "forms": [
+                {
+                    "href": "ws://localhost:8081/api/ws/events",
+                    "subprotocol": "websocket",
+                    "op": [
+                        "subscribeevent"
+                    ]
+                }
+            ]
+        }
+    }
+}

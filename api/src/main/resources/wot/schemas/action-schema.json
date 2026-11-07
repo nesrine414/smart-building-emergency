@@ -1,0 +1,56 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "SmartBuildingActionSchemas",
+    "description": "Schémas JSON des actions exécutables sur le Smart Building",
+    "definitions": {
+        "TriggerActuatorInput": {
+            "type": "object",
+            "description": "Corps de la requête POST /api/rooms/{roomId}/actuators",
+            "properties": {
+                "actuator": {
+                    "type": "string",
+                    "enum": [
+                        "VENTILATION",
+                        "SIREN",
+                        "GAS_VALVE",
+                        "EMERGENCY_EXIT"
+                    ],
+                    "description": "Type d'actionneur à commander"
+                },
+                "action": {
+                    "type": "string",
+                    "enum": [
+                        "ON",
+                        "OFF",
+                        "OPEN",
+                        "CLOSE"
+                    ],
+                    "description": "État cible demandé"
+                }
+            },
+            "required": [
+                "actuator",
+                "action"
+            ],
+            "additionalProperties": false
+        },
+        "AcknowledgeIncidentInput": {
+            "type": "object",
+            "description": "Corps de la requête PATCH /api/incidents/{id}",
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "ACKNOWLEDGED",
+                        "RESOLVED"
+                    ],
+                    "description": "Nouveau statut de l'incident"
+                }
+            },
+            "required": [
+                "status"
+            ],
+            "additionalProperties": false
+        }
+    }
+}

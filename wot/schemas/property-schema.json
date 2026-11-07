@@ -1,0 +1,132 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "SmartBuildingPropertySchemas",
+    "description": "Schémas JSON des propriétés lisibles du Smart Building",
+    "definitions": {
+        "SensorReading": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "format": "uuid"
+                },
+                "sensorId": {
+                    "type": "string",
+                    "example": "gas-101"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "GAS",
+                        "SMOKE",
+                        "TEMPERATURE",
+                        "HUMIDITY",
+                        "MOTION"
+                    ]
+                },
+                "value": {
+                    "type": "number",
+                    "example": 412.5
+                },
+                "unit": {
+                    "type": "string",
+                    "example": "ppm"
+                },
+                "buildingId": {
+                    "type": "string",
+                    "example": "bld-01"
+                },
+                "roomId": {
+                    "type": "string",
+                    "example": "room-101"
+                },
+                "timestamp": {
+                    "type": "integer",
+                    "description": "Timestamp UTC en millisecondes"
+                }
+            },
+            "required": [
+                "sensorId",
+                "type",
+                "value",
+                "unit",
+                "timestamp"
+            ]
+        },
+        "BuildingStatus": {
+            "type": "object",
+            "properties": {
+                "buildingId": {
+                    "type": "string",
+                    "example": "bld-01"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "SAFE",
+                        "ALERT"
+                    ]
+                },
+                "openIncidents": {
+                    "type": "integer",
+                    "minimum": 0
+                }
+            },
+            "required": [
+                "buildingId",
+                "status",
+                "openIncidents"
+            ]
+        },
+        "RoomLBS": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "example": "room-101"
+                },
+                "buildingId": {
+                    "type": "string",
+                    "example": "bld-01"
+                },
+                "roomNumber": {
+                    "type": "string",
+                    "example": "101"
+                },
+                "floor": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "x": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                },
+                "y": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                },
+                "width": {
+                    "type": "integer"
+                },
+                "height": {
+                    "type": "integer"
+                },
+                "exit": {
+                    "type": "string",
+                    "example": "Escalier A"
+                }
+            },
+            "required": [
+                "id",
+                "buildingId",
+                "roomNumber",
+                "floor",
+                "x",
+                "y",
+                "exit"
+            ]
+        }
+    }
+}
