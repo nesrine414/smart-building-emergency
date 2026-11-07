@@ -42,8 +42,9 @@
 <groupId>org.wildfly.plugins</groupId>
 <artifactId>wildfly-maven-plugin</artifactId>
 <configuration>
-<port>9990</port>
+<port>9991</port>
 </configuration>
+
 </plugin>
 </plugins>
 </build>

@@ -1,7 +1,9 @@
+
 package com.smartbuilding.resources;
 
 import com.smartbuilding.entities.SensorReading;
 import com.smartbuilding.services.ReadingService;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
@@ -14,6 +16,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+
 import java.util.List;
 
 @Path("/readings")
@@ -25,35 +28,73 @@ public class ReadingResource {
     @Inject
     private ReadingService readingService;
 
-    // 1. GET /readings?limit=50&sensorId=gas-101
+    /**
+     * GET /api/readings?limit=50&sensorId=gas-101
+     * Retourne les mesures les plus récentes.
+     */
     @GET
     public Response getReadings(
             @QueryParam("limit") @DefaultValue("50") int limit,
             @QueryParam("sensorId") String sensorId) {
-        
-        List<SensorReading> results = readingService.findLatest(limit, sensorId);
-        return Response.ok(results).build();
+
+        if (limit < 1) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("Le paramètre limit doit être supérieur à 0")
+                    .build();
+        }
+
+        try {
+            List<SensorReading> results =
+                    readingService.findLatest(Math.min(limit, 500), sensorId);
+
+            return Response.ok(results).build();
+
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("Erreur lors de la récupération des mesures")
+                    .build();
+        }
     }
 
-    // 2. GET /readings/{id}
+    /**
+     * GET /api/readings/{id}
+     */
     @GET
     @Path("/{id}")
     public Response getReadingById(@PathParam("id") String id) {
+
         return readingService.findById(id)
                 .map(reading -> Response.ok(reading).build())
                 .orElse(Response.status(Response.Status.NOT_FOUND).build());
     }
 
-    // 3. POST /readings
+    /**
+     * POST /api/readings
+     */
     @POST
     public Response createReading(SensorReading reading) {
-        if (reading == null || reading.getType() == null || reading.getSensorId() == null) {
+
+        if (reading == null
+                || reading.getType() == null
+                || reading.getSensorId() == null
+                || reading.getSensorId().isBlank()) {
+
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity("sensorId et type sont obligatoires")
                     .build();
         }
-        
-        SensorReading saved = readingService.save(reading);
-        return Response.status(Response.Status.CREATED).entity(saved).build();
+
+        try {
+            SensorReading saved = readingService.save(reading);
+
+            return Response.status(Response.Status.CREATED)
+                    .entity(saved)
+                    .build();
+
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("Erreur lors de l'enregistrement de la mesure")
+                    .build();
+        }
     }
 }
