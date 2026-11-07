@@ -24,6 +24,7 @@
 <artifactId>org.eclipse.paho.client.mqttv3</artifactId>
 <version>1.2.5</version>
 </dependency>
+
 </dependencies>
 <build>
 <finalName>api</finalName>
@@ -42,7 +43,7 @@
 <groupId>org.wildfly.plugins</groupId>
 <artifactId>wildfly-maven-plugin</artifactId>
 <configuration>
-<port>9991</port>
+<port>9990</port>
 </configuration>
 
 </plugin>

@@ -11,6 +11,12 @@ public class SensorReading {
     private String id;
 
     @Column
+    private String buildingId;
+
+    @Column
+    private String roomId;
+
+    @Column
     private String sensorId;
 
     @Column
@@ -37,6 +43,12 @@ public class SensorReading {
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
+
+    public String getBuildingId() { return buildingId; }
+    public void setBuildingId(String buildingId) { this.buildingId = buildingId; }
+
+    public String getRoomId() { return roomId; }
+    public void setRoomId(String roomId) { this.roomId = roomId; }
 
     public String getSensorId() { return sensorId; }
     public void setSensorId(String sensorId) { this.sensorId = sensorId; }

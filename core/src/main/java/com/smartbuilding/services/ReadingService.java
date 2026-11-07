@@ -1,20 +1,11 @@
-
 package com.smartbuilding.services;
 
 import com.smartbuilding.entities.SensorReading;
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Sorts;
-import com.mongodb.client.model.ReplaceOptions;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
+import com.smartbuilding.events.ReadingSaved;
+import com.smartbuilding.repositories.SensorReadingRepository;
 import jakarta.enterprise.context.ApplicationScoped;
-import org.bson.Document;
-
-import java.util.ArrayList;
+import jakarta.enterprise.event.Event;
+import jakarta.inject.Inject;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,98 +13,45 @@ import java.util.UUID;
 @ApplicationScoped
 public class ReadingService {
 
-    private MongoClient mongoClient;
-    private MongoCollection<Document> collection;
+    @Inject
+    private SensorReadingRepository repository;
 
-    @PostConstruct
-    public void init() {
-        mongoClient = MongoClients.create("mongodb://localhost:27017");
-        MongoDatabase database = mongoClient.getDatabase("smartbuilding");
-        Document infos = mongoClient.getDatabase("admin")
-    .runCommand(new Document("hello", 1));
-
-System.out.println("MONGO JAVA - SERVEUR : " + infos.toJson());
-System.out.println("MONGO JAVA - BASE : " + database.getName());
-        collection = database.getCollection("readings");
-
-        System.out.println("MongoDB connecté : smartbuilding.readings");
-    }
-
-    @PreDestroy
-    public void close() {
-        if (mongoClient != null) {
-            mongoClient.close();
-        }
-    }
+    @Inject
+    private Event<ReadingSaved> readingSavedEvent;
 
     public SensorReading save(SensorReading reading) {
         if (reading.getId() == null || reading.getId().isBlank()) {
             reading.setId(UUID.randomUUID().toString());
         }
-
         if (reading.getTimestamp() <= 0) {
             reading.setTimestamp(System.currentTimeMillis());
         }
 
-        Document document = new Document("_id", reading.getId())
-                .append("sensorId", reading.getSensorId())
-                .append("type", reading.getType())
-                .append("timestamp", reading.getTimestamp())
-                .append("value", reading.getValue())
-                .append("unit", reading.getUnit());
+        SensorReading saved = repository.save(reading);
 
-System.out.println("TEST MONGODB : tentative d'enregistrement de " + reading.getSensorId());
+        // Diffuser l'événement CDI
+        readingSavedEvent.fire(new ReadingSaved(saved));
 
-        var result = collection.replaceOne(
-                Filters.eq("_id", reading.getId()),
-                document,
-                new ReplaceOptions().upsert(true)
-        );
-
-        System.out.println("TEST MONGODB : matched = " + result.getMatchedCount());
-        System.out.println("TEST MONGODB : modified = " + result.getModifiedCount());
-        System.out.println("TEST MONGODB : upsertedId = " + result.getUpsertedId());
-
-        System.out.println("TEST MONGODB : enregistrement terminé pour " + reading.getSensorId());
-
-        return reading;
-
+        return saved;
     }
 
     public List<SensorReading> findLatest(int limit, String sensorId) {
-        int max = limit > 0 ? Math.min(limit, 500) : 50;
-
-        var query = sensorId != null && !sensorId.isBlank()
-                ? collection.find(Filters.eq("sensorId", sensorId))
-                : collection.find();
-
-        List<SensorReading> results = new ArrayList<>();
-
-        for (Document document : query.sort(Sorts.descending("timestamp")).limit(max)) {
-            results.add(toSensorReading(document));
+        int max = limit > 0 ? limit : 50;
+        if (sensorId != null && !sensorId.isBlank()) {
+            return repository.findBySensorId(sensorId).stream()
+                    .limit(max)
+                    .toList();
+        } else {
+            try (var stream = repository.findAll()) {
+                return stream.limit(max).toList();
+            }
         }
-
-        return results;
     }
 
     public Optional<SensorReading> findById(String id) {
-        Document document = collection.find(Filters.eq("_id", id)).first();
-
-        return Optional.ofNullable(
-                document == null ? null : toSensorReading(document)
-        );
-    }
-
-    private SensorReading toSensorReading(Document document) {
-        SensorReading reading = new SensorReading();
-
-        reading.setId(document.getString("_id"));
-        reading.setSensorId(document.getString("sensorId"));
-        reading.setType(document.getString("type"));
-        reading.setTimestamp(document.getLong("timestamp"));
-        reading.setValue(((Number) document.get("value")).doubleValue());
-        reading.setUnit(document.getString("unit"));
-
-        return reading;
+        if (id == null || id.isBlank()) {
+            return Optional.empty();
+        }
+        return repository.findById(id);
     }
 }
