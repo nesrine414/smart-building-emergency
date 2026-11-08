@@ -8,6 +8,11 @@ sur le broker MQTT, au format convenu dans le plan de la démo (contrat 3) :
     message : {"sensorId": "...", "type": "GAS", "value": 412.5,
                "unit": "ppm", "timestamp": 1762354800000}
 
+Il joue aussi le rôle des actionneurs (étape 2, contrat 9) : il reçoit les commandes du
+backend sur smartbuilding/{buildingId}/{roomId}/cmd, les affiche et les confirme sur
+smartbuilding/{buildingId}/{roomId}/actuator. Quand la ventilation tourne pendant une
+fuite de gaz, le gaz redescend.
+
 Exemples :
     python simulator.py                         # scénario normal, toutes les 2 s
     python simulator.py --scenario gas-leak     # fuite de gaz dans la 1re salle
@@ -19,6 +24,7 @@ import argparse
 import json
 import random
 import sys
+import threading
 import time
 
 import paho.mqtt.client as mqtt
@@ -51,6 +57,61 @@ def ramp(step, start, end):
     return start + (end - start) * progress
 
 
+# ---------- Actionneurs simulés (contrat 9 de l'étape 2) ----------
+# Le backend publie ses commandes sur smartbuilding/{bâtiment}/{salle}/cmd.
+# Le simulateur joue le rôle de l'appareil : il applique la commande, l'affiche,
+# et confirme le nouvel état sur smartbuilding/{bâtiment}/{salle}/actuator.
+
+VENTILATION_DROP_PPM = 80   # baisse du gaz par cycle quand la ventilation tourne
+VENTILATION_DELAY = 8       # cycles avant que la ventilation fasse effet (le gaz monte encore un peu,
+                            # ce qui laisse le temps à l'incident de passer de MEDIUM à HIGH)
+
+_lock = threading.Lock()
+actuators = {}        # room_id -> {actuator: state}
+ventilation_on = {}   # room_id -> cycle auquel la ventilation a démarré
+current_step = 0      # cycle en cours (mis à jour par la boucle principale)
+
+ACTUATOR_LABELS = {
+    "SIREN": "sirène",
+    "VENTILATION": "ventilation",
+    "GAS_VALVE": "vanne de gaz",
+    "EMERGENCY_EXIT": "issue de secours",
+}
+
+
+def on_connect(client, userdata, flags, reason_code, properties):
+    building = userdata["building"]
+    client.subscribe(f"smartbuilding/{building}/+/cmd", qos=1)
+
+
+def on_message(client, userdata, msg):
+    """Commande reçue du backend : l'appliquer, l'afficher, la confirmer."""
+    try:
+        parts = msg.topic.split("/")
+        room_id = parts[2]
+        command = json.loads(msg.payload.decode("utf-8"))
+        actuator = command["actuator"]
+        action = command["action"]
+    except (IndexError, KeyError, ValueError):
+        print(f"  !! Commande illisible sur {msg.topic} : {msg.payload!r}")
+        return
+
+    with _lock:
+        actuators.setdefault(room_id, {})[actuator] = action
+        if actuator == "VENTILATION":
+            if action == "ON":
+                ventilation_on.setdefault(room_id, current_step)
+            else:
+                ventilation_on.pop(room_id, None)
+
+    origin = "réaction automatique" if command.get("incidentId") else "commande manuelle"
+    print(f"  >>> Salle {room_id.removeprefix('room-')} : "
+          f"{ACTUATOR_LABELS.get(actuator, actuator)} {action} ({origin})")
+
+    confirmation = {"actuator": actuator, "state": action, "timestamp": int(time.time() * 1000)}
+    client.publish(f"smartbuilding/{parts[1]}/{room_id}/actuator", json.dumps(confirmation), qos=1)
+
+
 def normal_value(sensor_type):
     unit, low, high = SENSOR_TYPES[sensor_type]
     if sensor_type == "MOTION":
@@ -58,11 +119,18 @@ def normal_value(sensor_type):
     return random.uniform(low, high)
 
 
-def scenario_value(sensor_type, scenario, step):
+def scenario_value(sensor_type, scenario, step, room_id=None):
     """Valeur pour la salle touchée par le scénario (la première salle)."""
     noise = random.uniform(-0.03, 0.03)  # ±3 % pour que la courbe paraisse réelle
 
     if scenario == "gas-leak" and sensor_type == "GAS":
+        with _lock:
+            started = ventilation_on.get(room_id)
+        if started is not None and step >= started + VENTILATION_DELAY:
+            # La ventilation fait effet : le gaz redescend progressivement vers la normale
+            effect = started + VENTILATION_DELAY
+            peak = ramp(effect, 300.0, 2000.0)
+            return max(320.0, peak - VENTILATION_DROP_PPM * (step - effect)) * (1 + noise)
         return ramp(step, 300.0, 2000.0) * (1 + noise)
 
     if scenario == "fire":
@@ -111,7 +179,10 @@ def main():
     if not rooms:
         sys.exit("Erreur : il faut au moins une salle dans --rooms.")
 
-    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=f"sbe-simulator-{random.randint(1000, 9999)}")
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=f"sbe-simulator-{random.randint(1000, 9999)}",
+                         userdata={"building": args.building})
+    client.on_connect = on_connect   # s'abonne aux commandes des actionneurs
+    client.on_message = on_message
 
     try:
         client.connect(args.host, args.port, keepalive=60)
@@ -123,14 +194,17 @@ def main():
     print(f"Connecté à {args.host}:{args.port}, scénario '{args.scenario}', "
           f"salles {', '.join(rooms)}. Ctrl+C pour arrêter.")
 
+    global current_step
     step = 0
     try:
         while args.count == 0 or step < args.count:
+            with _lock:
+                current_step = step
             for index, room_number in enumerate(rooms):
                 room_id = f"room-{room_number}"
                 for sensor_type in SENSOR_TYPES:
                     if index == 0 and args.scenario != "normal":
-                        value = scenario_value(sensor_type, args.scenario, step)
+                        value = scenario_value(sensor_type, args.scenario, step, room_id)
                     else:
                         value = normal_value(sensor_type)
 

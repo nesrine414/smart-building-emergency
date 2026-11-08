@@ -90,7 +90,14 @@ public class BuildingResource {
         String actuator = payload.get("actuator");
         String action = payload.get("action");
 
-        actuatorService.send(roomId, actuator, action);
+        try {
+            actuatorService.send(roomId, actuator, action);
+        } catch (IllegalArgumentException e) {
+            // actionneur ou action inconnus (ex. VENTILATION OPEN)
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", e.getMessage()))
+                    .build();
+        }
 
         return Response.ok(Map.of(
                 "status", "COMMAND_SENT",

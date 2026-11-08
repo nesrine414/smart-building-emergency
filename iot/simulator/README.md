@@ -42,4 +42,17 @@ Topic : `smartbuilding/{buildingId}/{roomId}/{type}`, par exemple `smartbuilding
 
 `timestamp` est en millisecondes depuis 1970 (UTC).
 
+## Actionneurs simulés (étape 2)
+
+Le simulateur joue aussi le rôle des actionneurs. Il s'abonne à `smartbuilding/{bâtiment}/+/cmd`,
+affiche chaque commande reçue (`>>> Salle 101 : ventilation ON (réaction automatique)`) et confirme
+le nouvel état sur `smartbuilding/{bâtiment}/{salle}/actuator` :
+
+```json
+{"actuator": "VENTILATION", "state": "ON", "timestamp": 1762440013000}
+```
+
+Pendant `--scenario gas-leak`, quand la ventilation est allumée, le gaz monte encore 8 cycles
+puis redescend de 80 ppm par cycle jusqu'à la normale.
+
 Pour voir passer les messages : MQTT Explorer, connecté à `localhost:1883`, abonné à `smartbuilding/#`.
