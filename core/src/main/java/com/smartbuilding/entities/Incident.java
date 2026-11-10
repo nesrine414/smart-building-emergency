@@ -6,7 +6,7 @@ import jakarta.nosql.Id;
 import java.util.ArrayList;
 import java.util.List;
 
-@Entity
+@Entity("incidents")
 public class Incident {
 
     @Id

@@ -4,7 +4,7 @@ import jakarta.nosql.Column;
 import jakarta.nosql.Entity;
 import jakarta.nosql.Id;
 
-@Entity
+@Entity("readings")
 public class SensorReading {
 
     @Id

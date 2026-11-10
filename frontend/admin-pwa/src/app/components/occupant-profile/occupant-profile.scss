@@ -1,0 +1,67 @@
+.profile-card {
+  max-width: 600px;
+  margin: 24px auto;
+  padding: 24px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+
+  h2 {
+    margin: 0 0 8px;
+    color: #172554;
+    font-size: 22px;
+  }
+
+  .description {
+    margin-bottom: 24px;
+    color: #64748b;
+    line-height: 1.5;
+  }
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+
+  label {
+    color: #334155;
+    font-weight: 600;
+  }
+
+  input {
+    padding: 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 15px;
+
+    &:focus {
+      outline: 2px solid #2563eb;
+      border-color: #2563eb;
+    }
+  }
+}
+
+button {
+  width: 100%;
+  padding: 13px;
+  border: none;
+  border-radius: 8px;
+  background: #2563eb;
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    background: #1d4ed8;
+  }
+}
+
+.message {
+  margin-top: 16px;
+  color: #15803d;
+  font-weight: 600;
+}

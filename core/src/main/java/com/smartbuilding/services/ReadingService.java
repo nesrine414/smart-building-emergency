@@ -37,13 +37,20 @@ public class ReadingService {
 
     public List<SensorReading> findLatest(int limit, String sensorId) {
         int max = limit > 0 ? limit : 50;
+
         if (sensorId != null && !sensorId.isBlank()) {
             return repository.findBySensorId(sensorId).stream()
+                    .sorted(java.util.Comparator.comparingLong(
+                            SensorReading::getTimestamp).reversed())
                     .limit(max)
                     .toList();
         } else {
             try (var stream = repository.findAll()) {
-                return stream.limit(max).toList();
+                return stream
+                        .sorted(java.util.Comparator.comparingLong(
+                                SensorReading::getTimestamp).reversed())
+                        .limit(max)
+                        .toList();
             }
         }
     }

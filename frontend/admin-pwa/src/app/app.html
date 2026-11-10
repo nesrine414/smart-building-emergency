@@ -18,11 +18,20 @@
         <a href="#overview" class="nav-link active">
           <span>▦</span> Dashboard
         </a>
+        <a href="#building-map" class="nav-link">
+          <span>⌖</span> Building Map
+        </a>
         <a href="#sensors" class="nav-link">
           <span>◉</span> Sensors
         </a>
         <a href="#alerts" class="nav-link">
           <span>⚠</span> Alerts
+        </a>
+        <a href="#incidents" class="nav-link">
+          <span>🚨</span> Incidents
+        </a>
+        <a href="#occupant-profile" class="nav-link">
+          <span>👤</span> Occupant Profile
         </a>
       </nav>
 
@@ -83,6 +92,295 @@
           <div class="profile">AD</div>
         </div>
       </header>
+
+
+      <!-- SAFETY STATUS -->
+      <section
+        class="safety-banner"
+        [class.safety-alert]="hasSafetyAlert"
+        [class.safety-safe]="!hasSafetyAlert"
+        role="status"
+        aria-live="polite"
+      >
+        <div class="safety-banner-icon">
+          {{ hasSafetyAlert ? '⚠' : '✓' }}
+        </div>
+
+        <div>
+          <h2>
+            {{ hasSafetyAlert ? 'Alerte de sécurité' : 'Bâtiment sûr' }}
+          </h2>
+
+          <p>
+            {{
+              hasSafetyAlert
+                ? 'Une mesure dangereuse ou un incident actif nécessite une intervention.'
+                : 'Aucun incident actif ni aucune alerte de gaz. Le bâtiment est en sécurité.'
+            }}
+          </p>
+        </div>
+      </section>
+
+      <!-- OCCUPANT PROFILE -->
+      <section class="panel occupant-profile-panel" id="occupant-profile">
+        <div class="panel-heading">
+          <div>
+            <h2>Occupant Profile</h2>
+            <p>Manage your building location information</p>
+          </div>
+        </div>
+
+        <app-occupant-profile></app-occupant-profile>
+      </section>
+      <!-- BUILDING MAP -->
+      <section class="panel building-map-panel" id="building-map">
+
+        <div class="panel-heading">
+          <div>
+            <h2>Building Map</h2>
+            <p>Building layout and emergency affected areas</p>
+          </div>
+
+          <span class="alert-counter">
+            {{ getAffectedRoomCount() }} affected rooms
+          </span>
+        </div>
+
+        @if (buildingError) {
+          <p class="empty-state">{{ buildingError }}</p>
+        } @else if (building) {
+
+          <div class="building-map-header">
+            <div>
+              <h3>{{ building.name }}</h3>
+              <p>{{ building.address }}</p>
+            </div>
+
+            <div class="floor-selector">
+              <label for="floor-select">Floor:</label>
+
+              <select
+                id="floor-select"
+                [value]="selectedFloorId"
+                (change)="selectFloor($any($event.target).value)"
+              >
+                @for (floor of floors; track floor.id) {
+                  <option [value]="floor.id">
+                    {{ floor.name }}
+                  </option>
+                }
+              </select>
+            </div>
+          </div>
+
+          @if (selectedFloor) {
+
+            <div class="building-map-content">
+
+              <!-- SVG MAP -->
+              <div class="building-map-canvas">
+
+                <svg
+                  viewBox="0 0 600 350"
+                  class="building-svg"
+                  role="img"
+                  aria-label="Building floor map"
+                >
+
+                  <!-- BUILDING OUTLINE -->
+                  <rect
+                    x="20"
+                    y="20"
+                    width="560"
+                    height="310"
+                    rx="12"
+                    class="map-outline"
+                  />
+
+                  <!-- OFFICE 101 -->
+                  <g>
+                    <rect
+                      x="40"
+                      y="40"
+                      width="170"
+                      height="115"
+                      rx="8"
+                      [class]="getRoomStatusClass({
+                        id: 'room-101',
+                        name: 'Office 101',
+                        type: 'OFFICE'
+                      })"
+                    />
+                    <text x="125" y="90" class="map-room-label">
+                      Office 101
+                    </text>
+                    <text x="125" y="112" class="map-room-icon">
+                      {{ isRoomAffected('room-101') ? '⚠' : '✓' }}
+                    </text>
+                  </g>
+
+                  <!-- OFFICE 102 -->
+                  <g>
+                    <rect
+                      x="230"
+                      y="40"
+                      width="150"
+                      height="115"
+                      rx="8"
+                      [class]="getRoomStatusClass({
+                        id: 'room-102',
+                        name: 'Office 102',
+                        type: 'OFFICE'
+                      })"
+                    />
+                    <text x="305" y="90" class="map-room-label">
+                      Office 102
+                    </text>
+                    <text x="305" y="112" class="map-room-icon">
+                      {{ isRoomAffected('room-102') ? '⚠' : '✓' }}
+                    </text>
+                  </g>
+
+                  <!-- OFFICE 103 -->
+                  <g>
+                    <rect
+                      x="400"
+                      y="40"
+                      width="150"
+                      height="115"
+                      rx="8"
+                      [class]="getRoomStatusClass({
+                        id: 'room-103',
+                        name: 'Office 103',
+                        type: 'OFFICE'
+                      })"
+                    />
+                    <text x="475" y="90" class="map-room-label">
+                      Office 103
+                    </text>
+                    <text x="475" y="112" class="map-room-icon">
+                      {{ isRoomAffected('room-103') ? '⚠' : '✓' }}
+                    </text>
+                  </g>
+
+                  <!-- MAIN HALLWAY -->
+                  <g>
+                    <rect
+                      x="40"
+                      y="175"
+                      width="510"
+                      height="55"
+                      rx="8"
+                      class="room-hallway"
+                    />
+                    <text x="295" y="208" class="map-room-label">
+                      Main Hallway
+                    </text>
+                  </g>
+
+                  <!-- STAIRCASE -->
+                  <g>
+                    <rect
+                      x="40"
+                      y="250"
+                      width="160"
+                      height="60"
+                      rx="8"
+                      class="room-staircase"
+                    />
+                    <text x="120" y="285" class="map-room-label">
+                      Staircase
+                    </text>
+                  </g>
+
+                  <!-- EMERGENCY EXIT -->
+                  <g>
+                    <rect
+                      x="400"
+                      y="250"
+                      width="150"
+                      height="60"
+                      rx="8"
+                      class="room-exit"
+                    />
+                    <text x="475" y="275" class="map-room-label">
+                      Emergency Exit
+                    </text>
+                    <text x="475" y="295" class="map-room-icon">
+                      🚪
+                    </text>
+                  </g>
+
+                </svg>
+
+              </div>
+
+              <!-- MAP LEGEND -->
+              <div class="map-legend">
+                <div class="legend-item">
+                  <span class="legend-color safe"></span>
+                  <span>Safe room</span>
+                </div>
+
+                <div class="legend-item">
+                  <span class="legend-color danger"></span>
+                  <span>Affected room</span>
+                </div>
+
+                <div class="legend-item">
+                  <span class="legend-color exit"></span>
+                  <span>Emergency exit</span>
+                </div>
+
+                <div class="legend-item">
+                  <span class="legend-color hallway"></span>
+                  <span>Hallway</span>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- AFFECTED ROOM DETAILS -->
+            @if (getAffectedRoomCount() > 0) {
+              <div class="affected-room-message">
+                <strong>⚠ Emergency warning</strong>
+                <p>
+                  One or more rooms on this floor are affected by active incidents.
+                  Follow the emergency recommendations and use the emergency exit.
+                </p>
+
+                @for (room of selectedFloorRooms; track room.id) {
+                  @if (isRoomAffected(room.id)) {
+                    <div class="affected-room-item">
+                      <strong>{{ room.name }}</strong>
+
+                      @for (incident of getRoomIncidents(room.id); track incident.id) {
+                        <p>
+                          {{ incident.type }} ·
+                          {{ incident.severity }} ·
+                          {{ incident.status }}
+                        </p>
+                        <p>{{ incident.recommendation }}</p>
+                      }
+                    </div>
+                  }
+                }
+              </div>
+            } @else {
+              <div class="map-safe-message">
+                ✓ No affected rooms on this floor.
+              </div>
+            }
+
+          } @else {
+            <p class="empty-state">No floor available.</p>
+          }
+
+        } @else {
+          <p class="empty-state">Loading building map...</p>
+        }
+
+      </section>
 
       <!-- STATISTICS -->
       <section class="stats-grid">
@@ -210,6 +508,86 @@
           <div class="no-alerts">
             <span>✓</span>
             No active alerts. All monitored readings are within the configured limits.
+          </div>
+        }
+
+      </section>
+
+      <!-- INCIDENTS -->
+      <section class="panel incidents-panel" id="incidents">
+
+        <div class="panel-heading">
+          <div>
+            <h2>Emergency Incidents</h2>
+            <p>Detected and recorded incidents</p>
+          </div>
+
+          <span class="alert-counter">
+            {{ incidents.length }} incidents
+          </span>
+        </div>
+
+        @if (incidentError) {
+          <p class="empty-state">{{ incidentError }}</p>
+        } @else if (incidents.length > 0) {
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Severity</th>
+                  <th>Description</th>
+                  <th>Room</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                @for (incident of incidents; track incident.id) {
+                  <tr>
+                    <td>{{ incident.type }}</td>
+
+                    <td>
+                      <span class="status-badge danger">
+                        {{ incident.severity }}
+                      </span>
+                    </td>
+
+                    <td>{{ incident.description }}</td>
+                    <td>{{ incident.roomId }}</td>
+                    <td>{{ incident.status }}</td>
+
+                    <td>{{ incident.timestamp | date:'short' }}</td>
+
+                    <td>
+                      @if (incident.status === 'OPEN') {
+                        <button
+                          class="incident-action acknowledge"
+                          (click)="acknowledgeIncident(incident.id)">
+                          Acquitter
+                        </button>
+                      }
+
+                      @if (incident.status !== 'RESOLVED') {
+                        <button
+                          class="incident-action resolve"
+                          (click)="resolveIncident(incident.id)">
+                          Résoudre
+                        </button>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+        } @else {
+          <div class="no-alerts">
+            No incidents recorded.
           </div>
         }
 
