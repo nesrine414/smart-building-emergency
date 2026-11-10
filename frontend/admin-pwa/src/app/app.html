@@ -6,9 +6,9 @@
     <aside class="sidebar">
       <div class="brand">
         <div class="brand-icon">🏢</div>
-        <div>
+        <div class="brand-text">
           <h2>Smart Building</h2>
-          <h2>Emergency System</h2>
+          <span>Emergency System</span>
         </div>
       </div>
 
@@ -16,60 +16,60 @@
 
       <nav class="navigation">
         <a href="#overview" class="nav-link active">
-          <span>▦</span> Dashboard
+          <span class="nav-icon">▦</span>
+          <span>Dashboard</span>
         </a>
+
         <a href="#building-map" class="nav-link">
-          <span>⌖</span> Building Map
+          <span class="nav-icon">⌖</span>
+          <span>Building Map</span>
         </a>
+
         <a href="#sensors" class="nav-link">
-          <span>◉</span> Sensors
+          <span class="nav-icon">◉</span>
+          <span>Sensors</span>
         </a>
+
         <a href="#alerts" class="nav-link">
-          <span>⚠</span> Alerts
+          <span class="nav-icon">⚠</span>
+          <span>Alerts</span>
+          @if (countAlerts(readings) > 0) {
+            <span class="nav-counter">{{ countAlerts(readings) }}</span>
+          }
         </a>
+
         <a href="#incidents" class="nav-link">
-          <span>🚨</span> Incidents
+          <span class="nav-icon">🚨</span>
+          <span>Incidents</span>
         </a>
+
         <a href="#occupant-profile" class="nav-link">
-          <span>👤</span> Occupant Profile
+          <span class="nav-icon">👤</span>
+          <span>Occupant Profile</span>
         </a>
       </nav>
 
-      <!-- SYSTEM STATUS -->
       <div class="sidebar-bottom">
         <div class="system-status">
-
-          @if (apiOnline$ | async; as apiOnline) {
-            @if (apiOnline === true) {
-              <span class="status-dot online"></span>
-              <div>
-                <strong>
-                  <span class="system-status online">System online</span>
-                </strong>
-                <small>Monitoring active</small>
-              </div>
-            } @else {
-              <span class="status-dot offline"></span>
-              <div>
-                <strong>
-                  <span class="system-status offline">System offline</span>
-                </strong>
-                <small>API unavailable</small>
-              </div>
-            }
+          @if (apiOnline$ | async) {
+            <span class="status-dot online"></span>
+            <div>
+              <strong>System online</strong>
+              <small>Monitoring active</small>
+            </div>
           } @else {
             <span class="status-dot offline"></span>
             <div>
-              <strong>
-                <span class="system-status offline">Checking API...</span>
-              </strong>
-              <small>Please wait</small>
+              <strong>System offline</strong>
+              <small>API unavailable</small>
             </div>
           }
-
         </div>
 
-        <div class="sidebar-footer">Smart Building © 2026</div>
+        <div class="sidebar-footer">
+          <span>SMART BUILDING</span>
+          <small>Emergency Management · © 2026</small>
+        </div>
       </div>
     </aside>
 
@@ -78,21 +78,21 @@
 
       <!-- HEADER -->
       <header class="topbar" id="overview">
-        <div>
-          <div class="breadcrumb">Pages / Dashboard</div>
+        <div class="topbar-title">
+          <div class="breadcrumb">MAIN MENU / DASHBOARD</div>
           <h1>Building Overview</h1>
-          <p>Monitor your building sensors and emergency conditions.</p>
+          <p>Real-time monitoring and emergency management center.</p>
         </div>
 
         <div class="topbar-right">
           <span class="live-indicator">
             <span class="status-dot"></span>
-            Live monitoring
+            LIVE MONITORING
           </span>
-          <div class="profile">AD</div>
+
+          <div class="profile" title="Administrator">AD</div>
         </div>
       </header>
-
 
       <!-- SAFETY STATUS -->
       <section
@@ -106,39 +106,100 @@
           {{ hasSafetyAlert ? '⚠' : '✓' }}
         </div>
 
-        <div>
+        <div class="safety-banner-content">
+          <span class="section-eyebrow">BUILDING SAFETY STATUS</span>
+
           <h2>
-            {{ hasSafetyAlert ? 'Alerte de sécurité' : 'Bâtiment sûr' }}
+            {{ hasSafetyAlert ? 'Security Alert Detected' : 'Building Safe' }}
           </h2>
 
           <p>
             {{
               hasSafetyAlert
-                ? 'Une mesure dangereuse ou un incident actif nécessite une intervention.'
-                : 'Aucun incident actif ni aucune alerte de gaz. Le bâtiment est en sécurité.'
+                ? 'A dangerous measurement or active incident requires attention.'
+                : 'No active incidents or dangerous gas readings detected.'
             }}
           </p>
         </div>
+
+        <span class="safety-status-label">
+          {{ hasSafetyAlert ? 'ATTENTION REQUIRED' : 'ALL CLEAR' }}
+        </span>
       </section>
 
-      <!-- OCCUPANT PROFILE -->
-      <section class="panel occupant-profile-panel" id="occupant-profile">
-        <div class="panel-heading">
-          <div>
-            <h2>Occupant Profile</h2>
-            <p>Manage your building location information</p>
+      <!-- STATISTICS -->
+      <section class="stats-grid">
+
+        <article class="stat-card">
+          <div class="stat-top">
+            <span class="stat-icon blue">◉</span>
+            <span class="stat-label">TOTAL SENSORS</span>
           </div>
-        </div>
 
-        <app-occupant-profile></app-occupant-profile>
+          <div class="stat-number">
+            {{ countUniqueSensors(readings) }}
+          </div>
+
+          <div class="stat-description">
+            Registered sensors reporting data
+          </div>
+        </article>
+
+        <article class="stat-card">
+          <div class="stat-top">
+            <span class="stat-icon green">✓</span>
+            <span class="stat-label">ACTIVE SENSORS</span>
+          </div>
+
+          <div class="stat-number">
+            {{ countActiveSensors(readings) }}
+          </div>
+
+          <div class="stat-description">
+            Sensors with received readings
+          </div>
+        </article>
+
+        <article class="stat-card">
+          <div class="stat-top">
+            <span class="stat-icon red">⚠</span>
+            <span class="stat-label">ACTIVE ALERTS</span>
+          </div>
+
+          <div class="stat-number alert-number">
+            {{ countAlerts(readings) }}
+          </div>
+
+          <div class="stat-description">
+            Dangerous gas measurements
+          </div>
+        </article>
+
+        <article class="stat-card">
+          <div class="stat-top">
+            <span class="stat-icon orange">🚨</span>
+            <span class="stat-label">OPEN INCIDENTS</span>
+          </div>
+
+          <div class="stat-number">
+            {{ incidents.length }}
+          </div>
+
+          <div class="stat-description">
+            Recorded emergency incidents
+          </div>
+        </article>
+
       </section>
+
       <!-- BUILDING MAP -->
       <section class="panel building-map-panel" id="building-map">
 
         <div class="panel-heading">
           <div>
+            <span class="section-eyebrow">BUILDING MONITORING</span>
             <h2>Building Map</h2>
-            <p>Building layout and emergency affected areas</p>
+            <p>Floor layout and emergency affected areas</p>
           </div>
 
           <span class="alert-counter">
@@ -152,7 +213,7 @@
 
           <div class="building-map-header">
             <div>
-              <h3>{{ building.name }}</h3>
+              <h3>🏢 {{ building.name }}</h3>
               <p>{{ building.address }}</p>
             </div>
 
@@ -177,22 +238,16 @@
 
             <div class="building-map-content">
 
-              <!-- SVG MAP -->
               <div class="building-map-canvas">
-
                 <svg
                   viewBox="0 0 600 350"
                   class="building-svg"
                   role="img"
-                  aria-label="Building floor map"
+                  aria-label="Building floor plan"
                 >
-
-                  <!-- BUILDING OUTLINE -->
                   <rect
-                    x="20"
-                    y="20"
-                    width="560"
-                    height="310"
+                    x="20" y="20"
+                    width="560" height="310"
                     rx="12"
                     class="map-outline"
                   />
@@ -200,10 +255,8 @@
                   <!-- OFFICE 101 -->
                   <g>
                     <rect
-                      x="40"
-                      y="40"
-                      width="170"
-                      height="115"
+                      x="40" y="40"
+                      width="170" height="115"
                       rx="8"
                       [class]="getRoomStatusClass({
                         id: 'room-101',
@@ -214,7 +267,7 @@
                     <text x="125" y="90" class="map-room-label">
                       Office 101
                     </text>
-                    <text x="125" y="112" class="map-room-icon">
+                    <text x="125" y="115" class="map-room-icon">
                       {{ isRoomAffected('room-101') ? '⚠' : '✓' }}
                     </text>
                   </g>
@@ -222,10 +275,8 @@
                   <!-- OFFICE 102 -->
                   <g>
                     <rect
-                      x="230"
-                      y="40"
-                      width="150"
-                      height="115"
+                      x="230" y="40"
+                      width="150" height="115"
                       rx="8"
                       [class]="getRoomStatusClass({
                         id: 'room-102',
@@ -236,7 +287,7 @@
                     <text x="305" y="90" class="map-room-label">
                       Office 102
                     </text>
-                    <text x="305" y="112" class="map-room-icon">
+                    <text x="305" y="115" class="map-room-icon">
                       {{ isRoomAffected('room-102') ? '⚠' : '✓' }}
                     </text>
                   </g>
@@ -244,10 +295,8 @@
                   <!-- OFFICE 103 -->
                   <g>
                     <rect
-                      x="400"
-                      y="40"
-                      width="150"
-                      height="115"
+                      x="400" y="40"
+                      width="150" height="115"
                       rx="8"
                       [class]="getRoomStatusClass({
                         id: 'room-103',
@@ -258,18 +307,16 @@
                     <text x="475" y="90" class="map-room-label">
                       Office 103
                     </text>
-                    <text x="475" y="112" class="map-room-icon">
+                    <text x="475" y="115" class="map-room-icon">
                       {{ isRoomAffected('room-103') ? '⚠' : '✓' }}
                     </text>
                   </g>
 
-                  <!-- MAIN HALLWAY -->
+                  <!-- HALLWAY -->
                   <g>
                     <rect
-                      x="40"
-                      y="175"
-                      width="510"
-                      height="55"
+                      x="40" y="175"
+                      width="510" height="55"
                       rx="8"
                       class="room-hallway"
                     />
@@ -281,10 +328,8 @@
                   <!-- STAIRCASE -->
                   <g>
                     <rect
-                      x="40"
-                      y="250"
-                      width="160"
-                      height="60"
+                      x="40" y="250"
+                      width="160" height="60"
                       rx="8"
                       class="room-staircase"
                     />
@@ -293,29 +338,25 @@
                     </text>
                   </g>
 
-                  <!-- EMERGENCY EXIT -->
+                  <!-- EXIT -->
                   <g>
                     <rect
-                      x="400"
-                      y="250"
-                      width="150"
-                      height="60"
+                      x="400" y="250"
+                      width="150" height="60"
                       rx="8"
                       class="room-exit"
                     />
                     <text x="475" y="275" class="map-room-label">
                       Emergency Exit
                     </text>
-                    <text x="475" y="295" class="map-room-icon">
+                    <text x="475" y="298" class="map-room-icon">
                       🚪
                     </text>
                   </g>
-
                 </svg>
-
               </div>
 
-              <!-- MAP LEGEND -->
+              <!-- LEGEND -->
               <div class="map-legend">
                 <div class="legend-item">
                   <span class="legend-color safe"></span>
@@ -340,13 +381,14 @@
 
             </div>
 
-            <!-- AFFECTED ROOM DETAILS -->
+            <!-- EMERGENCY DETAILS -->
             @if (getAffectedRoomCount() > 0) {
               <div class="affected-room-message">
                 <strong>⚠ Emergency warning</strong>
+
                 <p>
-                  One or more rooms on this floor are affected by active incidents.
-                  Follow the emergency recommendations and use the emergency exit.
+                  One or more rooms are affected by active incidents.
+                  Follow the emergency recommendations.
                 </p>
 
                 @for (room of selectedFloorRooms; track room.id) {
@@ -360,6 +402,7 @@
                           {{ incident.severity }} ·
                           {{ incident.status }}
                         </p>
+
                         <p>{{ incident.recommendation }}</p>
                       }
                     </div>
@@ -382,65 +425,17 @@
 
       </section>
 
-      <!-- STATISTICS -->
-      <section class="stats-grid">
-
-        <article class="stat-card">
-          <div class="stat-top">
-            <span class="stat-icon blue">◉</span>
-            <span class="stat-label">TOTAL SENSORS</span>
-          </div>
-
-          <div class="stat-number">
-            {{ countUniqueSensors(readings) }}
-          </div>
-
-          <div class="stat-description">
-            Sensors reporting readings
-          </div>
-        </article>
-
-        <article class="stat-card">
-          <div class="stat-top">
-            <span class="stat-icon green">✓</span>
-            <span class="stat-label">ACTIVE SENSORS</span>
-          </div>
-
-          <div class="stat-number">
-            {{ countActiveSensors(readings) }}
-          </div>
-
-          <div class="stat-description">
-            Sensors with received data
-          </div>
-        </article>
-
-        <article class="stat-card">
-          <div class="stat-top">
-            <span class="stat-icon red">⚠</span>
-            <span class="stat-label">ACTIVE ALERTS</span>
-          </div>
-
-          <div class="stat-number alert-number">
-            {{ countAlerts(readings) }}
-          </div>
-
-          <div class="stat-description">
-            Gas readings above 1000 ppm
-          </div>
-        </article>
-
-      </section>
-
-      <!-- HISTORICAL CHARTS -->
+      <!-- CHARTS -->
       <section class="charts-grid">
 
         <article class="panel chart-panel">
           <div class="panel-heading">
             <div>
-              <h2>Gas concentration history</h2>
-              <p>Evolution of gas levels over time</p>
+              <span class="section-eyebrow">ENVIRONMENTAL MONITORING</span>
+              <h2>Gas Concentration</h2>
+              <p>Historical gas sensor measurements</p>
             </div>
+
             <span class="chart-icon red">GAS</span>
           </div>
 
@@ -452,9 +447,11 @@
         <article class="panel chart-panel">
           <div class="panel-heading">
             <div>
-              <h2>Temperature history</h2>
-              <p>Evolution of temperature over time</p>
+              <span class="section-eyebrow">ENVIRONMENTAL MONITORING</span>
+              <h2>Temperature History</h2>
+              <p>Historical temperature measurements</p>
             </div>
+
             <span class="chart-icon orange">TEMP</span>
           </div>
 
@@ -465,13 +462,14 @@
 
       </section>
 
-      <!-- RECENT ALERTS -->
+      <!-- ALERTS -->
       <section class="panel alerts-panel" id="alerts">
 
         <div class="panel-heading">
           <div>
+            <span class="section-eyebrow">REAL-TIME NOTIFICATIONS</span>
             <h2>Recent Alerts</h2>
-            <p>Latest detected emergency conditions</p>
+            <p>Latest dangerous sensor measurements</p>
           </div>
 
           <span class="alert-counter">
@@ -507,7 +505,7 @@
         } @else {
           <div class="no-alerts">
             <span>✓</span>
-            No active alerts. All monitored readings are within the configured limits.
+            No active alerts. All monitored readings are within configured limits.
           </div>
         }
 
@@ -518,8 +516,9 @@
 
         <div class="panel-heading">
           <div>
+            <span class="section-eyebrow">EMERGENCY MANAGEMENT</span>
             <h2>Emergency Incidents</h2>
-            <p>Detected and recorded incidents</p>
+            <p>Review and manage detected emergency events</p>
           </div>
 
           <span class="alert-counter">
@@ -535,7 +534,7 @@
             <table>
               <thead>
                 <tr>
-                  <th>Type</th>
+                  <th>Incident</th>
                   <th>Severity</th>
                   <th>Description</th>
                   <th>Room</th>
@@ -548,36 +547,62 @@
               <tbody>
                 @for (incident of incidents; track incident.id) {
                   <tr>
-                    <td>{{ incident.type }}</td>
+                    <td>
+                      <strong>{{ incident.type }}</strong>
+                    </td>
 
                     <td>
-                      <span class="status-badge danger">
+                      <span
+                        class="status-badge"
+                        [class.danger]="incident.severity === 'CRITICAL' || incident.severity === 'HIGH'"
+                        [class.warning]="incident.severity === 'MEDIUM'"
+                        [class.normal]="incident.severity === 'LOW'"
+                      >
                         {{ incident.severity }}
                       </span>
                     </td>
 
-                    <td>{{ incident.description }}</td>
+                    <td class="incident-description">
+                      {{ incident.description }}
+                    </td>
+
                     <td>{{ incident.roomId }}</td>
-                    <td>{{ incident.status }}</td>
+
+                    <td>
+                      <span
+                        class="status-badge"
+                        [class.danger]="incident.status === 'OPEN'"
+                        [class.warning]="incident.status === 'ACKNOWLEDGED'"
+                        [class.normal]="incident.status === 'RESOLVED'"
+                      >
+                        {{ incident.status }}
+                      </span>
+                    </td>
 
                     <td>{{ incident.timestamp | date:'short' }}</td>
 
                     <td>
-                      @if (incident.status === 'OPEN') {
-                        <button
-                          class="incident-action acknowledge"
-                          (click)="acknowledgeIncident(incident.id)">
-                          Acquitter
-                        </button>
-                      }
+                      <div class="incident-actions">
+                        @if (incident.status === 'OPEN') {
+                          <button
+                            type="button"
+                            class="incident-action acknowledge"
+                            (click)="acknowledgeIncident(incident.id)"
+                          >
+                            Acquitter
+                          </button>
+                        }
 
-                      @if (incident.status !== 'RESOLVED') {
-                        <button
-                          class="incident-action resolve"
-                          (click)="resolveIncident(incident.id)">
-                          Résoudre
-                        </button>
-                      }
+                        @if (incident.status !== 'RESOLVED') {
+                          <button
+                            type="button"
+                            class="incident-action resolve"
+                            (click)="resolveIncident(incident.id)"
+                          >
+                            Résoudre
+                          </button>
+                        }
+                      </div>
                     </td>
                   </tr>
                 }
@@ -587,19 +612,20 @@
 
         } @else {
           <div class="no-alerts">
-            No incidents recorded.
+            ✓ No incidents recorded.
           </div>
         }
 
       </section>
 
-      <!-- SENSOR TABLE -->
+      <!-- SENSORS -->
       <section class="panel sensors-panel" id="sensors">
 
         <div class="panel-heading">
           <div>
+            <span class="section-eyebrow">IOT DEVICE MANAGEMENT</span>
             <h2>Latest Sensor Readings</h2>
-            <p>Real-time monitoring of building sensors</p>
+            <p>Real-time monitoring of connected building sensors</p>
           </div>
 
           <span class="refresh-label">
@@ -610,22 +636,19 @@
 
         <div class="table-wrapper">
           <table>
-
             <thead>
               <tr>
-                <th>Sensor type</th>
-                <th>Value</th>
+                <th>Sensor Type</th>
+                <th>Measured Value</th>
                 <th>Sensor ID</th>
-                <th>Date & time</th>
+                <th>Date & Time</th>
                 <th>Status</th>
               </tr>
             </thead>
 
             <tbody>
-
               @for (reading of getSortedReadings(readings); track trackReading($index, reading)) {
                 <tr>
-
                   <td>
                     <span class="sensor-type">
                       {{ reading.type }}
@@ -657,7 +680,6 @@
                       </span>
                     }
                   </td>
-
                 </tr>
               } @empty {
                 <tr>
@@ -666,24 +688,48 @@
                   </td>
                 </tr>
               }
-
             </tbody>
           </table>
         </div>
 
       </section>
 
+      <!-- OCCUPANT PROFILE -->
+      <section class="panel occupant-profile-panel" id="occupant-profile">
+
+        <details>
+          <summary class="profile-details-heading">
+            <div>
+              <span class="section-eyebrow">USER MANAGEMENT</span>
+              <h2>Occupant Profile</h2>
+              <p>Manage occupant location and emergency notification preferences</p>
+            </div>
+
+            <span class="profile-toggle">＋</span>
+          </summary>
+
+          <div class="profile-details-content">
+            <app-occupant-profile></app-occupant-profile>
+          </div>
+        </details>
+
+      </section>
+
       <!-- FOOTER -->
       <footer class="page-footer">
-        Smart Building Emergency Monitoring System
-        <span>Data refresh interval: 5 seconds</span>
+        <div>
+          <strong>Smart Building Emergency System</strong>
+          <span>Intelligent Building Monitoring & Emergency Management</span>
+        </div>
+
+        <span>Data refresh interval: 5 seconds · © 2026</span>
       </footer>
 
     </main>
   </div>
 } @else {
   <div class="loading-screen">
-    <h2>Smart Building Emergency System</h2>
+    <h2>🏢 Smart Building Emergency System</h2>
     <p>Loading sensor readings...</p>
   </div>
 }

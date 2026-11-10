@@ -30,7 +30,11 @@ import { Incident } from './models/incident.model';
 import { RealtimeService } from './services/realtime.service';
 
 import { BuildingService } from './services/building.service';
-import { Building, BuildingFloor, BuildingRoom } from './models/building.model';
+import {
+  Building,
+  BuildingFloor,
+  BuildingRoom
+} from './models/building.model';
 
 import { OccupantProfileComponent } from './components/occupant-profile/occupant-profile';
 
@@ -60,18 +64,26 @@ export class App implements AfterViewInit, OnDestroy {
   incidents: Incident[] = [];
   incidentError = '';
 
-  get hasActiveIncidents(): boolean {
-    return this.incidents.some(
-      incident =>
-        incident.status === 'OPEN' ||
-        incident.status === 'ACKNOWLEDGED'
-    );
+  get openIncidentCount(): number {
+    return this.incidents.filter(incident =>
+      incident.status === 'OPEN' ||
+      incident.status === 'ACKNOWLEDGED'
+    ).length;
   }
 
-  // Dernières mesures reçues
+  get hasActiveIncidents(): boolean {
+    return this.openIncidentCount > 0;
+  }
+
+  private knownIncidentIds = new Set<string>();
+  private initialIncidentsLoaded = false;
+
+  // ==============================
+  // SENSOR READINGS
+  // ==============================
+
   currentReadings: SensorReading[] = [];
 
-  // État global de sécurité
   get hasSafetyAlert(): boolean {
     return (
       this.hasActiveIncidents ||
@@ -79,8 +91,13 @@ export class App implements AfterViewInit, OnDestroy {
     );
   }
 
-  private knownIncidentIds = new Set<string>();
-  private initialIncidentsLoaded = false;
+  readings$ = this.readingService.watchReadings().pipe(
+    catchError(error => {
+      console.error('Erreur lors de la récupération des mesures :', error);
+      return of([]);
+    }),
+    shareReplay({ bufferSize: 1, refCount: true })
+  );
 
   // ==============================
   // BUILDING MAP
@@ -128,9 +145,7 @@ export class App implements AfterViewInit, OnDestroy {
     this.selectedFloorId = floorId;
   }
 
-
   isRoomAffected(roomId: string): boolean {
-    // Vérifier les incidents actifs
     const hasActiveIncident = this.incidents.some(incident => {
       const active =
         incident.status === 'OPEN' ||
@@ -142,7 +157,6 @@ export class App implements AfterViewInit, OnDestroy {
       );
     });
 
-    // Vérifier les dernières mesures de gaz de cette salle
     const hasGasAlert = this.getLatestReadingsBySensor(
       this.currentReadings
     ).some(reading =>
@@ -152,7 +166,6 @@ export class App implements AfterViewInit, OnDestroy {
 
     return hasActiveIncident || hasGasAlert;
   }
-
 
   getRoomIncidents(roomId: string): Incident[] {
     return this.incidents.filter(incident => {
@@ -168,23 +181,13 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   getRoomStatusClass(room: BuildingRoom): string {
-    if (room.type === 'EXIT') {
-      return 'room-exit';
-    }
+    if (room.type === 'EXIT') return 'room-exit';
+    if (room.type === 'HALLWAY') return 'room-hallway';
+    if (room.type === 'STAIRCASE') return 'room-staircase';
 
-    if (room.type === 'HALLWAY') {
-      return 'room-hallway';
-    }
-
-    if (room.type === 'STAIRCASE') {
-      return 'room-staircase';
-    }
-
-    if (this.isRoomAffected(room.id)) {
-      return 'room-danger';
-    }
-
-    return 'room-safe';
+    return this.isRoomAffected(room.id)
+      ? 'room-danger'
+      : 'room-safe';
   }
 
   getAffectedRoomCount(): number {
@@ -228,7 +231,6 @@ export class App implements AfterViewInit, OnDestroy {
           });
 
           this.initialIncidentsLoaded = true;
-          console.log('Initialisation des incidents terminée.');
         } else if (notifyNew) {
           data.forEach(incident => {
             if (!this.knownIncidentIds.has(incident.id)) {
@@ -254,18 +256,12 @@ export class App implements AfterViewInit, OnDestroy {
   // ==============================
 
   private showIncidentNotification(incident: Incident): void {
-    if (!isPlatformBrowser(this.platformId)) {
-      console.warn('Notifications indisponibles côté serveur.');
-      return;
-    }
+    if (!isPlatformBrowser(this.platformId)) return;
 
     if (!('Notification' in window)) {
       console.error('API Notification non disponible.');
       return;
     }
-
-    console.log('Tentative de notification :', incident);
-    console.log('Permission notification :', Notification.permission);
 
     if (Notification.permission !== 'granted') {
       console.warn('Autorisation de notification non accordée.');
@@ -284,14 +280,6 @@ export class App implements AfterViewInit, OnDestroy {
         requireInteraction: true
       });
 
-      notification.onshow = () => {
-        console.log('NOTIFICATION AFFICHÉE :', incident.id);
-      };
-
-      notification.onerror = event => {
-        console.error('Erreur notification :', event);
-      };
-
       notification.onclick = () => {
         window.focus();
         notification.close();
@@ -301,18 +289,6 @@ export class App implements AfterViewInit, OnDestroy {
       console.error('Impossible de créer la notification :', error);
     }
   }
-
-  // ==============================
-  // SENSOR READINGS
-  // ==============================
-
-  readings$ = this.readingService.watchReadings().pipe(
-    catchError(error => {
-      console.error('Erreur lors de la récupération des mesures :', error);
-      return of([]);
-    }),
-    shareReplay({ bufferSize: 1, refCount: true })
-  );
 
   // ==============================
   // API STATUS
@@ -346,10 +322,11 @@ export class App implements AfterViewInit, OnDestroy {
 
     this.realtimeService.connect();
 
-    this.realtimeSubscription = this.realtimeService.events$.subscribe(event => {
-      console.log('Événement WebSocket reçu :', event);
-      this.loadIncidents(true);
-    });
+    this.realtimeSubscription =
+      this.realtimeService.events$.subscribe(event => {
+        console.log('Événement WebSocket reçu :', event);
+        this.loadIncidents(true);
+      });
   }
 
   // ==============================
@@ -373,9 +350,7 @@ export class App implements AfterViewInit, OnDestroy {
     const latestBySensor = new Map<string, SensorReading>();
 
     for (const reading of readings) {
-      if (!reading.sensorId) {
-        continue;
-      }
+      if (!reading.sensorId) continue;
 
       const current = latestBySensor.get(reading.sensorId);
 
@@ -396,9 +371,7 @@ export class App implements AfterViewInit, OnDestroy {
   // ==============================
 
   updateHistoryCharts(readings: SensorReading[]): void {
-    if (!this.gasCanvas || !this.temperatureCanvas) {
-      return;
-    }
+    if (!this.gasCanvas || !this.temperatureCanvas) return;
 
     this.updateOneChart(
       this.gasCanvas.nativeElement,
@@ -475,9 +448,7 @@ export class App implements AfterViewInit, OnDestroy {
           plugins: {
             legend: {
               display: true,
-              labels: {
-                color: '#cbd5e1'
-              }
+              labels: { color: '#cbd5e1' }
             }
           },
           scales: {
@@ -497,9 +468,7 @@ export class App implements AfterViewInit, OnDestroy {
             },
             y: {
               beginAtZero: true,
-              ticks: {
-                color: '#94a3b8'
-              },
+              ticks: { color: '#94a3b8' },
               grid: {
                 color: 'rgba(148, 163, 184, 0.12)'
               },
@@ -540,6 +509,12 @@ export class App implements AfterViewInit, OnDestroy {
     ).length;
   }
 
+  getLatestAlerts(readings: SensorReading[]): SensorReading[] {
+    return this.getLatestReadingsBySensor(readings).filter(
+      reading => this.isGasAlert(reading)
+    );
+  }
+
   // ==============================
   // SENSOR COUNTS
   // ==============================
@@ -553,13 +528,14 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   countActiveSensors(readings: SensorReading[]): number {
-    const now = Date.now();
-    const latest = this.getLatestReadingsBySensor(readings);
-
-    return latest.filter(reading => {
-      const age = now - this.toMilliseconds(reading.timestamp);
-      return age >= 0 && age <= 60000;
-    }).length;
+    // Un capteur est considéré actif dès qu'une mesure valide
+    // est présente dans le flux de mesures reçu.
+    return this.getLatestReadingsBySensor(readings).filter(
+      reading =>
+        !!reading.sensorId &&
+        Number.isFinite(reading.timestamp) &&
+        Number.isFinite(reading.value)
+    ).length;
   }
 
   // ==============================
@@ -595,27 +571,6 @@ export class App implements AfterViewInit, OnDestroy {
     const maximum = type === 'GAS' ? 2000 : 50;
 
     return Math.min(100, Math.max(0, (value / maximum) * 100));
-  }
-
-  // ==============================
-  // LATEST ALERTS
-  // ==============================
-
-  getLatestAlerts(readings: SensorReading[]): SensorReading[] {
-    const latestBySensor = new Map<string, SensorReading>();
-
-    for (const reading of readings) {
-      const key = `${reading.sensorId}-${reading.type}`;
-      const previous = latestBySensor.get(key);
-
-      if (!previous || reading.timestamp > previous.timestamp) {
-        latestBySensor.set(key, reading);
-      }
-    }
-
-    return Array.from(latestBySensor.values()).filter(
-      reading => reading.type === 'GAS' && reading.value > 1000
-    );
   }
 
   // ==============================
