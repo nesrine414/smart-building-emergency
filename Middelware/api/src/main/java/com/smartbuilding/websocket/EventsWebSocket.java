@@ -18,8 +18,35 @@ public class EventsWebSocket {
         return CDI.current().select(EventBroadcaster.class).get();
     }
 
-    @OnOpen
+        @OnOpen
     public void onOpen(Session session) {
+        // Extraire ?token= de la query string
+        String query = session.getRequestURI().getQuery();
+        String token = null;
+        if (query != null && query.contains("token=")) {
+            for (String param : query.split("&")) {
+                if (param.startsWith("token=")) {
+                    token = param.substring("token=".length());
+                    break;
+                }
+            }
+        }
+
+        // Valider le jeton avec JwtService
+        com.smartbuilding.security.JwtService jwtService = 
+            jakarta.enterprise.inject.spi.CDI.current().select(com.smartbuilding.security.JwtService.class).get();
+
+        if (token == null || jwtService.validateToken(token).isEmpty()) {
+            LOG.warning("Connexion WebSocket refusée : jeton JWT absent ou invalide.");
+            try {
+                session.close(new jakarta.websocket.CloseReason(
+                    jakarta.websocket.CloseReason.CloseCodes.CANNOT_ACCEPT, 
+                    "Jeton JWT invalide ou manquant"
+                ));
+            } catch (Exception ignored) {}
+            return;
+        }
+
         getBroadcaster().addSession(session);
     }
 

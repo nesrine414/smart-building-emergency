@@ -4,6 +4,7 @@ import com.smartbuilding.entities.Building;
 import com.smartbuilding.entities.Incident;
 import com.smartbuilding.entities.Room;
 import com.smartbuilding.entities.Sensor;
+import com.smartbuilding.security.RequireRole;
 import com.smartbuilding.services.ActuatorService;
 import com.smartbuilding.services.BuildingManager;
 import com.smartbuilding.services.IncidentService;
@@ -35,21 +36,21 @@ public class BuildingResource {
     @Inject
     private ActuatorService actuatorService;
 
-    // GET /api/buildings
+    // GET /api/buildings (Connecté requis : OCCUPANT ou ADMIN)
     @GET
     @Path("/buildings")
     public List<Building> getBuildings() {
         return buildingManager.getAllBuildings();
     }
 
-    // GET /api/buildings/{id}/rooms
+    // GET /api/buildings/{id}/rooms (Connecté requis)
     @GET
     @Path("/buildings/{id}/rooms")
     public List<Room> getRooms(@PathParam("id") String buildingId) {
         return buildingManager.getRoomsByBuilding(buildingId);
     }
 
-    // GET /api/buildings/{id}/status (SAFE ou ALERT)
+    // GET /api/buildings/{id}/status (Connecté requis)
     @GET
     @Path("/buildings/{id}/status")
     public Response getBuildingStatus(@PathParam("id") String buildingId) {
@@ -66,17 +67,18 @@ public class BuildingResource {
         )).build();
     }
 
-    // GET /api/sensors?roomId=room-101
+    // GET /api/sensors?roomId=room-101 (Connecté requis)
     @GET
     @Path("/sensors")
     public List<Sensor> getSensors(@QueryParam("roomId") String roomId) {
         return buildingManager.getSensors(roomId);
     }
 
-    // POST /api/rooms/{roomId}/actuators
+    // POST /api/rooms/{roomId}/actuators (Rôle ADMIN requis !)
     @POST
     @Path("/rooms/{roomId}/actuators")
     @Consumes(MediaType.APPLICATION_JSON)
+    @RequireRole("ADMIN")
     public Response triggerActuator(
             @PathParam("roomId") String roomId,
             Map<String, String> payload) {
@@ -90,14 +92,7 @@ public class BuildingResource {
         String actuator = payload.get("actuator");
         String action = payload.get("action");
 
-        try {
-            actuatorService.send(roomId, actuator, action);
-        } catch (IllegalArgumentException e) {
-            // actionneur ou action inconnus (ex. VENTILATION OPEN)
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(Map.of("error", e.getMessage()))
-                    .build();
-        }
+        actuatorService.send(roomId, actuator, action);
 
         return Response.ok(Map.of(
                 "status", "COMMAND_SENT",

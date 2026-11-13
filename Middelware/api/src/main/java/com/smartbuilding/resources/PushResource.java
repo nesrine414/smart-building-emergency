@@ -1,6 +1,7 @@
 package com.smartbuilding.resources;
 
 import com.smartbuilding.entities.PushSubscription;
+import com.smartbuilding.security.Public;
 import com.smartbuilding.services.PushService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -23,14 +24,15 @@ public class PushResource {
     @Inject
     private PushService pushService;
 
-    // 1. GET /api/push/public-key
+    // 1. GET /api/push/public-key (Accès Public)
     @GET
     @Path("/public-key")
+    @Public
     public Response getPublicKey() {
         return Response.ok(Map.of("publicKey", pushService.getPublicKey())).build();
     }
 
-    // 2. POST /api/push/subscriptions
+    // 2. POST /api/push/subscriptions (Connecté requis)
     @POST
     @Path("/subscriptions")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -67,7 +69,7 @@ public class PushResource {
                 .build();
     }
 
-    // 3. DELETE /api/push/subscriptions?endpoint=...
+    // 3. DELETE /api/push/subscriptions?endpoint=... (Connecté requis)
     @DELETE
     @Path("/subscriptions")
     public Response unsubscribe(@QueryParam("endpoint") String endpoint) {

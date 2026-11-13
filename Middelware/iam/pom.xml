@@ -16,7 +16,11 @@
     <packaging>war</packaging>
 
     <dependencies>
-
+        <!-- Module Core (User, JwtService, PasswordUtil) -->
+        <dependency>
+            <groupId>com.smartbuilding</groupId>
+            <artifactId>core</artifactId>
+        </dependency>
         <!-- Jakarta EE 11 -->
         <dependency>
             <groupId>jakarta.platform</groupId>

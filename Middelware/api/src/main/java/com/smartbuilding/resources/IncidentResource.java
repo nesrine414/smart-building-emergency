@@ -1,6 +1,7 @@
 package com.smartbuilding.resources;
 
 import com.smartbuilding.entities.Incident;
+import com.smartbuilding.security.RequireRole;
 import com.smartbuilding.services.IncidentService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -26,14 +27,14 @@ public class IncidentResource {
     @Inject
     private IncidentService incidentService;
 
-    // 1. GET /api/incidents?status=OPEN
+    // 1. GET /api/incidents?status=OPEN (Connecté requis : OCCUPANT ou ADMIN)
     @GET
     public Response getIncidents(@QueryParam("status") String status) {
         List<Incident> list = incidentService.findAll(status);
         return Response.ok(list).build();
     }
 
-    // 2. GET /api/incidents/{id}
+    // 2. GET /api/incidents/{id} (Connecté requis : OCCUPANT ou ADMIN)
     @GET
     @Path("/{id}")
     public Response getIncidentById(@PathParam("id") String id) {
@@ -42,9 +43,10 @@ public class IncidentResource {
                 .orElse(Response.status(Response.Status.NOT_FOUND).build());
     }
 
-    // 3. PATCH /api/incidents/{id} avec {"status": "ACKNOWLEDGED"} ou {"status": "RESOLVED"}
+    // 3. PATCH /api/incidents/{id} (Rôle ADMIN requis !)
     @PATCH
     @Path("/{id}")
+    @RequireRole("ADMIN")
     public Response updateStatus(@PathParam("id") String id, Map<String, String> payload) {
         if (payload == null || !payload.containsKey("status")) {
             return Response.status(Response.Status.BAD_REQUEST)
@@ -58,7 +60,7 @@ public class IncidentResource {
                 .orElse(Response.status(Response.Status.NOT_FOUND).build());
     }
 
-    // 4. POST /api/incidents (pratique pour créer manuellement un incident de test)
+    // 4. POST /api/incidents (Connecté requis)
     @POST
     public Response createIncident(Incident incident) {
         if (incident == null || incident.getType() == null || incident.getRoomId() == null) {

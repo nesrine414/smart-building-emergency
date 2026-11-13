@@ -61,7 +61,12 @@
             <version>5.11.3</version>
             <scope>test</scope>
         </dependency>
-
+                <!-- JWT (Nimbus JOSE + JWT) pour création et validation de jetons -->
+        <dependency>
+            <groupId>com.nimbusds</groupId>
+            <artifactId>nimbus-jose-jwt</artifactId>
+            <version>9.40</version>
+        </dependency>
         
     </dependencies>
 

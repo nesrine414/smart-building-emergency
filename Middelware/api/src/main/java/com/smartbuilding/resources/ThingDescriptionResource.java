@@ -1,5 +1,6 @@
 package com.smartbuilding.resources;
 
+import com.smartbuilding.security.Public;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -12,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 
 @Path("/td")
 @ApplicationScoped
+@Public // Accès public : la spécification WoT doit être consultable sans authentification
 public class ThingDescriptionResource {
 
     // 1. GET /api/td -> Renvoie le W3C Thing Description complet
@@ -21,7 +23,7 @@ public class ThingDescriptionResource {
         return readResourceFile("/wot/smart-building.td.jsonld", "application/td+json");
     }
 
-    // 2. GET /api/td/schemas/{name} -> Renvoie un schéma précis (property, action ou event)
+    // 2. GET /api/td/schemas/{name} -> Renvoie un schéma précis
     @GET
     @Path("/schemas/{name}")
     @Produces(MediaType.APPLICATION_JSON)
