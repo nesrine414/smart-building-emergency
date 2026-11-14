@@ -1,0 +1,311 @@
+
+@if (readings$ | async; as readings) {
+  <div class="dashboard">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">🏢</div>
+        <div>
+          <h2>Smart Building</h2>
+          <h2>Emergency System</h2>
+        </div>
+      </div>
+
+      <div class="menu-label">MAIN MENU</div>
+
+      <nav class="navigation">
+        <a href="#overview" class="nav-link active">
+          <span>▦</span> Dashboard
+        </a>
+        <a href="#sensors" class="nav-link">
+          <span>◉</span> Sensors
+        </a>
+        <a href="#alerts" class="nav-link">
+          <span>⚠</span> Alerts
+        </a>
+      </nav>
+
+      <!-- SYSTEM STATUS -->
+      <div class="sidebar-bottom">
+        <div class="system-status">
+
+          @if (apiOnline$ | async; as apiOnline) {
+            @if (apiOnline === true) {
+              <span class="status-dot online"></span>
+              <div>
+                <strong>
+                  <span class="system-status online">System online</span>
+                </strong>
+                <small>Monitoring active</small>
+              </div>
+            } @else {
+              <span class="status-dot offline"></span>
+              <div>
+                <strong>
+                  <span class="system-status offline">System offline</span>
+                </strong>
+                <small>API unavailable</small>
+              </div>
+            }
+          } @else {
+            <span class="status-dot offline"></span>
+            <div>
+              <strong>
+                <span class="system-status offline">Checking API...</span>
+              </strong>
+              <small>Please wait</small>
+            </div>
+          }
+
+        </div>
+
+        <div class="sidebar-footer">Smart Building © 2026</div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+
+      <!-- HEADER -->
+      <header class="topbar" id="overview">
+        <div>
+          <div class="breadcrumb">Pages / Dashboard</div>
+          <h1>Building Overview</h1>
+          <p>Monitor your building sensors and emergency conditions.</p>
+        </div>
+
+        <div class="topbar-right">
+          <span class="live-indicator">
+            <span class="status-dot"></span>
+            Live monitoring
+          </span>
+          <div class="profile">AD</div>
+        </div>
+      </header>
+
+      <!-- STATISTICS -->
+      <section class="stats-grid">
+
+        <article class="stat-card">
+          <div class="stat-top">
+            <span class="stat-icon blue">◉</span>
+            <span class="stat-label">TOTAL SENSORS</span>
+          </div>
+
+          <div class="stat-number">
+            {{ countUniqueSensors(readings) }}
+          </div>
+
+          <div class="stat-description">
+            Sensors reporting readings
+          </div>
+        </article>
+
+        <article class="stat-card">
+          <div class="stat-top">
+            <span class="stat-icon green">✓</span>
+            <span class="stat-label">ACTIVE SENSORS</span>
+          </div>
+
+          <div class="stat-number">
+            {{ countActiveSensors(readings) }}
+          </div>
+
+          <div class="stat-description">
+            Sensors with received data
+          </div>
+        </article>
+
+        <article class="stat-card">
+          <div class="stat-top">
+            <span class="stat-icon red">⚠</span>
+            <span class="stat-label">ACTIVE ALERTS</span>
+          </div>
+
+          <div class="stat-number alert-number">
+            {{ countAlerts(readings) }}
+          </div>
+
+          <div class="stat-description">
+            Gas readings above 1000 ppm
+          </div>
+        </article>
+
+      </section>
+
+      <!-- HISTORICAL CHARTS -->
+      <section class="charts-grid">
+
+        <article class="panel chart-panel">
+          <div class="panel-heading">
+            <div>
+              <h2>Gas concentration history</h2>
+              <p>Evolution of gas levels over time</p>
+            </div>
+            <span class="chart-icon red">GAS</span>
+          </div>
+
+          <div class="history-chart">
+            <canvas #gasCanvas></canvas>
+          </div>
+        </article>
+
+        <article class="panel chart-panel">
+          <div class="panel-heading">
+            <div>
+              <h2>Temperature history</h2>
+              <p>Evolution of temperature over time</p>
+            </div>
+            <span class="chart-icon orange">TEMP</span>
+          </div>
+
+          <div class="history-chart">
+            <canvas #temperatureCanvas></canvas>
+          </div>
+        </article>
+
+      </section>
+
+      <!-- RECENT ALERTS -->
+      <section class="panel alerts-panel" id="alerts">
+
+        <div class="panel-heading">
+          <div>
+            <h2>Recent Alerts</h2>
+            <p>Latest detected emergency conditions</p>
+          </div>
+
+          <span class="alert-counter">
+            {{ countAlerts(readings) }} active
+          </span>
+        </div>
+
+        @if (getLatestAlerts(readings).length > 0) {
+
+          @for (alert of getLatestAlerts(readings); track trackReading($index, alert)) {
+            <div class="alert-item">
+              <div class="alert-symbol">⚠</div>
+
+              <div class="alert-information">
+                <strong>High gas concentration detected</strong>
+
+                <span>
+                  Sensor {{ alert.sensorId }} ·
+                  {{ alert.value }} {{ alert.unit }}
+                </span>
+
+                <small>
+                  {{ alert.timestamp | date:'short' }}
+                </small>
+              </div>
+
+              <span class="status-badge danger">
+                HIGH ALERT
+              </span>
+            </div>
+          }
+
+        } @else {
+          <div class="no-alerts">
+            <span>✓</span>
+            No active alerts. All monitored readings are within the configured limits.
+          </div>
+        }
+
+      </section>
+
+      <!-- SENSOR TABLE -->
+      <section class="panel sensors-panel" id="sensors">
+
+        <div class="panel-heading">
+          <div>
+            <h2>Latest Sensor Readings</h2>
+            <p>Real-time monitoring of building sensors</p>
+          </div>
+
+          <span class="refresh-label">
+            <span class="status-dot"></span>
+            Refresh every 5 seconds
+          </span>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+
+            <thead>
+              <tr>
+                <th>Sensor type</th>
+                <th>Value</th>
+                <th>Sensor ID</th>
+                <th>Date & time</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+
+            <tbody>
+
+              @for (reading of getSortedReadings(readings); track trackReading($index, reading)) {
+                <tr>
+
+                  <td>
+                    <span class="sensor-type">
+                      {{ reading.type }}
+                    </span>
+                  </td>
+
+                  <td>
+                    <strong [class.gas-alert]="isGasAlert(reading)">
+                      {{ reading.value }} {{ reading.unit }}
+                    </strong>
+                  </td>
+
+                  <td class="sensor-id">
+                    {{ reading.sensorId }}
+                  </td>
+
+                  <td class="date-cell">
+                    {{ reading.timestamp | date:'short' }}
+                  </td>
+
+                  <td>
+                    @if (isGasAlert(reading)) {
+                      <span class="status-badge danger">
+                        High alert
+                      </span>
+                    } @else {
+                      <span class="status-badge normal">
+                        Normal
+                      </span>
+                    }
+                  </td>
+
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="5" class="empty-state">
+                    No sensor readings available.
+                  </td>
+                </tr>
+              }
+
+            </tbody>
+          </table>
+        </div>
+
+      </section>
+
+      <!-- FOOTER -->
+      <footer class="page-footer">
+        Smart Building Emergency Monitoring System
+        <span>Data refresh interval: 5 seconds</span>
+      </footer>
+
+    </main>
+  </div>
+} @else {
+  <div class="loading-screen">
+    <h2>Smart Building Emergency System</h2>
+    <p>Loading sensor readings...</p>
+  </div>
+}

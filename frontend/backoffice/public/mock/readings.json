@@ -1,0 +1,38 @@
+
+[
+  {
+    "sensorId": "gas-101",
+    "type": "GAS",
+    "value": 1250,
+    "unit": "ppm",
+    "timestamp": 1793980800000
+  },
+  {
+    "sensorId": "smoke-101",
+    "type": "SMOKE",
+    "value": 25,
+    "unit": "ppm",
+    "timestamp": 1793980790000
+  },
+  {
+    "sensorId": "temp-101",
+    "type": "TEMPERATURE",
+    "value": 24,
+    "unit": "C",
+    "timestamp": 1793980780000
+  },
+  {
+    "sensorId": "humidity-101",
+    "type": "HUMIDITY",
+    "value": 45,
+    "unit": "%",
+    "timestamp": 1793980770000
+  },
+  {
+    "sensorId": "motion-101",
+    "type": "MOTION",
+    "value": 1,
+    "unit": "bool",
+    "timestamp": 1793980760000
+  }
+]
