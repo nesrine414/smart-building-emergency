@@ -13,19 +13,29 @@ backend sur smartbuilding/{buildingId}/{roomId}/cmd, les affiche et les confirme
 smartbuilding/{buildingId}/{roomId}/actuator. Quand la ventilation tourne pendant une
 fuite de gaz, le gaz redescend.
 
+Sécurité (étape 3, contrat 5) : le simulateur se connecte avec le compte sbe-device. Son mot de
+passe est lu dans la variable MQTT_DEVICE_PASSWORD, ou dans le fichier .env à la racine du dépôt.
+Avec --tls, la connexion est chiffrée (port 8883) et le certificat du broker est vérifié avec la
+CA du projet (infra/mqtt/certs/ca.pem).
+
 Exemples :
     python simulator.py                         # scénario normal, toutes les 2 s
     python simulator.py --scenario gas-leak     # fuite de gaz dans la 1re salle
     python simulator.py --scenario fire --count 20
     python simulator.py --host 192.168.1.20 --interval 1
+    python simulator.py --tls --scenario gas-leak          # étape 3 : TLS + identifiants du .env
+    python simulator.py --tls --rooms 201,101,102 --scenario fire   # incendie en salle 201
 """
 
 import argparse
 import json
+import os
 import random
+import ssl
 import sys
 import threading
 import time
+from pathlib import Path
 
 import paho.mqtt.client as mqtt
 
@@ -46,6 +56,23 @@ SENSOR_PREFIX = {
     "HUMIDITY": "hum",
     "MOTION": "motion",
 }
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_CAFILE = REPO_ROOT / "infra" / "mqtt" / "certs" / "ca.pem"
+DEVICE_ACCOUNT = "sbe-device"
+
+
+def load_env_file(path):
+    """Charge KEY=VALUE depuis un fichier .env sans écraser les variables déjà définies."""
+    if not path.exists():
+        return
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        os.environ.setdefault(key.strip(), value.strip().strip("\"'"))
+
 
 # Nombre de cycles pour passer de la valeur normale à la valeur d'alerte
 RAMP_STEPS = 30
@@ -80,8 +107,11 @@ ACTUATOR_LABELS = {
 
 
 def on_connect(client, userdata, flags, reason_code, properties):
-    building = userdata["building"]
-    client.subscribe(f"smartbuilding/{building}/+/cmd", qos=1)
+    userdata["connack"] = reason_code
+    if not reason_code.is_failure:
+        building = userdata["building"]
+        client.subscribe(f"smartbuilding/{building}/+/cmd", qos=1)
+    userdata["connected"].set()
 
 
 def on_message(client, userdata, msg):
@@ -160,7 +190,16 @@ def build_message(sensor_type, room_number, value):
 def parse_args():
     parser = argparse.ArgumentParser(description="Simulateur de capteurs MQTT")
     parser.add_argument("--host", default="localhost", help="adresse du broker (défaut : localhost)")
-    parser.add_argument("--port", type=int, default=1883, help="port du broker (défaut : 1883)")
+    parser.add_argument("--port", type=int, default=None,
+                        help="port du broker (défaut : 8883 avec --tls, 1883 sinon)")
+    parser.add_argument("--username", default=None,
+                        help=f"compte MQTT (défaut : {DEVICE_ACCOUNT} si un mot de passe est disponible)")
+    parser.add_argument("--password", default=None,
+                        help="mot de passe MQTT (défaut : MQTT_DEVICE_PASSWORD, variable ou .env). "
+                             "Préférer le .env : un mot de passe tapé ici reste dans l'historique")
+    parser.add_argument("--tls", action="store_true", help="connexion chiffrée MQTTS (étape 3)")
+    parser.add_argument("--cafile", default=str(DEFAULT_CAFILE),
+                        help="certificat de la CA du projet pour vérifier le broker (défaut : infra/mqtt/certs/ca.pem)")
     parser.add_argument("--building", default="bld-01", help="identifiant du bâtiment (défaut : bld-01)")
     parser.add_argument("--rooms", default="101,102,201",
                         help="numéros des salles, séparés par des virgules (défaut : 101,102,201)")
@@ -170,28 +209,69 @@ def parse_args():
                         help="secondes entre deux envois (défaut : 2)")
     parser.add_argument("--count", type=int, default=0,
                         help="nombre de cycles puis arrêt (défaut : 0 = sans fin)")
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.port is None:
+        args.port = 8883 if args.tls else 1883
+    if args.password is None:
+        args.password = os.environ.get("MQTT_DEVICE_PASSWORD") or None
+    if args.username is None and args.password:
+        args.username = DEVICE_ACCOUNT
+    return args
+
+
+def connect(client, args):
+    """Se connecte et attend la réponse du broker. Quitte avec un message clair en cas d'échec."""
+    if args.username:
+        client.username_pw_set(args.username, args.password)
+    if args.tls:
+        if not Path(args.cafile).exists():
+            sys.exit(f"Certificat de la CA introuvable : {args.cafile}\n"
+                     "Génère-le avec infra/mqtt/gen-certs.ps1 (ou .sh), ou indique --cafile.")
+        client.tls_set(ca_certs=args.cafile)
+    try:
+        client.connect(args.host, args.port, keepalive=60)
+    except ssl.SSLCertVerificationError as error:
+        sys.exit(f"Certificat du broker refusé ({error.verify_message}).\n"
+                 f"Vérifie --cafile et que --host ({args.host}) figure dans le certificat (localhost, 127.0.0.1...).")
+    except ssl.SSLError as error:
+        sys.exit(f"Échec TLS avec {args.host}:{args.port} ({error}). Le port est-il bien le port TLS (8883) ?")
+    except OSError as error:
+        sys.exit(f"Impossible de joindre le broker {args.host}:{args.port} ({error}).\n"
+                 "Vérifie que HiveMQ tourne : docker ps")
+
+    client.loop_start()
+    userdata = client.user_data_get()
+    if not userdata["connected"].wait(15):
+        client.loop_stop()
+        sys.exit(f"Pas de réponse du broker {args.host}:{args.port} "
+                 "(port TLS sans --tls, ou l'inverse ?)")
+    reason = userdata["connack"]
+    if reason.is_failure:
+        client.loop_stop()
+        if str(reason) in ("Bad user name or password", "Not authorized"):
+            if not args.username:
+                sys.exit(f"Broker : {reason}. Le broker exige un compte : mets MQTT_DEVICE_PASSWORD dans le .env "
+                         "à la racine du dépôt (ou utilise --username / --password).")
+            sys.exit(f"Broker : {reason}. Mot de passe refusé pour {args.username} : il doit être celui du .env "
+                     "qui a servi à générer credentials.xml (infra/mqtt/gen_credentials.py).")
+        sys.exit(f"Broker : connexion refusée ({reason}).")
 
 
 def main():
+    load_env_file(REPO_ROOT / ".env")
     args = parse_args()
     rooms = [r.strip() for r in args.rooms.split(",") if r.strip()]
     if not rooms:
         sys.exit("Erreur : il faut au moins une salle dans --rooms.")
 
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=f"sbe-simulator-{random.randint(1000, 9999)}",
-                         userdata={"building": args.building})
+                         userdata={"building": args.building, "connected": threading.Event(), "connack": None})
     client.on_connect = on_connect   # s'abonne aux commandes des actionneurs
     client.on_message = on_message
 
-    try:
-        client.connect(args.host, args.port, keepalive=60)
-    except OSError as error:
-        sys.exit(f"Impossible de joindre le broker {args.host}:{args.port} ({error}).\n"
-                 "Vérifie que HiveMQ tourne : docker ps")
-
-    client.loop_start()
-    print(f"Connecté à {args.host}:{args.port}, scénario '{args.scenario}', "
+    connect(client, args)
+    mode = ("TLS" if args.tls else "sans chiffrement") + (f", compte {args.username}" if args.username else ", anonyme")
+    print(f"Connecté à {args.host}:{args.port} ({mode}), scénario '{args.scenario}', "
           f"salles {', '.join(rooms)}. Ctrl+C pour arrêter.")
 
     global current_step

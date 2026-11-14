@@ -27,7 +27,25 @@ python simulator.py --count 5 --interval 1   # 5 cycles, un par seconde, puis ar
 ```
 
 Options : `--host`, `--port`, `--building` (défaut `bld-01`), `--rooms` (défaut `101,102,201`),
-`--scenario`, `--interval`, `--count`.
+`--scenario`, `--interval`, `--count`, et depuis l'étape 3 `--tls`, `--cafile`, `--username`, `--password`.
+
+Le scénario touche la **première** salle de `--rooms` : `--rooms 201,101,102 --scenario fire` simule
+un incendie en salle 201.
+
+## Broker sécurisé (étape 3)
+
+Une fois le broker protégé (voir `infra/mqtt/README.md`), le simulateur se connecte avec le compte
+`sbe-device`. Son mot de passe est lu automatiquement dans la variable `MQTT_DEVICE_PASSWORD`, ou dans
+le fichier `.env` à la racine du dépôt : rien à taper.
+
+```bash
+python simulator.py --tls --scenario gas-leak     # port 8883, chiffré, certificat du broker vérifié
+python simulator.py --scenario gas-leak           # port 1883 (transition), avec identifiants
+```
+
+Avec `--tls`, le port par défaut devient 8883 et le certificat du broker est vérifié avec la CA du
+projet (`infra/mqtt/certs/ca.pem`, ou `--cafile`). En cas de refus, le simulateur s'arrête avec la
+cause : mot de passe refusé, certificat refusé, ou port TLS utilisé sans `--tls`.
 
 À chaque cycle, chaque salle envoie 5 mesures (`GAS`, `SMOKE`, `TEMPERATURE`, `HUMIDITY`, `MOTION`).
 Dans un scénario, la valeur d'alerte est atteinte en 30 cycles (1 minute avec l'intervalle par défaut).
@@ -55,4 +73,5 @@ le nouvel état sur `smartbuilding/{bâtiment}/{salle}/actuator` :
 Pendant `--scenario gas-leak`, quand la ventilation est allumée, le gaz monte encore 8 cycles
 puis redescend de 80 ppm par cycle jusqu'à la normale.
 
-Pour voir passer les messages : MQTT Explorer, connecté à `localhost:1883`, abonné à `smartbuilding/#`.
+Pour voir passer les messages : MQTT Explorer, connecté à `localhost:1883`, abonné à `smartbuilding/#`
+(avec le broker sécurisé : voir `infra/mqtt/README.md`).

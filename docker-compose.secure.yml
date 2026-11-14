@@ -1,0 +1,23 @@
+# Broker MQTT sécurisé (étape 3, contrat 5) : identifiants (extension File RBAC) et TLS sur 8883.
+# S'ajoute à docker-compose.yml :
+#
+#     docker compose -f docker-compose.yml -f docker-compose.secure.yml up -d
+#
+# Avant le premier lancement (voir infra/mqtt/README.md) : .env rempli, extension installée,
+# certificats et credentials.xml générés. Sans eux, Docker refuse de démarrer ou HiveMQ refuse
+# tous les clients : la configuration échoue fermée, jamais ouverte.
+services:
+  hivemq:
+    ports:
+      - "8883:8883"
+    environment:
+      # L'image active par défaut l'extension "allow-all", qui accepte n'importe quel client.
+      # "false" la supprime au démarrage : seule l'extension File RBAC décide.
+      HIVEMQ_ALLOW_ALL_CLIENTS: "false"
+      MQTT_KEYSTORE_PASSWORD: ${MQTT_KEYSTORE_PASSWORD:?MQTT_KEYSTORE_PASSWORD manque dans .env}
+    volumes:
+      - ./infra/mqtt/hivemq/${HIVEMQ_CONFIG:-config.xml}:/opt/hivemq/conf/config.xml:ro
+      - ./infra/mqtt/certs/broker.jks:/opt/hivemq/certs/broker.jks:ro
+      - ./infra/mqtt/extensions/hivemq-file-rbac-extension:/opt/hivemq/extensions/hivemq-file-rbac-extension
+      - ./infra/mqtt/rbac/config.xml:/opt/hivemq/extensions/hivemq-file-rbac-extension/conf/config.xml:ro
+      - ./infra/mqtt/rbac/credentials.xml:/opt/hivemq/extensions/hivemq-file-rbac-extension/conf/credentials.xml:ro

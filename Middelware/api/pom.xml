@@ -37,6 +37,14 @@
             <artifactId>langchain4j-ollama</artifactId>
             <version>0.35.0</version>
         </dependency>
+
+    <!--   Tests unitaires (configuration MQTT, étape 3)   -->
+    <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter</artifactId>
+        <version>5.11.3</version>
+        <scope>test</scope>
+    </dependency>
 </dependencies>
 <build>
 <finalName>api</finalName>

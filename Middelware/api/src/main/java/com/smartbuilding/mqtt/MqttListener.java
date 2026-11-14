@@ -13,11 +13,14 @@ import jakarta.inject.Inject;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbException;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.net.ssl.SSLException;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallbackExtended;
 import org.eclipse.paho.client.mqttv3.MqttClient;
@@ -37,8 +40,14 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
  *
  * Publie les commandes des actionneurs via publish() (utilisé par MqttActuatorService).
  *
- * Adresse du broker : propriété système "mqtt.broker.url" ou variable d'environnement
- * MQTT_BROKER_URL, sinon tcp://localhost:1883.
+ * Connexion (étape 3, contrat 5) : voir {@link MqttSettings}. En production de démo :
+ *   MQTT_BROKER_URL=ssl://localhost:8883, MQTT_USERNAME=sbe-backend, MQTT_PASSWORD=...,
+ *   MQTT_TRUSTSTORE=.../infra/mqtt/certs/truststore.jks, MQTT_TRUSTSTORE_PASSWORD=...
+ * (infra/mqtt/backend-env.ps1 les prépare à partir du .env). Sans ces variables, le comportement
+ * des étapes 1 et 2 est conservé : tcp://localhost:1883 sans identifiant.
+ *
+ * Le compte sbe-backend ne peut publier que sur smartbuilding/+/+/cmd : toute autre publication
+ * serait refusée et HiveMQ couperait la connexion (reconnexion automatique ensuite).
  */
 @ApplicationScoped
 public class MqttListener implements MqttCallbackExtended {
@@ -48,6 +57,8 @@ public class MqttListener implements MqttCallbackExtended {
     private static final String TOPIC = "smartbuilding/#";
     private static final int QOS = 1;
     private static final long RETRY_SECONDS = 5;
+    /** Identifiants refusés : inutile d'insister toutes les 5 s, l'erreur est dans la configuration. */
+    private static final long AUTH_RETRY_SECONDS = 30;
 
     @Inject
     ReadingService readingService;
@@ -60,10 +71,28 @@ public class MqttListener implements MqttCallbackExtended {
 
     private final Jsonb jsonb = JsonbBuilder.create();
     private volatile MqttClient client;
+    private volatile MqttConnectOptions options;
     private volatile boolean stopping;
+    private final MqttSettings settings = MqttSettings.fromEnvironment();
 
     /** Appelée une fois, quand l'application a démarré dans WildFly. */
     void onStart(@Observes @Initialized(ApplicationScoped.class) Object event) {
+        String problem = settings.problem();
+        if (problem != null) {
+            LOG.severe("Configuration MQTT invalide, pas de connexion au broker : " + problem);
+            return;
+        }
+        try {
+            options = settings.toConnectOptions();
+        } catch (GeneralSecurityException | IOException e) {
+            LOG.log(Level.SEVERE, "Truststore MQTT inutilisable (" + settings + ") : mauvais mot de passe"
+                    + " ou fichier abime. Pas de connexion au broker.", e);
+            return;
+        }
+        if (!settings.hasCredentials()) {
+            LOG.warning("MQTT_USERNAME absent : connexion anonyme, refusee par un broker protege (etape 3).");
+        }
+        LOG.info("Broker MQTT : " + settings);
         // Connexion en arrière-plan pour ne pas bloquer le déploiement si le broker est absent.
         scheduler.submit(this::connect);
     }
@@ -74,24 +103,38 @@ public class MqttListener implements MqttCallbackExtended {
         if (stopping) {
             return;
         }
-        String brokerUrl = brokerUrl();
+        String brokerUrl = settings.brokerUrl();
         try {
             if (client == null) {
                 String clientId = "sbe-backend-" + UUID.randomUUID().toString().substring(0, 8);
                 client = new MqttClient(brokerUrl, clientId, new MemoryPersistence());
                 client.setCallback(this);
             }
-            MqttConnectOptions options = new MqttConnectOptions();
-            options.setAutomaticReconnect(true);   // reconnexion auto après une coupure
-            options.setCleanSession(true);
-            options.setConnectionTimeout(10);
+            // Reconnexion automatique après une coupure ; l'abonnement est refait dans connectComplete().
             client.connect(options);
-            // L'abonnement est fait dans connectComplete(), aussi après chaque reconnexion.
         } catch (MqttException e) {
-            LOG.warning("Broker MQTT injoignable (" + brokerUrl + ") : " + e.getMessage()
-                    + ". Nouvel essai dans " + RETRY_SECONDS + " s.");
-            scheduler.schedule(this::connect, RETRY_SECONDS, TimeUnit.SECONDS);
+            boolean refused = e.getReasonCode() == MqttException.REASON_CODE_FAILED_AUTHENTICATION
+                    || e.getReasonCode() == MqttException.REASON_CODE_NOT_AUTHORIZED;
+            long delay = refused ? AUTH_RETRY_SECONDS : RETRY_SECONDS;
+            LOG.warning("Connexion MQTT impossible (" + settings + ") : " + describe(e)
+                    + ". Nouvel essai dans " + delay + " s.");
+            scheduler.schedule(this::connect, delay, TimeUnit.SECONDS);
         }
+    }
+
+    /** Message d'erreur avec la piste de correction la plus probable. */
+    static String describe(MqttException e) {
+        int code = e.getReasonCode();
+        if (code == MqttException.REASON_CODE_FAILED_AUTHENTICATION || code == MqttException.REASON_CODE_NOT_AUTHORIZED) {
+            return "identifiants refuses par le broker (verifier MQTT_USERNAME / MQTT_PASSWORD et credentials.xml)";
+        }
+        for (Throwable cause = e.getCause(); cause != null; cause = cause.getCause()) {
+            if (cause instanceof SSLException) {
+                return "echec TLS : " + cause.getMessage()
+                        + " (verifier MQTT_TRUSTSTORE et que l'URL utilise un nom du certificat, ex. localhost)";
+            }
+        }
+        return e.getMessage() + (e.getCause() != null ? " - " + e.getCause().getMessage() : "");
     }
 
     private void subscribe() {
@@ -230,11 +273,4 @@ public class MqttListener implements MqttCallbackExtended {
         }
     }
 
-    private static String brokerUrl() {
-        String value = System.getProperty("mqtt.broker.url");
-        if (value == null || value.isBlank()) {
-            value = System.getenv("MQTT_BROKER_URL");
-        }
-        return (value == null || value.isBlank()) ? "tcp://localhost:1883" : value;
-    }
 }
