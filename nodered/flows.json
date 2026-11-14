@@ -1,0 +1,236 @@
+[
+    {
+        "id": "tab-edge-floor1",
+        "type": "tab",
+        "label": "Edge Gateway - Étage 1",
+        "disabled": false,
+        "info": "Passerelle Edge traitant les capteurs des salles 101 et 102"
+    },
+    {
+        "id": "tab-edge-floor2",
+        "type": "tab",
+        "label": "Edge Gateway - Étage 2",
+        "disabled": false,
+        "info": "Passerelle Edge traitant les capteurs de la salle 201"
+    },
+    {
+        "id": "mqtt-broker-config",
+        "type": "mqtt-broker",
+        "name": "HiveMQ Local",
+        "broker": "host.docker.internal",
+        "port": "1883",
+        "clientid": "nodered-edge-gateway",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true
+    },
+    {
+        "id": "inject-gas-101",
+        "type": "inject",
+        "z": "tab-edge-floor1",
+        "name": "Capteur Gaz 101 (Toutes les 2s)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "2",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 210,
+        "y": 120,
+        "wires": [
+            [
+                "fn-gas-101"
+            ]
+        ]
+    },
+    {
+        "id": "fn-gas-101",
+        "type": "function",
+        "z": "tab-edge-floor1",
+        "name": "Edge Prétraitement - Gaz 101",
+        "func": "let val = 250 + Math.random() * 50;\nmsg.topic = 'smartbuilding/bld-01/room-101/GAS';\nmsg.payload = {\n    sensorId: 'gas-101',\n    type: 'GAS',\n    value: Math.round(val * 10) / 10,\n    unit: 'ppm',\n    timestamp: Date.now()\n};\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 490,
+        "y": 120,
+        "wires": [
+            [
+                "mqtt-out-101"
+            ]
+        ]
+    },
+    {
+        "id": "mqtt-out-101",
+        "type": "mqtt out",
+        "z": "tab-edge-floor1",
+        "name": "MQTT HiveMQ",
+        "topic": "",
+        "qos": "1",
+        "retain": "false",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "mqtt-broker-config",
+        "x": 760,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "inject-temp-102",
+        "type": "inject",
+        "z": "tab-edge-floor1",
+        "name": "Capteur Température 102 (Toutes les 3s)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "3",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.5,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 230,
+        "y": 200,
+        "wires": [
+            [
+                "fn-temp-102"
+            ]
+        ]
+    },
+    {
+        "id": "fn-temp-102",
+        "type": "function",
+        "z": "tab-edge-floor1",
+        "name": "Edge Prétraitement - Temp 102",
+        "func": "let val = 22 + Math.random() * 2;\nmsg.topic = 'smartbuilding/bld-01/room-102/TEMPERATURE';\nmsg.payload = {\n    sensorId: 'temp-102',\n    type: 'TEMPERATURE',\n    value: Math.round(val * 10) / 10,\n    unit: 'C',\n    timestamp: Date.now()\n};\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 500,
+        "y": 200,
+        "wires": [
+            [
+                "mqtt-out-102",
+                "52f58ff72da52ece"
+            ]
+        ]
+    },
+    {
+        "id": "mqtt-out-102",
+        "type": "mqtt out",
+        "z": "tab-edge-floor1",
+        "name": "MQTT HiveMQ",
+        "topic": "",
+        "qos": "1",
+        "retain": "false",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "mqtt-broker-config",
+        "x": 900,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "52f58ff72da52ece",
+        "type": "debug",
+        "z": "tab-edge-floor1",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 680,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "inject-smoke-201",
+        "type": "inject",
+        "z": "tab-edge-floor2",
+        "name": "Capteur Fumée 201 (Étage 2)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "2",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.2,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 210,
+        "y": 140,
+        "wires": [
+            [
+                "fn-smoke-201"
+            ]
+        ]
+    },
+    {
+        "id": "fn-smoke-201",
+        "type": "function",
+        "z": "tab-edge-floor2",
+        "name": "Edge Prétraitement - Fumée 201",
+        "func": "let val = 15 + Math.random() * 5;\nmsg.topic = 'smartbuilding/bld-01/room-201/SMOKE';\nmsg.payload = {\n    sensorId: 'smoke-201',\n    type: 'SMOKE',\n    value: Math.round(val * 10) / 10,\n    unit: 'ppm',\n    timestamp: Date.now()\n};\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 500,
+        "y": 140,
+        "wires": [
+            [
+                "mqtt-out-201"
+            ]
+        ]
+    },
+    {
+        "id": "mqtt-out-201",
+        "type": "mqtt out",
+        "z": "tab-edge-floor2",
+        "name": "MQTT HiveMQ",
+        "topic": "",
+        "qos": "1",
+        "retain": "false",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "mqtt-broker-config",
+        "x": 760,
+        "y": 140,
+        "wires": []
+    }
+]

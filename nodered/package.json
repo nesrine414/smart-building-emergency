@@ -1,0 +1,7 @@
+{
+    "name": "smartbuilding-nodered-edge",
+    "version": "1.0.0",
+    "description": "Passerelle Multi-Edge Node-RED pour le prétraitement des capteurs du bâtiment",
+    "private": true,
+    "dependencies": {}
+}
