@@ -18,7 +18,7 @@ public class AiAgentFactory {
     @ApplicationScoped
     public EmergencyAiAgent createEmergencyAiAgent() {
         String baseUrl = System.getProperty("ollama.base.url", "http://localhost:11434");
-        String modelName = System.getProperty("ollama.model.name", "qwen2.5:7b");
+        String modelName = System.getProperty("ollama.model.name", "llama3.2:3b");
 
         ChatLanguageModel chatModel = OllamaChatModel.builder()
                 .baseUrl(baseUrl)

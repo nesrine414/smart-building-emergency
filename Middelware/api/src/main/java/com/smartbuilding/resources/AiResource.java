@@ -9,7 +9,6 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -28,9 +27,6 @@ public class AiResource {
     @Context
     private SecurityContext securityContext;
 
-    @Context
-    private ContainerRequestContext requestContext;
-
     // 1. POST /api/ai/explain-incident
     @POST
     @Path("/explain-incident")
@@ -43,15 +39,9 @@ public class AiResource {
 
         String incidentId = payload.get("incidentId");
 
-        // Récupérer le vrai userId (sub du token JWT injecté par SecurityFilter)
-        String userId = (String) requestContext.getProperty("userId");
-        String role = (String) requestContext.getProperty("userRole");
-        if (userId == null) {
-            userId = securityContext.getUserPrincipal() != null ? securityContext.getUserPrincipal().getName() : "user";
-        }
-        if (role == null) {
-            role = securityContext.isUserInRole("ADMIN") ? "ADMIN" : "OCCUPANT";
-        }
+        // Récupérer le vrai userId (sub du token JWT transmis par SecurityFilter)
+        String userId = securityContext.getUserPrincipal() != null ? securityContext.getUserPrincipal().getName() : "user";
+        String role = securityContext.isUserInRole("ADMIN") ? "ADMIN" : "OCCUPANT";
 
         try {
             Map<String, Object> result = aiService.explainIncident(incidentId, userId, role);
@@ -76,15 +66,9 @@ public class AiResource {
         String question = payload.get("question");
         String roomId = payload.get("roomId");
 
-        // Récupérer le vrai userId (sub du token JWT injecté par SecurityFilter)
-        String userId = (String) requestContext.getProperty("userId");
-        String role = (String) requestContext.getProperty("userRole");
-        if (userId == null) {
-            userId = securityContext.getUserPrincipal() != null ? securityContext.getUserPrincipal().getName() : "user";
-        }
-        if (role == null) {
-            role = securityContext.isUserInRole("ADMIN") ? "ADMIN" : "OCCUPANT";
-        }
+        // Récupérer le vrai userId (sub du token JWT transmis par SecurityFilter)
+        String userId = securityContext.getUserPrincipal() != null ? securityContext.getUserPrincipal().getName() : "user";
+        String role = securityContext.isUserInRole("ADMIN") ? "ADMIN" : "OCCUPANT";
 
         try {
             Map<String, Object> result = aiService.askQuestion(question, roomId, userId, role);

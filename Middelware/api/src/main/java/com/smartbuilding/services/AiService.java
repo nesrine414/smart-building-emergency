@@ -141,7 +141,7 @@ public class AiService {
         List<String> toolsUsed = new ArrayList<>();
         int inputTokens = 0;
         int outputTokens = 0;
-        String modelName = System.getProperty("ollama.model.name", "qwen2.5:7b");
+        String modelName = System.getProperty("ollama.model.name", "llama3.2:3b");
 
         // Démarrer le vrai tracking des outils appelés par le modèle
         buildingTools.startTracking();

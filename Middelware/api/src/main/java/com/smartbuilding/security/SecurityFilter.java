@@ -67,13 +67,14 @@ public class SecurityFilter implements ContainerRequestFilter {
         String role = (String) claims.getClaim("role");
         String username = (String) claims.getClaim("username");
         String userId = claims.getSubject(); // Vrai identifiant sub (UUID) du compte !
-        requestContext.setProperty("userId", userId);
+        
         requestContext.setProperty("userRole", role);
         // Injecter le SecurityContext pour JAX-RS
+                // Injecter le SecurityContext personnalisé portant le vrai userId (sub) et le role
         requestContext.setSecurityContext(new SecurityContext() {
             @Override
             public Principal getUserPrincipal() {
-                return () -> username;
+                return () -> userId; // Le Principal retourne le vrai sub (UUID) du compte !
             }
 
             @Override
