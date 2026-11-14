@@ -24,7 +24,19 @@
 <artifactId>org.eclipse.paho.client.mqttv3</artifactId>
 <version>1.2.5</version>
 </dependency>
+        <!-- LangChain4j Core -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j</artifactId>
+            <version>0.35.0</version>
+        </dependency>
 
+        <!-- LangChain4j Ollama (Communication avec le LLM local) -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-ollama</artifactId>
+            <version>0.35.0</version>
+        </dependency>
 </dependencies>
 <build>
 <finalName>api</finalName>

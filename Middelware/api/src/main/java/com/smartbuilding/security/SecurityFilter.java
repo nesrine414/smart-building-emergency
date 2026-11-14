@@ -66,7 +66,9 @@ public class SecurityFilter implements ContainerRequestFilter {
         JWTClaimsSet claims = optClaims.get();
         String role = (String) claims.getClaim("role");
         String username = (String) claims.getClaim("username");
-
+        String userId = claims.getSubject(); // Vrai identifiant sub (UUID) du compte !
+        requestContext.setProperty("userId", userId);
+        requestContext.setProperty("userRole", role);
         // Injecter le SecurityContext pour JAX-RS
         requestContext.setSecurityContext(new SecurityContext() {
             @Override
