@@ -1,0 +1,12 @@
+# Pipeline MLOps (étape 3). Testé avec deux jeux de versions :
+#   scikit-learn 1.5.2 / pandas 2.2.3 / numpy 2.1.3 / paho-mqtt 2.1.0
+#   scikit-learn 1.9.1 / pandas 3.0.5 / numpy 2.5.3 / paho-mqtt 2.2.0
+# scikit-learn >= 1.4 est obligatoire (contrainte de monotonie des forêts aléatoires).
+# Un modèle .joblib n'est relu de façon sûre qu'avec la version de scikit-learn qui l'a créé :
+# sur un autre PC, relancer train.py plutôt que copier le fichier.
+numpy>=1.26
+pandas>=2.2
+scikit-learn>=1.5
+joblib>=1.3
+paho-mqtt>=2.0
+pytest>=8.0

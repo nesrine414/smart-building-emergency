@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  Configuration de l'extension HiveMQ File RBAC (monté dans
+  /opt/hivemq/extensions/hivemq-file-rbac-extension/conf/config.xml).
+-->
+<extension-configuration>
+
+    <!-- credentials.xml est relu toutes les 60 s : un changement de mot de passe ne demande pas de redémarrage
+         (les clients déjà connectés gardent leurs droits jusqu'à leur reconnexion). -->
+    <credentials-reload-interval>60</credentials-reload-interval>
+
+    <!-- Pas de <listener-names> : l'authentification s'applique à tous les ports (1883 et 8883). -->
+
+    <!-- Mots de passe stockés hachés (PBKDF2-HMAC-SHA512 salé), jamais en clair. -->
+    <password-type>HASHED</password-type>
+
+</extension-configuration>

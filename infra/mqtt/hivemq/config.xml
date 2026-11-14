@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<!--
+  Configuration HiveMQ CE de Smart Building Emergency : phase de transition (étape 3).
+
+  - Port 1883 : MQTT sans chiffrement, gardé ouvert le temps que tous les clients passent au 8883.
+                Avec l'extension File RBAC, il demande lui aussi un identifiant et un mot de passe.
+  - Port 8883 : MQTT sur TLS (MQTTS). Certificat du broker signé par la CA locale du projet
+                (voir gen-certs.ps1 / gen-certs.sh).
+
+  Les mots de passe ne sont jamais écrits ici : au démarrage, HiveMQ remplace chaque marqueur
+  dollar-accolade ENV:NOM par la variable d'environnement NOM du conteneur (fournie par
+  docker-compose à partir du fichier .env). Attention : ne jamais écrire ce marqueur dans un
+  commentaire, HiveMQ le remplacerait aussi et refuserait de démarrer si la variable manque.
+
+  Quand le backend, le simulateur et infer.py sont tous sur le 8883, passer à config-tls-only.xml
+  (HIVEMQ_CONFIG=config-tls-only.xml dans .env), puis redémarrer HiveMQ.
+-->
+<hivemq>
+    <listeners>
+        <tcp-listener>
+            <port>1883</port>
+            <bind-address>0.0.0.0</bind-address>
+            <name>mqtt-clair</name>
+        </tcp-listener>
+
+        <tls-tcp-listener>
+            <port>8883</port>
+            <bind-address>0.0.0.0</bind-address>
+            <name>mqtt-tls</name>
+            <tls>
+                <keystore>
+                    <path>/opt/hivemq/certs/broker.jks</path>
+                    <password>${ENV:MQTT_KEYSTORE_PASSWORD}</password>
+                    <private-key-password>${ENV:MQTT_KEYSTORE_PASSWORD}</private-key-password>
+                </keystore>
+                <protocols>
+                    <protocol>TLSv1.3</protocol>
+                    <protocol>TLSv1.2</protocol>
+                </protocols>
+                <!-- Les clients prouvent leur identité par identifiant + mot de passe (RBAC), pas par certificat. -->
+                <client-authentication-mode>NONE</client-authentication-mode>
+            </tls>
+        </tls-tcp-listener>
+    </listeners>
+</hivemq>

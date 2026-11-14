@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<!--
+  Configuration HiveMQ CE de Smart Building Emergency : configuration finale (étape 3).
+
+  Un seul port : 8883, MQTT sur TLS (MQTTS). Le port 1883 en clair est fermé.
+  Certificat du broker signé par la CA locale du projet (voir gen-certs.ps1 / gen-certs.sh).
+
+  Les mots de passe ne sont jamais écrits ici : au démarrage, HiveMQ remplace chaque marqueur
+  dollar-accolade ENV:NOM par la variable d'environnement NOM du conteneur (fournie par
+  docker-compose à partir du fichier .env). Attention : ne jamais écrire ce marqueur dans un
+  commentaire, HiveMQ le remplacerait aussi et refuserait de démarrer si la variable manque.
+
+  Activée par HIVEMQ_CONFIG=config-tls-only.xml dans .env (voir infra/mqtt/README.md).
+-->
+<hivemq>
+    <listeners>
+        <tls-tcp-listener>
+            <port>8883</port>
+            <bind-address>0.0.0.0</bind-address>
+            <name>mqtt-tls</name>
+            <tls>
+                <keystore>
+                    <path>/opt/hivemq/certs/broker.jks</path>
+                    <password>${ENV:MQTT_KEYSTORE_PASSWORD}</password>
+                    <private-key-password>${ENV:MQTT_KEYSTORE_PASSWORD}</private-key-password>
+                </keystore>
+                <protocols>
+                    <protocol>TLSv1.3</protocol>
+                    <protocol>TLSv1.2</protocol>
+                </protocols>
+                <!-- Les clients prouvent leur identité par identifiant + mot de passe (RBAC), pas par certificat. -->
+                <client-authentication-mode>NONE</client-authentication-mode>
+            </tls>
+        </tls-tcp-listener>
+    </listeners>
+</hivemq>
