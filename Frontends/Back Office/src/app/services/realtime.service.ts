@@ -1,18 +1,24 @@
-
-import { Injectable, NgZone, OnDestroy, inject, PLATFORM_ID } from '@angular/core';
+﻿import {
+  Injectable,
+  NgZone,
+  OnDestroy,
+  inject,
+  PLATFORM_ID
+} from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { Observable, Subject, timer, Subscription } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { AuthService } from '../core/auth/auth.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class RealtimeService implements OnDestroy {
+  private readonly zone = inject(NgZone);
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly authService = inject(AuthService);
 
-  private zone = inject(NgZone);
-  private platformId = inject(PLATFORM_ID);
-
-  private eventsSubject = new Subject<any>();
+  private readonly eventsSubject = new Subject<any>();
   private socket: WebSocket | null = null;
   private reconnectSubscription?: Subscription;
   private reconnectDelay = 3000;
@@ -25,28 +31,36 @@ export class RealtimeService implements OnDestroy {
       return;
     }
 
+    // Autoriser une nouvelle connexion après une navigation.
+    this.destroyed = false;
+
     if (
-      this.destroyed ||
       this.socket?.readyState === WebSocket.OPEN ||
       this.socket?.readyState === WebSocket.CONNECTING
     ) {
       return;
     }
 
-    const wsUrl = environment.apiUrl
-      .replace(/^http:/, 'ws:')
-      .replace(/^https:/, 'wss:')
-      + '/ws/events';
+    const token = this.authService.getToken();
+
+    if (!token) {
+      console.warn('WebSocket non connecté : JWT ADMIN absent.');
+      return;
+    }
+
+    const separator = environment.wsUrl.includes('?') ? '&' : '?';
+    const authenticatedUrl =
+      `${environment.wsUrl}${separator}token=${encodeURIComponent(token)}`;
 
     try {
-      this.socket = new WebSocket(wsUrl);
+      this.socket = new WebSocket(authenticatedUrl);
 
       this.socket.onopen = () => {
         this.reconnectDelay = 3000;
-        console.log('WebSocket connecté');
+        console.log('WebSocket ADMIN connecté.');
       };
 
-      this.socket.onmessage = (message) => {
+      this.socket.onmessage = message => {
         this.zone.run(() => {
           try {
             this.eventsSubject.next(JSON.parse(message.data));
@@ -56,7 +70,7 @@ export class RealtimeService implements OnDestroy {
         });
       };
 
-      this.socket.onerror = (error) => {
+      this.socket.onerror = error => {
         console.error('Erreur WebSocket :', error);
       };
 
@@ -67,7 +81,6 @@ export class RealtimeService implements OnDestroy {
           this.scheduleReconnect();
         }
       };
-
     } catch (error) {
       console.error('Erreur de connexion WebSocket :', error);
       this.scheduleReconnect();

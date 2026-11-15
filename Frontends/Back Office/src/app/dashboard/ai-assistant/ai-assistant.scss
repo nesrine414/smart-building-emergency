@@ -1,0 +1,393 @@
+﻿:host {
+  display: block;
+  margin: 32px 0;
+  color: #e2e8f0;
+}
+
+.ai-section {
+  padding: 24px;
+  border: 1px solid #334155;
+  border-radius: 16px;
+  background: #172033;
+}
+
+.ai-heading,
+.monitoring-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.ai-eyebrow {
+  color: #60a5fa;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+}
+
+.ai-heading h2,
+.monitoring-heading h3 {
+  margin: 6px 0;
+}
+
+.ai-heading p {
+  margin: 0;
+  color: #94a3b8;
+}
+
+.ai-local-badge {
+  padding: 8px 12px;
+  border: 1px solid #166534;
+  border-radius: 30px;
+  background: rgba(22, 101, 52, .2);
+  color: #86efac;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.ai-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
+  gap: 20px;
+}
+
+.ai-card {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  background: #101a2d;
+}
+
+.ai-card h3 {
+  margin: 0 0 18px;
+}
+
+.incident-explain {
+  padding: 14px;
+  margin-bottom: 16px;
+  border: 1px solid #334155;
+  border-radius: 10px;
+}
+
+.incident-explain label,
+.question-form label {
+  display: block;
+  margin-bottom: 8px;
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.incident-action {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.incident-action select {
+  flex: 1 1 180px;
+}
+
+select,
+.question-form input,
+.question-form textarea,
+.feedback-area textarea {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid #475569;
+  border-radius: 8px;
+  outline: none;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+.incident-action button,
+.secondary-button,
+.refresh-button {
+  padding: 10px 12px;
+  border: 1px solid #475569;
+  border-radius: 8px;
+  background: #1e293b;
+  color: #cbd5e1;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.chat-history {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 180px;
+  max-height: 560px;
+  padding: 12px 2px;
+  overflow-y: auto;
+}
+
+.chat-empty {
+  display: grid;
+  place-content: center;
+  min-height: 150px;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.chat-empty-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  margin: 0 auto;
+  place-items: center;
+  border-radius: 12px;
+  background: #1d4ed8;
+  color: white;
+  font-weight: 800;
+}
+
+.chat-message {
+  display: grid;
+  gap: 12px;
+}
+
+.question-bubble,
+.answer-bubble {
+  padding: 14px;
+  border-radius: 10px;
+}
+
+.question-bubble {
+  margin-left: 12%;
+  background: #1e3a5f;
+}
+
+.answer-bubble {
+  margin-right: 5%;
+  border: 1px solid #334155;
+  background: #172b42;
+}
+
+.question-bubble p,
+.answer-text {
+  margin: 8px 0 0;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.answer-metadata,
+.interaction-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.tools-used {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin-top: 14px;
+  font-size: 12px;
+}
+
+.tools-used span {
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: #26364e;
+  color: #bfdbfe;
+}
+
+.feedback-area {
+  display: grid;
+  gap: 9px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #334155;
+  font-size: 12px;
+}
+
+.feedback-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.feedback-buttons button {
+  padding: 7px 10px;
+  border: 1px solid #475569;
+  border-radius: 7px;
+  background: #1e293b;
+  color: #e2e8f0;
+  cursor: pointer;
+}
+
+.feedback-result {
+  color: #86efac;
+}
+
+.question-form {
+  display: grid;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid #334155;
+}
+
+.question-form textarea {
+  resize: vertical;
+}
+
+.send-button {
+  padding: 12px;
+  border: 0;
+  border-radius: 8px;
+  background: #2563eb;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ai-error {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid #991b1b;
+  border-radius: 8px;
+  background: rgba(127, 29, 29, .2);
+  color: #fecaca;
+  font-size: 13px;
+}
+
+.monitoring-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.monitoring-stats article {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 13px;
+  border: 1px solid #334155;
+  border-radius: 9px;
+  background: #172b42;
+}
+
+.monitoring-stats article span {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.monitoring-stats article strong {
+  font-size: 21px;
+}
+
+.interaction-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin: 24px 0 12px;
+}
+
+.interaction-heading h4 {
+  margin: 0;
+}
+
+.interaction-heading span,
+.empty-interactions {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.interaction-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 480px;
+  overflow-y: auto;
+}
+
+.interaction-item {
+  padding: 12px;
+  border: 1px solid #334155;
+  border-radius: 9px;
+  background: #172b42;
+}
+
+.interaction-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.interaction-top span {
+  color: #93c5fd;
+  font-size: 12px;
+}
+
+.interaction-input {
+  color: #cbd5e1;
+  font-size: 13px;
+}
+
+.interaction-answer,
+.interaction-error,
+.interaction-comment {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.interaction-error {
+  color: #fca5a5;
+}
+
+.interaction-comment {
+  color: #86efac;
+}
+
+.ai-warning {
+  margin: 18px 0 0;
+  color: #fbbf24;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+@media (max-width: 1050px) {
+  .ai-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .ai-section,
+  .ai-card {
+    padding: 14px;
+  }
+
+  .ai-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .incident-action {
+    flex-direction: column;
+  }
+
+  .question-bubble {
+    margin-left: 0;
+  }
+
+  .answer-bubble {
+    margin-right: 0;
+  }
+}

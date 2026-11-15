@@ -1,0 +1,259 @@
+﻿<section class="ai-section" id="ai-assistant">
+  <div class="ai-heading">
+    <div>
+      <span class="ai-eyebrow">LOCAL AI ASSISTANT</span>
+      <h2>Assistant IA d'urgence</h2>
+      <p>Posez une question sur la sécurité du bâtiment ou demandez une analyse d'incident.</p>
+    </div>
+    <span class="ai-local-badge">Ollama · Local</span>
+  </div>
+
+  <div class="ai-grid">
+    <section class="ai-card chat-card">
+      <h3>Conversation avec l'IA</h3>
+
+      <div class="incident-explain">
+        <label for="incidentChoice">Expliquer un incident</label>
+        <div class="incident-action">
+          <select
+            id="incidentChoice"
+            [(ngModel)]="selectedIncidentId"
+            name="selectedIncidentId"
+          >
+            <option value="">Choisir un incident</option>
+            @for (incident of incidents; track incident.id) {
+              <option [value]="incident.id">
+                {{ incident.type }} — {{ incident.roomId || incident.id }}
+                — {{ incident.status }}
+              </option>
+            }
+          </select>
+
+          <button
+            type="button"
+            class="secondary-button"
+            (click)="explainSelectedIncident()"
+            [disabled]="sending || !selectedIncidentId"
+          >
+            Expliquer avec l'IA
+          </button>
+        </div>
+      </div>
+
+      <div class="chat-history" aria-live="polite">
+        @if (messages.length === 0) {
+          <div class="chat-empty">
+            <div class="chat-empty-icon">AI</div>
+            <p>Bonjour ! Je peux vous aider à comprendre les incidents et les risques du bâtiment.</p>
+          </div>
+        }
+
+        @for (message of messages; track message.interactionId) {
+          <article class="chat-message">
+            <div class="question-bubble">
+              <strong>Votre demande</strong>
+              <p>{{ message.question }}</p>
+            </div>
+
+            <div class="answer-bubble">
+              <strong>Réponse de l'assistant</strong>
+              <p class="answer-text">{{ message.answer }}</p>
+
+              <div class="answer-metadata">
+                <span>Modèle : {{ message.model }}</span>
+                <span>Latence : {{ message.latencyMs }} ms</span>
+              </div>
+
+              @if (message.toolsUsed.length > 0) {
+                <div class="tools-used">
+                  <strong>Outils utilisés :</strong>
+                  @for (tool of message.toolsUsed; track $index) {
+                    <span>{{ tool }}</span>
+                  }
+                </div>
+              }
+
+              <div class="feedback-area">
+                <strong>Cette réponse vous a-t-elle aidé ?</strong>
+
+                <textarea
+                  [(ngModel)]="message.comment"
+                  [name]="'comment-' + message.interactionId"
+                  placeholder="Commentaire facultatif..."
+                  rows="2"
+                  [disabled]="!!message.vote || message.feedbackSending"
+                ></textarea>
+
+                <div class="feedback-buttons">
+                  <button
+                    type="button"
+                    (click)="submitFeedback(message, 'UP')"
+                    [disabled]="!!message.vote || message.feedbackSending"
+                  >
+                    👍 Utile
+                  </button>
+                  <button
+                    type="button"
+                    (click)="submitFeedback(message, 'DOWN')"
+                    [disabled]="!!message.vote || message.feedbackSending"
+                  >
+                    👎 Pas utile
+                  </button>
+                </div>
+
+                @if (message.feedbackMessage) {
+                  <small class="feedback-result">
+                    {{ message.feedbackMessage }}
+                  </small>
+                }
+              </div>
+            </div>
+          </article>
+        }
+      </div>
+
+      @if (errorMessage) {
+        <div class="ai-error" role="alert">
+          {{ errorMessage }}
+        </div>
+      }
+
+      <form class="question-form" (ngSubmit)="ask()">
+        <label for="roomId">Salle concernée (facultatif)</label>
+        <input
+          id="roomId"
+          type="text"
+          [(ngModel)]="roomId"
+          name="roomId"
+          placeholder="Exemple : ROOM-101"
+        />
+
+        <label for="aiQuestion">Votre question</label>
+        <textarea
+          id="aiQuestion"
+          [(ngModel)]="question"
+          name="question"
+          rows="3"
+          placeholder="Exemple : Quelles mesures prendre en cas de fuite de gaz ?"
+          required
+        ></textarea>
+
+        <button
+          type="submit"
+          class="send-button"
+          [disabled]="sending || !question.trim()"
+        >
+          {{ sending ? 'Analyse en cours...' : 'Envoyer à l’assistant IA' }}
+        </button>
+      </form>
+    </section>
+
+    <section class="ai-card monitoring-card">
+      <div class="monitoring-heading">
+        <div>
+          <span class="ai-eyebrow">LLM OPERATIONS</span>
+          <h3>Suivi LLMOps</h3>
+        </div>
+        <button
+          type="button"
+          class="refresh-button"
+          (click)="refreshMonitoring()"
+          [disabled]="monitoringLoading"
+        >
+          {{ monitoringLoading ? 'Chargement...' : 'Actualiser' }}
+        </button>
+      </div>
+
+      @if (monitoringError) {
+        <div class="ai-error">{{ monitoringError }}</div>
+      }
+
+      @if (stats; as data) {
+        <div class="monitoring-stats">
+          <article>
+            <span>Interactions</span>
+            <strong>{{ data.count }}</strong>
+          </article>
+          <article>
+            <span>Réussies</span>
+            <strong>{{ data.successfulCount }}</strong>
+          </article>
+          <article>
+            <span>Erreurs</span>
+            <strong>{{ data.errors }}</strong>
+          </article>
+          <article>
+            <span>Latence moyenne</span>
+            <strong>{{ data.avgLatencyMs }} ms</strong>
+          </article>
+          <article>
+            <span>Votes positifs</span>
+            <strong>{{ data.upVotes }}</strong>
+          </article>
+          <article>
+            <span>Votes négatifs</span>
+            <strong>{{ data.downVotes }}</strong>
+          </article>
+          <article>
+            <span>Tokens entrants</span>
+            <strong>{{ data.totalInputTokens }}</strong>
+          </article>
+          <article>
+            <span>Tokens sortants</span>
+            <strong>{{ data.totalOutputTokens }}</strong>
+          </article>
+        </div>
+      }
+
+      <div class="interaction-heading">
+        <h4>Dernières interactions</h4>
+        <span>{{ interactions.length }} affichées</span>
+      </div>
+
+      @if (interactions.length === 0 && !monitoringLoading) {
+        <p class="empty-interactions">Aucune interaction enregistrée.</p>
+      }
+
+      <div class="interaction-list">
+        @for (item of interactions; track item.id) {
+          <article class="interaction-item">
+            <div class="interaction-top">
+              <strong>{{ item.kind }}</strong>
+              <span>{{ item.role }}</span>
+            </div>
+
+            <p class="interaction-input">{{ item.input }}</p>
+
+            @if (item.error) {
+              <p class="interaction-error">{{ item.error }}</p>
+            } @else {
+              <p class="interaction-answer">{{ item.answer }}</p>
+            }
+
+            <div class="interaction-meta">
+              <span>{{ item.model }}</span>
+              <span>{{ item.latencyMs }} ms</span>
+              <span>{{ item.timestamp | date:'dd/MM/yyyy HH:mm' }}</span>
+              @if (item.vote) {
+                <span class="interaction-vote">
+                  Évaluation : {{ item.vote }}
+                </span>
+              }
+            </div>
+
+            @if (item.comment) {
+              <p class="interaction-comment">
+                Commentaire : {{ item.comment }}
+              </p>
+            }
+          </article>
+        }
+      </div>
+    </section>
+  </div>
+
+  <p class="ai-warning">
+    Attention : les réponses de l'assistant IA sont des aides à la décision.
+    Elles ne remplacent jamais les procédures officielles d'évacuation et de sécurité.
+  </p>
+</section>

@@ -5,6 +5,7 @@ import { IncidentService } from '../../core/services/incident.service';
 import { BuildingService } from '../../core/services/building.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { ReadingService } from '../../core/services/reading.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -19,12 +20,14 @@ export class Dashboard {
   private readonly incidentService = inject(IncidentService);
   private readonly buildingService = inject(BuildingService);
   private readonly notificationService = inject(NotificationService);
+  private readonly readingService = inject(ReadingService);
 
   protected readonly user = this.authService.user;
   protected readonly alerts = this.alertService.alerts;
   protected readonly incidents = this.incidentService.incidents;
   protected readonly buildings = this.buildingService.buildings;
   protected readonly unreadNotifications = this.notificationService.unreadCount;
+  protected readonly latestReadings = this.readingService.latestReadings;
 
   protected readonly activeAlerts = computed(() => this.alertService.getActiveAlerts());
   protected readonly criticalAlerts = computed(() => this.alertService.getCriticalAlerts());

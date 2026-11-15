@@ -1,7 +1,7 @@
 import { Component, signal, computed, inject } from '@angular/core';
 import { BuildingService } from '../../core/services/building.service';
 import { AlertService } from '../../core/services/alert.service';
-import { Building, Floor } from '../../core/models';
+import { BuildingView } from '../../core/models';
 
 @Component({
   selector: 'app-building-map',
@@ -9,69 +9,89 @@ import { Building, Floor } from '../../core/models';
   styleUrl: './building-map.scss'
 })
 export class BuildingMap {
-
   private readonly buildingService = inject(BuildingService);
   private readonly alertService = inject(AlertService);
 
   protected readonly buildings = this.buildingService.buildings;
   protected readonly alerts = this.alertService.alerts;
 
-  protected readonly selectedBuildingId = signal<string>('b-001');
-  protected readonly selectedFloorLevel = signal<number>(3);
+  protected readonly selectedBuildingId = signal<string>('bld-01');
+  protected readonly selectedFloorLevel = signal<number>(1);
+  protected readonly selectedRoomId = signal<string | null>(null);
 
-  protected readonly selectedBuilding = computed(() =>
+  protected readonly selectedBuilding = computed<BuildingView | undefined>(() =>
     this.buildings().find(b => b.id === this.selectedBuildingId())
   );
 
   protected readonly selectedFloor = computed(() =>
-    this.selectedBuilding()?.floors.find(f => f.level === this.selectedFloorLevel())
+    this.selectedBuilding()?.floors.find(
+      floor => floor.level === this.selectedFloorLevel()
+    )
+  );
+
+  protected readonly selectedRoom = computed(() =>
+    this.selectedFloor()?.rooms.find(room => room.id === this.selectedRoomId())
   );
 
   protected readonly floorAlerts = computed(() => {
     const floor = this.selectedFloor();
     if (!floor) return [];
-    return this.alerts().filter(a =>
-      a.buildingId === this.selectedBuildingId() &&
-      a.floorId === floor.id &&
-      a.status === 'ACTIVE'
+
+    const roomIds = new Set(floor.rooms.map(room => room.id));
+
+    return this.alerts().filter(alert =>
+      alert.buildingId === this.selectedBuildingId() &&
+      alert.status === 'ACTIVE' &&
+      !!alert.roomId &&
+      roomIds.has(alert.roomId)
     );
   });
 
   selectBuilding(id: string): void {
     this.selectedBuildingId.set(id);
-    const building = this.buildings().find(b => b.id === id);
-    if (building && building.floors.length > 0) {
+    this.selectedRoomId.set(null);
+
+    const building = this.buildings().find(item => item.id === id);
+    if (building?.floors.length) {
       this.selectedFloorLevel.set(building.floors[0].level);
     }
   }
 
   selectFloor(level: number): void {
     this.selectedFloorLevel.set(level);
+    this.selectedRoomId.set(null);
   }
 
-  getRoomStatusClass(roomId: string): string {
-    const hasAlert = this.alerts().some(a =>
-      a.roomId === roomId && a.status === 'ACTIVE'
+  selectRoom(id: string): void {
+    this.selectedRoomId.set(
+      this.selectedRoomId() === id ? null : id
     );
-    if (hasAlert) {
-      const critical = this.alerts().some(a =>
-        a.roomId === roomId && a.severity === 'CRITICAL' && a.status === 'ACTIVE'
-      );
-      return critical ? 'room-critical' : 'room-warning';
-    }
-    return 'room-safe';
   }
 
   getRoomAlerts(roomId: string) {
-    return this.alerts().filter(a => a.roomId === roomId && a.status === 'ACTIVE');
+    return this.alerts().filter(alert =>
+      alert.buildingId === this.selectedBuildingId() &&
+      alert.roomId === roomId &&
+      alert.status === 'ACTIVE'
+    );
+  }
+
+  getRoomStatusClass(roomId: string): string {
+    const roomAlerts = this.getRoomAlerts(roomId);
+
+    if (roomAlerts.length === 0) return 'room-safe';
+
+    return roomAlerts.some(alert => alert.severity === 'CRITICAL')
+      ? 'room-critical'
+      : 'room-warning';
   }
 
   getAlertIcon(type: string): string {
     switch (type) {
-      case 'FIRE': return '🔥';
-      case 'GAS_LEAK': return '💨';
-      case 'SMOKE': return '🌫️';
-      default: return '⚠️';
+      case 'FIRE': return 'FIRE';
+      case 'GAS_LEAK': return 'GAS';
+      case 'SMOKE': return 'SMOKE';
+      default: return 'ALERT';
     }
   }
 }

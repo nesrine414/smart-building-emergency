@@ -51,6 +51,27 @@
     </div>
   </section>
 
+  <!-- Latest Sensor Readings -->
+  <section class="section">
+    <div class="section-header">
+      <h2>Live sensor readings</h2>
+      <span>{{ latestReadings().length }} capteurs</span>
+    </div>
+
+    <div class="readings-grid">
+      @for (reading of latestReadings(); track reading.sensorId) {
+        <article class="reading-card">
+          <strong>{{ reading.type }}</strong>
+          <p>{{ reading.roomId }} · {{ reading.sensorId }}</p>
+          <span class="reading-value">
+            {{ reading.value }} {{ reading.unit }}
+          </span>
+        </article>
+      } @empty {
+        <p>Aucune mesure disponible pour le moment.</p>
+      }
+    </div>
+  </section>
   <!-- Active Alerts -->
   @if (activeAlerts().length > 0) {
     <section class="section">

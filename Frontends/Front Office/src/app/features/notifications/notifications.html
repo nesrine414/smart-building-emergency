@@ -1,26 +1,48 @@
-<div class="page-container">
+﻿<div class="page-container">
   <div class="page-header">
-    <h1>🔔 Notifications</h1>
-    <button class="mark-all-btn" (click)="markAllAsRead()">Mark all as read</button>
+    <div>
+      <h1>Notifications</h1>
+      <p>{{ unreadCount() }} notification(s) non lue(s)</p>
+    </div>
+
+    <button
+      class="mark-all-btn"
+      type="button"
+      (click)="markAllAsRead()"
+      [disabled]="unreadCount() === 0">
+      Tout marquer comme lu
+    </button>
   </div>
 
   <div class="notifications-list">
     @for (notif of notifications(); track notif.id) {
-      <div class="notif-card" [class.unread]="!notif.read" [class]="getSeverityClass(notif.severity)" (click)="markAsRead(notif.id)">
+      <button
+        type="button"
+        class="notif-card"
+        [class.unread]="!notif.read"
+        [class]=" 'notif-card ' + getSeverityClass(notif.severity) + (notif.read ? '' : ' unread')"
+        (click)="openNotification(notif)">
+
         <div class="notif-header">
           <h3>{{ notif.title }}</h3>
-          <span class="notif-time">{{ getTimeAgo(notif.createdAt) }}</span>
+          <span class="notif-time">
+            {{ getTimeAgo(notif.createdAt) }}
+          </span>
         </div>
+
         <p>{{ notif.message }}</p>
+
         @if (!notif.read) {
           <span class="unread-dot"></span>
         }
-      </div>
+
+        <span class="notification-action">Voir les incidents</span>
+      </button>
     } @empty {
       <div class="empty-state">
-        <span class="empty-icon">🔕</span>
-        <h3>No Notifications</h3>
-        <p>You're all caught up.</p>
+        <span class="empty-icon">🔔</span>
+        <h3>Aucun incident enregistré</h3>
+        <p>Les nouvelles notifications apparaîtront ici automatiquement.</p>
       </div>
     }
   </div>

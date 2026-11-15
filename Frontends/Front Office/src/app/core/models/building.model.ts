@@ -2,11 +2,27 @@ export interface Building {
   id: string;
   name: string;
   address: string;
-  latitude: number;
-  longitude: number;
-  floors: Floor[];
-  totalOccupants?: number;
-  status: 'SAFE' | 'WARNING' | 'DANGER' | 'EVACUATING';
+  floors: number;
+}
+
+export interface Room {
+  id: string;
+  buildingId: string;
+  roomNumber: string;
+  floor: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  exit: string;
+}
+
+export interface RoomView extends Room {
+  name: string;
+  floorId: string;
+  type: string;
+  capacity?: number;
+  currentOccupants?: number;
 }
 
 export interface Floor {
@@ -14,22 +30,13 @@ export interface Floor {
   buildingId: string;
   name: string;
   level: number;
-  rooms: Room[];
-  floorPlanUrl?: string;
+  rooms: RoomView[];
 }
 
-export interface Room {
-  id: string;
-  floorId: string;
-  name: string;
-  type: 'OFFICE' | 'HALLWAY' | 'STAIRWAY' | 'ELEVATOR' | 'LOBBY' | 'PARKING' | 'UTILITY' | 'OTHER';
-  capacity?: number;
-  currentOccupants?: number;
-  sensors?: string[];
-  x?: number;
-  y?: number;
-  width?: number;
-  height?: number;
+export interface BuildingView extends Omit<Building, 'floors'> {
+  floors: Floor[];
+  status: 'SAFE' | 'WARNING' | 'DANGER' | 'EVACUATING';
+  totalOccupants?: number;
 }
 
 export interface MapPosition {
