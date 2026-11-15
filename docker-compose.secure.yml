@@ -15,9 +15,14 @@ services:
       # "false" la supprime au démarrage : seule l'extension File RBAC décide.
       HIVEMQ_ALLOW_ALL_CLIENTS: "false"
       MQTT_KEYSTORE_PASSWORD: ${MQTT_KEYSTORE_PASSWORD:?MQTT_KEYSTORE_PASSWORD manque dans .env}
+      JAVA_OPTS: "-Djdk.tls.rejectClientInitiatedRenegotiation=true"
     volumes:
       - ./infra/mqtt/hivemq/${HIVEMQ_CONFIG:-config.xml}:/opt/hivemq/conf/config.xml:ro
       - ./infra/mqtt/certs/broker.jks:/opt/hivemq/certs/broker.jks:ro
       - ./infra/mqtt/extensions/hivemq-file-rbac-extension:/opt/hivemq/extensions/hivemq-file-rbac-extension
       - ./infra/mqtt/rbac/config.xml:/opt/hivemq/extensions/hivemq-file-rbac-extension/conf/config.xml:ro
       - ./infra/mqtt/rbac/credentials.xml:/opt/hivemq/extensions/hivemq-file-rbac-extension/conf/credentials.xml:ro
+
+
+   
+      

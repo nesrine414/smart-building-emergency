@@ -37,6 +37,12 @@
                     <protocol>TLSv1.3</protocol>
                     <protocol>TLSv1.2</protocol>
                 </protocols>
+                <cipher-suites>
+                    <cipher-suite>TLS_AES_256_GCM_SHA384</cipher-suite>
+                    <cipher-suite>TLS_AES_128_GCM_SHA256</cipher-suite>
+                    <cipher-suite>TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384</cipher-suite>
+                    <cipher-suite>TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256</cipher-suite>
+                </cipher-suites>
                 <!-- Les clients prouvent leur identité par identifiant + mot de passe (RBAC), pas par certificat. -->
                 <client-authentication-mode>NONE</client-authentication-mode>
             </tls>
