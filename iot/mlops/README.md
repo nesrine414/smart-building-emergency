@@ -17,7 +17,9 @@ backend (MongoDB, WebSocket, agent IA) <--RISK-- HiveMQ <-----+
 | `features.py` | Colonnes du dataset, variables du modèle, conversion de nos capteurs, scénarios de contrôle |
 | `train.py` | Nettoyage, découpage par blocs de temps, entraînement, comparaisons, versions |
 | `infer.py` | Abonnement MQTT, dernières valeurs par salle, publication du score `RISK` |
-| `tests/` | 21 tests pytest sur un dataset synthétique aux mêmes colonnes (aucun téléchargement) |
+| `healthcheck.py` | État du service `sbe-ml` pour Docker (étape 4) |
+| `Dockerfile`, `requirements-docker.txt` | Image du service `sbe-ml`, versions figées (étape 4) |
+| `tests/` | 27 tests pytest sur un dataset synthétique aux mêmes colonnes (aucun téléchargement) |
 | `data/` | Le CSV du dataset (pas sur Git) |
 | `models/` | `model-vN.joblib` (pas sur Git), `metrics-vN.json` et `registry.json` (sur Git : traçabilité) |
 
@@ -28,7 +30,7 @@ cd iot\mlops
 python -m venv .venv
 .venv\Scripts\activate            # Linux/macOS : source .venv/bin/activate
 pip install -r requirements.txt
-python -m pytest -q tests         # 21 passed
+python -m pytest -q tests         # 27 passed
 ```
 
 ## 2. Télécharger le dataset
@@ -154,6 +156,23 @@ smartbuilding/bld-01/room-101/RISK
 
 Un capteur absent est remplacé par une valeur neutre (haut de la plage normale, ou 22 °C) et
 signalé dans la console. Sans gaz ni fumée, aucun score n'est publié.
+
+## En service sur le serveur (étape 4)
+
+Sur le serveur, `infer.py` tourne dans le conteneur `sbe-ml` (`Dockerfile`, `docker-compose.prod.yml`),
+lancé et relancé par Docker (`restart: unless-stopped`) :
+
+- **Versions figées** dans `requirements-docker.txt` (Python 3.12, scikit-learn 1.9.1) ; le modèle est
+  entraîné dans la même image (`bash deploy/compose.sh run --rm sbe-ml python train.py`), donc relu sans
+  risque.
+- **`--health-file`** : tant qu'il est connecté au broker, `infer.py` écrit l'heure toutes les 10 s ;
+  `healthcheck.py` déclare le conteneur `unhealthy` au-delà de 60 s. Le contrôle ne dépend pas de
+  l'arrivée de mesures : sans simulateur, il n'y a rien à publier et le service est sain.
+- **`--exit-if-disconnected 120`** : après 2 minutes sans broker, `infer.py` s'arrête avec le code 1 et
+  Docker le relance (Docker ne relance pas un conteneur simplement `unhealthy`).
+- Le conteneur joint le broker par le nom `hivemq`, présent dans le certificat.
+
+`deploy/server/deploy-broker-ml.sh` fait tout cela (voir `deploy/README.md`).
 
 ## 6. Vérifier le critère de la démo
 

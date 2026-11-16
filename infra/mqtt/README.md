@@ -26,7 +26,8 @@ par HiveMQ.
 | `gen-certs.ps1` / `.sh` | CA locale + certificat du broker + truststore Java, avec `keytool` | oui |
 | `backend-env.ps1` / `.sh` | Prépare les variables MQTT de WildFly dans la console | oui |
 | `check_mqtt_security.py` | Contrôle automatique de tout le contrat 5 (26 vérifications) | oui |
-| `rbac/credentials.xml`, `certs/`, `extensions/`, `../../.env` | Générés sur chaque PC | **non** |
+| `tls-report.ps1` / `.sh` | Rapport TLS du broker avec testssl.sh (étape 4) | oui |
+| `rbac/credentials.xml`, `certs/`, `certs-serveur/`, `extensions/`, `reports/`, `../../.env` | Générés sur chaque PC | **non** |
 | `../../docker-compose.secure.yml` | Ajoute à HiveMQ le port 8883, l'extension et les certificats | oui |
 
 ## Mise en place (Windows, PowerShell, depuis la racine du dépôt)
@@ -109,6 +110,25 @@ Quand le backend, le simulateur et `infer.py` passent tous par le 8883 :
 docker compose -f docker-compose.yml -f docker-compose.secure.yml up -d --force-recreate hivemq
 python infra\mqtt\check_mqtt_security.py      # "port 1883 fermé : seul le TLS est accepté"
 ```
+
+## En ligne (étape 4)
+
+Sur le serveur, le broker est mis en ligne par `deploy/server/deploy-broker-ml.sh` (voir
+`deploy/README.md`) : port 8883 seulement (`config-tls-only.xml` imposé par `docker-compose.prod.yml`),
+certificat qui contient aussi `MQTT_BROKER_PUBLIC_HOST` (ex. `mqtt.sbe-supcom.me`).
+
+Depuis votre PC :
+
+```powershell
+powershell -ExecutionPolicy Bypass -File deploy\fetch-ca.ps1     # CA du serveur -> infra\mqtt\certs-serveur\
+python infra\mqtt\check_mqtt_security.py --host mqtt.<domaine> --cafile infra\mqtt\certs-serveur\ca.pem
+powershell -ExecutionPolicy Bypass -File infra\mqtt\tls-report.ps1   # rapport testssl HTML + JSON
+```
+
+`tls-report` lance l'image Docker officielle de testssl.sh (`ghcr.io/testssl/testssl.sh:3.2`) avec
+`--add-ca`, pour qu'elle fasse confiance à la CA du projet. Sous Linux, `tls-report.sh` utilise
+`testssl.sh` s'il est installé (il demande aussi les paquets `bsdextrautils` et `dnsutils`).
+Rapports dans `infra/mqtt/reports/` (pas sur Git).
 
 ## ESP32 (étape matérielle suivante)
 

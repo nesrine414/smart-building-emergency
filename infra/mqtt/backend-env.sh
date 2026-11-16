@@ -17,9 +17,11 @@ elif [[ ! -f "$_sbe_here/certs/truststore.jks" ]]; then
 else
   export MQTT_BROKER_URL="ssl://localhost:8883"
   export MQTT_USERNAME="sbe-backend"
-  export MQTT_PASSWORD="$(_sbe_value MQTT_BACKEND_PASSWORD)"
+  MQTT_PASSWORD="$(_sbe_value MQTT_BACKEND_PASSWORD)"
+  export MQTT_PASSWORD
   export MQTT_TRUSTSTORE="$_sbe_here/certs/truststore.jks"
-  export MQTT_TRUSTSTORE_PASSWORD="$(_sbe_value MQTT_TRUSTSTORE_PASSWORD)"
+  MQTT_TRUSTSTORE_PASSWORD="$(_sbe_value MQTT_TRUSTSTORE_PASSWORD)"
+  export MQTT_TRUSTSTORE_PASSWORD
   _sbe_jwt="$(_sbe_value JWT_SECRET)"
   [[ -n "$_sbe_jwt" ]] && export JWT_SECRET="$_sbe_jwt"   # utilisé par la personne 2
   echo "Variables MQTT prêtes pour WildFly : $MQTT_BROKER_URL, $MQTT_USERNAME, $MQTT_TRUSTSTORE"

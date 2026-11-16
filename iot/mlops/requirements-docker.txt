@@ -1,0 +1,12 @@
+# Versions figées de l'image Docker du service sbe-ml (étape 4), testées avec Python 3.12.
+# Le modèle .joblib est entraîné DANS cette image (docker compose run sbe-ml python train.py) :
+# même scikit-learn à l'entraînement et en service, donc chargement sûr.
+numpy==2.5.3
+pandas==3.0.5
+python-dateutil==4.0.0
+tzdata==2026.6
+scipy==1.18.1
+scikit-learn==1.9.1
+joblib==1.6.0
+threadpoolctl==3.7.0
+paho-mqtt==2.2.0
