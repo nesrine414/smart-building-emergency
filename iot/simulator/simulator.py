@@ -301,8 +301,13 @@ def main():
     except KeyboardInterrupt:
         print("\nArrêt demandé.")
     finally:
-        client.loop_stop()
-        client.disconnect()
+        # Ordre conseillé par paho : disconnect, puis loop_stop. Chaque appel est protégé :
+        # loop_stop() peut lever AttributeError si le thread réseau est déjà terminé.
+        for arreter in (client.disconnect, client.loop_stop):
+            try:
+                arreter()
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":

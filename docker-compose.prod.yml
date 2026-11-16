@@ -1,0 +1,59 @@
+# Serveur en ligne (étape 4, personne 1). S'ajoute aux deux autres fichiers :
+#
+#     docker compose -f docker-compose.yml -f docker-compose.secure.yml -f docker-compose.prod.yml up -d
+#
+# (ou plus court : bash deploy/compose.sh up -d)
+#
+# Ce que ce fichier change par rapport au développement :
+#   - Docker publie ses ports en contournant le pare-feu ufw de la machine : MongoDB n'est donc
+#     publié que sur 127.0.0.1, et le port MQTT en clair 1883 n'est plus publié du tout ;
+#   - HiveMQ utilise config-tls-only.xml, quel que soit HIVEMQ_CONFIG dans .env ;
+#   - MongoDB demande un compte (MONGO_ROOT_USER / MONGO_ROOT_PASSWORD) et son cache est limité ;
+#   - le service sbe-ml publie le score de risque en continu et redémarre seul.
+# « !override » remplace la liste du fichier de base au lieu de s'y ajouter (Compose 2.24 ou plus).
+services:
+  mongodb:
+    ports: !override
+      - "127.0.0.1:27017:27017"
+    environment:
+      # Pris en compte seulement à la création du volume (base vide). URI pour WildFly :
+      # mongodb://MONGO_ROOT_USER:MONGO_ROOT_PASSWORD@localhost:27017/?authSource=admin
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:?MONGO_ROOT_USER manque dans .env}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD manque dans .env}
+    # Sans limite, le cache WiredTiger prend la moitié de (RAM - 1 Go), soit 3,5 Go sur 8 Go.
+    command: ["--wiredTigerCacheSizeGB", "0.5"]
+    mem_limit: 1g
+
+  hivemq:
+    ports: !override
+      - "8883:8883"
+    volumes:
+      - ./infra/mqtt/hivemq/config-tls-only.xml:/opt/hivemq/conf/config.xml:ro
+    mem_limit: 1g
+
+  sbe-ml:
+    build: ./iot/mlops
+    image: sbe-ml:local
+    container_name: smart-building-sbe-ml
+    restart: unless-stopped
+    # UID et GID de l'utilisateur sbe du serveur (exportés par deploy/compose.sh) : les modèles
+    # écrits par train.py lui appartiennent.
+    user: "${SBE_UID:-1000}:${SBE_GID:-1000}"
+    depends_on:
+      - hivemq
+    environment:
+      MQTT_ML_PASSWORD: ${MQTT_ML_PASSWORD:?MQTT_ML_PASSWORD manque dans .env}
+    volumes:
+      - ./iot/mlops/models:/app/models
+      - ./iot/mlops/data:/app/data:ro
+      - ./infra/mqtt/certs/ca.pem:/app/ca.pem:ro
+    # "hivemq" figure dans le certificat du broker : la vérification TLS passe dans le réseau Docker.
+    command: ["python", "infer.py", "--tls", "--host", "hivemq", "--cafile", "/app/ca.pem",
+              "--health-file", "/tmp/sbe-ml-health", "--exit-if-disconnected", "120"]
+    healthcheck:
+      test: ["CMD", "python", "healthcheck.py", "/tmp/sbe-ml-health", "60"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    mem_limit: 768m

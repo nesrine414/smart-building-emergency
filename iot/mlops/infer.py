@@ -19,6 +19,9 @@ Utilisation (depuis iot/mlops, après train.py) :
     python infer.py --tls                  # compte sbe-ml, mot de passe MQTT_ML_PASSWORD du .env
     python infer.py --tls --dry-run        # calcule et affiche sans publier
     python infer.py --model-version 1      # une version précise au lieu de la version "current"
+
+En service (étape 4) : voir Dockerfile et docker-compose.prod.yml. L'option --health-file permet
+au healthcheck Docker de savoir que le script tourne ET reste connecté au broker.
 """
 
 import argparse
@@ -38,7 +41,9 @@ import paho.mqtt.client as mqtt
 import features as F
 
 HERE = Path(__file__).resolve().parent
-REPO_ROOT = HERE.parents[1]
+# Dans le dépôt : iot/mlops -> racine du dépôt. Dans le conteneur Docker (/app), il n'y a pas
+# de dépôt autour : on reste dans /app (les chemins utiles sont passés en options).
+REPO_ROOT = HERE.parents[1] if len(HERE.parents) > 1 else HERE
 DEFAULT_MODELS = HERE / "models"
 DEFAULT_CAFILE = REPO_ROOT / "infra" / "mqtt" / "certs" / "ca.pem"
 ML_ACCOUNT = "sbe-ml"
@@ -153,6 +158,28 @@ def parse_reading(topic, payload):
     return parts[1], parts[2], parts[3], value
 
 
+# ---------- Battement de cœur (healthcheck Docker) ----------
+
+HEARTBEAT_SECONDS = 10
+
+
+def write_heartbeat(path, now):
+    """
+    Écrit l'heure courante dans path, seulement quand le client est connecté au broker.
+    Écriture atomique (fichier temporaire puis remplacement) : healthcheck.py ne lit jamais un
+    fichier à moitié écrit. Le fichier vieillit si le script est bloqué ou déconnecté.
+    """
+    path = Path(path)
+    temporary = path.with_name(path.name + ".tmp")
+    temporary.write_text(f"{now:.3f}\n", encoding="utf-8")
+    os.replace(temporary, path)
+
+
+def disconnected_too_long(now, last_connected, limit):
+    """Vrai si le client est déconnecté depuis plus de limit secondes (limit None = jamais)."""
+    return limit is not None and now - last_connected > limit
+
+
 # ---------- Service MQTT ----------
 
 class InferenceService:
@@ -247,8 +274,22 @@ class InferenceService:
               f"modèle v{self.model.version}. Score publié au plus toutes les {args.period:g} s par salle"
               f"{' (essai à blanc : aucune publication)' if args.dry_run else ''}. Ctrl+C pour arrêter.")
         try:
+            last_beat = 0.0
+            last_connected = time.time()
             while True:
                 time.sleep(1)
+                now = time.time()
+                if client.is_connected():
+                    last_connected = now
+                    if args.health_file and now - last_beat >= HEARTBEAT_SECONDS:
+                        write_heartbeat(args.health_file, now)
+                        last_beat = now
+                elif disconnected_too_long(now, last_connected, args.exit_if_disconnected):
+                    # En service, Docker relance le conteneur (restart: unless-stopped) : on repart
+                    # d'un état propre plutôt que de rester bloqué sans broker.
+                    print(f"Broker injoignable depuis plus de {args.exit_if_disconnected:g} s : arrêt "
+                          "(Docker relance le service).")
+                    raise SystemExit(1)
         except KeyboardInterrupt:
             print("\nArrêt demandé.")
         finally:
@@ -271,6 +312,12 @@ def parse_args(argv=None):
     parser.add_argument("--freshness", type=float, default=30.0, help="âge maximum d'une mesure utilisée (s)")
     parser.add_argument("--smoothing", type=int, default=3, help="médiane des N dernières mesures (défaut : 3)")
     parser.add_argument("--dry-run", action="store_true", help="calcule et affiche sans publier")
+    parser.add_argument("--health-file", default=None,
+                        help="fichier où écrire l'heure toutes les 10 s tant que le broker est connecté "
+                             "(lu par healthcheck.py dans le conteneur Docker)")
+    parser.add_argument("--exit-if-disconnected", type=float, default=None, metavar="SECONDES",
+                        help="quitter (code 1) après ce temps sans broker, pour que Docker relance le "
+                             "service ; désactivé par défaut")
     args = parser.parse_args(argv)
     if args.port is None:
         args.port = 8883 if args.tls else 1883

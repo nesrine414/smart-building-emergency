@@ -6,7 +6,9 @@
 #   certs\truststore.jks  certificat de la CA, pour le backend Java (MQTT_TRUSTSTORE)
 #
 # Le certificat du broker est valable pour localhost, 127.0.0.1, hivemq (nom du service Docker),
-# mqtt.smartbuilding.local et, si MQTT_BROKER_LAN_IP est défini dans .env, l'IP du PC sur le Wi-Fi.
+# mqtt.smartbuilding.local et, si elles sont définies dans .env :
+#   MQTT_BROKER_LAN_IP       l'IP du PC sur le Wi-Fi (ESP32 en local) ;
+#   MQTT_BROKER_PUBLIC_HOST  le nom public du broker en ligne, ex. mqtt.mon-domaine.me (étape 4).
 #
 # Utilisation, depuis la racine du dépôt (PowerShell) :
 #     powershell -ExecutionPolicy Bypass -File infra\mqtt\gen-certs.ps1 [-Force]
@@ -39,6 +41,7 @@ function Invoke-Keytool([string[]]$Arguments) {
 $KeystorePassword = Get-EnvValue 'MQTT_KEYSTORE_PASSWORD'
 $TruststorePassword = Get-EnvValue 'MQTT_TRUSTSTORE_PASSWORD'
 $LanIp = Get-EnvValue 'MQTT_BROKER_LAN_IP'
+$PublicHost = Get-EnvValue 'MQTT_BROKER_PUBLIC_HOST'
 
 if ([string]::IsNullOrEmpty($KeystorePassword) -or $KeystorePassword.Length -lt 6 -or
     [string]::IsNullOrEmpty($TruststorePassword) -or $TruststorePassword.Length -lt 6) {
@@ -55,6 +58,19 @@ if ($command) {
     Write-Error "keytool introuvable : installe un JDK (17 ou plus) et ajoute son dossier bin au PATH, ou définis JAVA_HOME."
 }
 
+# Noms du certificat, vérifiés AVANT de toucher aux certificats existants
+$San = 'dns:localhost,ip:127.0.0.1,dns:hivemq,dns:mqtt.smartbuilding.local'
+if (-not [string]::IsNullOrEmpty($LanIp)) {
+    if ($LanIp -notmatch '^[0-9]{1,3}(\.[0-9]{1,3}){3}$') { throw "MQTT_BROKER_LAN_IP n'est pas une adresse IPv4 : $LanIp" }
+    $San = "$San,ip:$LanIp"
+}
+if (-not [string]::IsNullOrEmpty($PublicHost)) {
+    if ($PublicHost -notmatch '^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)+$') {
+        throw "MQTT_BROKER_PUBLIC_HOST n'est pas un nom de domaine valide : $PublicHost"
+    }
+    $San = "$San,dns:$PublicHost"
+}
+
 if ((Test-Path (Join-Path $Out 'broker.jks')) -and -not $Force) {
     Write-Error "$Out\broker.jks existe déjà. Relance avec -Force pour tout régénérer."
 }
@@ -62,9 +78,6 @@ if (Test-Path $Out) { Remove-Item $Out -Recurse -Force }
 New-Item -ItemType Directory -Path $Out | Out-Null
 Push-Location $Out
 try {
-    $San = 'dns:localhost,ip:127.0.0.1,dns:hivemq,dns:mqtt.smartbuilding.local'
-    if (-not [string]::IsNullOrEmpty($LanIp)) { $San = "$San,ip:$LanIp" }
-
     Write-Host '1/5 CA locale du projet'
     Invoke-Keytool @('-genkeypair', '-alias', 'sbe-ca', '-keyalg', 'RSA', '-keysize', '3072', '-validity', '3650',
         '-dname', 'CN=Smart Building Emergency Local CA, O=SupCom, C=TN',

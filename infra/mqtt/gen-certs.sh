@@ -7,7 +7,9 @@
 #   certs/truststore.jks  certificat de la CA, pour le backend Java (MQTT_TRUSTSTORE)
 #
 # Le certificat du broker est valable pour localhost, 127.0.0.1, hivemq (nom du service Docker),
-# mqtt.smartbuilding.local et, si MQTT_BROKER_LAN_IP est défini dans .env, l'IP du PC sur le Wi-Fi.
+# mqtt.smartbuilding.local et, si elles sont définies dans .env :
+#   MQTT_BROKER_LAN_IP       l'IP du PC sur le Wi-Fi (ESP32 en local) ;
+#   MQTT_BROKER_PUBLIC_HOST  le nom public du broker en ligne, ex. mqtt.mon-domaine.me (étape 4).
 #
 # Utilisation, depuis la racine du dépôt :   bash infra/mqtt/gen-certs.sh [--force]
 set -euo pipefail
@@ -30,6 +32,7 @@ env_value() {
 KEYSTORE_PASSWORD="$(env_value MQTT_KEYSTORE_PASSWORD)"
 TRUSTSTORE_PASSWORD="$(env_value MQTT_TRUSTSTORE_PASSWORD)"
 LAN_IP="$(env_value MQTT_BROKER_LAN_IP)"
+PUBLIC_HOST="$(env_value MQTT_BROKER_PUBLIC_HOST)"
 
 if [[ ${#KEYSTORE_PASSWORD} -lt 6 || ${#TRUSTSTORE_PASSWORD} -lt 6 ]]; then
   echo "MQTT_KEYSTORE_PASSWORD et MQTT_TRUSTSTORE_PASSWORD doivent faire au moins 6 caractères (.env)." >&2
@@ -38,6 +41,23 @@ if [[ ${#KEYSTORE_PASSWORD} -lt 6 || ${#TRUSTSTORE_PASSWORD} -lt 6 ]]; then
 fi
 command -v keytool >/dev/null || { echo "keytool introuvable : installe un JDK (17 ou plus) et ajoute-le au PATH." >&2; exit 1; }
 
+# Noms du certificat, vérifiés AVANT de toucher aux certificats existants
+SAN="dns:localhost,ip:127.0.0.1,dns:hivemq,dns:mqtt.smartbuilding.local"
+if [[ -n "$LAN_IP" ]]; then
+  if [[ ! "$LAN_IP" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]]; then
+    echo "MQTT_BROKER_LAN_IP n'est pas une adresse IPv4 : $LAN_IP" >&2
+    exit 1
+  fi
+  SAN="$SAN,ip:$LAN_IP"
+fi
+if [[ -n "$PUBLIC_HOST" ]]; then
+  if [[ ! "$PUBLIC_HOST" =~ ^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)+$ ]]; then
+    echo "MQTT_BROKER_PUBLIC_HOST n'est pas un nom de domaine valide : $PUBLIC_HOST" >&2
+    exit 1
+  fi
+  SAN="$SAN,dns:$PUBLIC_HOST"
+fi
+
 if [[ -f "$OUT/broker.jks" && "$FORCE" != "--force" ]]; then
   echo "$OUT/broker.jks existe déjà. Relance avec --force pour tout régénérer." >&2
   exit 1
@@ -45,11 +65,6 @@ fi
 rm -rf "$OUT"
 mkdir -p "$OUT"
 cd "$OUT"
-
-SAN="dns:localhost,ip:127.0.0.1,dns:hivemq,dns:mqtt.smartbuilding.local"
-if [[ -n "$LAN_IP" ]]; then
-  SAN="$SAN,ip:$LAN_IP"
-fi
 
 echo "1/5 CA locale du projet"
 keytool -genkeypair -alias sbe-ca -keyalg RSA -keysize 3072 -validity 3650 \

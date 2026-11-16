@@ -8,6 +8,8 @@ target/
 *.key
 *.csr
 infra/mqtt/certs/
+infra/mqtt/certs-serveur/
+infra/mqtt/reports/
 infra/mqtt/rbac/credentials.xml
 infra/mqtt/extensions/
 

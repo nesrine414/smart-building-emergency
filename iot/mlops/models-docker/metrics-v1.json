@@ -1,0 +1,290 @@
+{
+  "version": 1,
+  "trained_at": "2026-11-15T18:27:33+00:00",
+  "notes": "test image",
+  "dataset": {
+    "name": "Smoke Detection Dataset",
+    "url": "https://www.kaggle.com/datasets/deepcontractor/smoke-detection-dataset",
+    "file": "smoke_detection_iot.csv",
+    "sha256": "7bbf5deaab4c94746b344cee7bfec493f69b7d624ea63f35fabcd3c4a4e6eb7d",
+    "rows_raw": 62630,
+    "rows_duplicated_removed": 30738,
+    "rows_used": 31892,
+    "alarm_rate": 0.7193,
+    "columns_detected": {
+      "utc": "UTC",
+      "temperature": "Temperature[C]",
+      "humidity": "Humidity[%]",
+      "tvoc_ppb": "TVOC[ppb]",
+      "eco2_ppm": "eCO2[ppm]",
+      "pm25": "PM2.5",
+      "fire_alarm": "Fire Alarm"
+    },
+    "duplicate_rule": "mêmes valeurs sur toutes les colonnes sauf UTC, température et index"
+  },
+  "features": [
+    "temperature",
+    "tvoc_ppb",
+    "eco2_ppm",
+    "pm25"
+  ],
+  "monotonic_constraints": [
+    1,
+    1,
+    1,
+    1
+  ],
+  "label": "Fire Alarm",
+  "model": {
+    "type": "RandomForestClassifier",
+    "params": {
+      "n_estimators": 200,
+      "max_depth": 12,
+      "min_samples_leaf": 20,
+      "class_weight": "balanced",
+      "random_state": 42
+    }
+  },
+  "split": {
+    "method": "blocs de temps",
+    "block_minutes": 10,
+    "test_every": 5,
+    "purge_seconds": 60,
+    "train": {
+      "rows": 24650,
+      "alarms": 17890,
+      "no_alarm": 6760
+    },
+    "test": {
+      "rows": 6000,
+      "alarms": 4200,
+      "no_alarm": 1800
+    },
+    "purged_rows": 1242
+  },
+  "test_metrics": {
+    "threshold": 0.5,
+    "precision": 0.878,
+    "recall": 0.8564,
+    "f1": 0.8671,
+    "roc_auc": 0.9065,
+    "confusion_matrix": {
+      "true_negative": 1300,
+      "false_positive": 500,
+      "false_negative": 603,
+      "true_positive": 3597
+    }
+  },
+  "comparisons": {
+    "approche_naive_csv_brut_hasard_sans_contrainte": {
+      "threshold": 0.5,
+      "precision": 0.9955,
+      "recall": 0.989,
+      "f1": 0.9922,
+      "roc_auc": 0.9995,
+      "confusion_matrix": {
+        "true_negative": 3589,
+        "false_positive": 40,
+        "false_negative": 97,
+        "true_positive": 8754
+      },
+      "scenario_check_passed": false,
+      "risk_by_profile": {
+        "normal-bas": 0.01,
+        "normal": 0.0,
+        "normal-haut": 0.007,
+        "fuite-de-gaz-debut": 0.315,
+        "fuite-de-gaz-pic": 0.383,
+        "incendie-milieu": 0.217,
+        "incendie-pic": 0.205
+      },
+      "note": "doublons gardés + découpage au hasard : le test contient des copies de l'entraînement"
+    },
+    "reference_toujours_alarme": {
+      "threshold": 0.5,
+      "precision": 0.7,
+      "recall": 1.0,
+      "f1": 0.8235,
+      "confusion_matrix": {
+        "true_negative": 0,
+        "false_positive": 1800,
+        "false_negative": 0,
+        "true_positive": 4200
+      }
+    },
+    "meme_modele_decoupage_au_hasard": {
+      "threshold": 0.5,
+      "precision": 0.905,
+      "recall": 0.8311,
+      "f1": 0.8665,
+      "roc_auc": 0.8714,
+      "confusion_matrix": {
+        "true_negative": 1456,
+        "false_positive": 392,
+        "false_negative": 759,
+        "true_positive": 3735
+      }
+    },
+    "foret_sans_contrainte_de_monotonie": {
+      "threshold": 0.5,
+      "precision": 0.9878,
+      "recall": 1.0,
+      "f1": 0.9938,
+      "roc_auc": 1.0,
+      "confusion_matrix": {
+        "true_negative": 1748,
+        "false_positive": 52,
+        "false_negative": 0,
+        "true_positive": 4200
+      },
+      "scenario_check_passed": false,
+      "risk_by_profile": {
+        "normal-bas": 0.0,
+        "normal": 0.0,
+        "normal-haut": 0.0,
+        "fuite-de-gaz-debut": 0.236,
+        "fuite-de-gaz-pic": 0.563,
+        "incendie-milieu": 0.2,
+        "incendie-pic": 0.173
+      }
+    },
+    "isolation_forest": {
+      "threshold": 0.4504,
+      "precision": 0.8891,
+      "recall": 0.9998,
+      "f1": 0.9412,
+      "roc_auc": 0.8008,
+      "confusion_matrix": {
+        "true_negative": 1276,
+        "false_positive": 524,
+        "false_negative": 1,
+        "true_positive": 4199
+      },
+      "note": "score d'anomalie appris sans étiquette sur les lignes normales ; seuil choisi sur l'entraînement (meilleur F1). Score sans borne fixe et à double sens (trop bas compte aussi comme anormal) : pas utilisé comme RISK",
+      "anomaly_by_profile": {
+        "normal-bas": 0.417,
+        "normal": 0.359,
+        "normal-haut": 0.35,
+        "fuite-de-gaz-debut": 0.452,
+        "fuite-de-gaz-pic": 0.597,
+        "incendie-milieu": 0.47,
+        "incendie-pic": 0.55
+      }
+    }
+  },
+  "calibration": {
+    "method": "anchors-v1",
+    "features": {
+      "tvoc_ppb": {
+        "sensor": "GAS",
+        "sensor_points": [
+          0.0,
+          400.0,
+          1000.0,
+          1500.0
+        ],
+        "dataset_points": [
+          0.0,
+          89.0,
+          1094.0,
+          1375.0
+        ]
+      },
+      "eco2_ppm": {
+        "sensor": "GAS",
+        "sensor_points": [
+          0.0,
+          400.0,
+          1000.0,
+          1500.0
+        ],
+        "dataset_points": [
+          400.0,
+          400.0,
+          406.0,
+          1001.5499999999993
+        ]
+      },
+      "pm25": {
+        "sensor": "SMOKE",
+        "sensor_points": [
+          0.0,
+          50.0,
+          300.0,
+          600.0
+        ],
+        "dataset_points": [
+          0.0,
+          1.7,
+          1.93,
+          2.74
+        ]
+      },
+      "temperature": {
+        "sensor": "TEMPERATURE",
+        "identity_range": [
+          -22.01,
+          59.93
+        ]
+      }
+    }
+  },
+  "scenario_check": {
+    "risk_by_profile": {
+      "normal-bas": 0.063,
+      "normal": 0.191,
+      "normal-haut": 0.253,
+      "fuite-de-gaz-debut": 0.57,
+      "fuite-de-gaz-pic": 0.631,
+      "incendie-milieu": 0.678,
+      "incendie-pic": 0.716
+    },
+    "profiles": {
+      "normal-bas": {
+        "GAS": 200.0,
+        "SMOKE": 0.0,
+        "TEMPERATURE": 20.0
+      },
+      "normal": {
+        "GAS": 300.0,
+        "SMOKE": 25.0,
+        "TEMPERATURE": 23.0
+      },
+      "normal-haut": {
+        "GAS": 400.0,
+        "SMOKE": 50.0,
+        "TEMPERATURE": 26.0
+      },
+      "fuite-de-gaz-debut": {
+        "GAS": 1000.0,
+        "SMOKE": 25.0,
+        "TEMPERATURE": 23.0
+      },
+      "fuite-de-gaz-pic": {
+        "GAS": 2000.0,
+        "SMOKE": 25.0,
+        "TEMPERATURE": 23.0
+      },
+      "incendie-milieu": {
+        "GAS": 500.0,
+        "SMOKE": 410.0,
+        "TEMPERATURE": 47.0
+      },
+      "incendie-pic": {
+        "GAS": 700.0,
+        "SMOKE": 800.0,
+        "TEMPERATURE": 70.0
+      }
+    },
+    "passed": true,
+    "problems": []
+  },
+  "environment": {
+    "python": "3.12.16",
+    "scikit_learn": "1.9.1",
+    "pandas": "3.0.5",
+    "numpy": "2.5.3",
+    "git_commit": null
+  },
+  "training_seconds": 21.6
+}
