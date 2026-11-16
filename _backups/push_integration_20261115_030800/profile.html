@@ -1,0 +1,81 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1>My Profile</h1>
+  </div>
+
+  @if (user(); as u) {
+    <div class="profile-card">
+      <div class="avatar">
+        {{ u.firstName.charAt(0) || u.username.charAt(0) }}{{ u.lastName.charAt(0) }}
+      </div>
+
+      <h2>{{ u.firstName }} {{ u.lastName }}</h2>
+      <p class="email">{{ u.email || u.username }}</p>
+      <span class="role-badge">{{ u.role }}</span>
+
+      <section class="location-preferences">
+        <h3>My building location</h3>
+        <p class="preference-note">
+          Select your usual building, floor and room. These preferences are
+          saved on this device.
+        </p>
+
+        <label for="profile-building">Building</label>
+        <select
+          id="profile-building"
+          [value]="selectedBuildingId()"
+          (change)="selectBuilding($any($event.target).value)"
+        >
+          <option value="" disabled>Select a building</option>
+          @for (building of buildings(); track building.id) {
+            <option [value]="building.id">{{ building.name }}</option>
+          }
+        </select>
+
+        <label for="profile-floor">Floor</label>
+        <select
+          id="profile-floor"
+          [value]="selectedFloorLevel() ?? ''"
+          (change)="selectFloor($any($event.target).value)"
+          [disabled]="floors().length === 0"
+        >
+          <option value="" disabled>Select a floor</option>
+          @for (floor of floors(); track floor.id) {
+            <option [value]="floor.level">{{ floor.name }}</option>
+          }
+        </select>
+
+        <label for="profile-room">Room</label>
+        <select
+          id="profile-room"
+          [value]="selectedRoomId()"
+          (change)="selectRoom($any($event.target).value)"
+          [disabled]="rooms().length === 0"
+        >
+          <option value="" disabled>Select a room</option>
+          @for (room of rooms(); track room.id) {
+            <option [value]="room.id">
+              {{ room.roomNumber }}
+            </option>
+          }
+        </select>
+
+        <div class="location-summary">
+          <strong>Selected location</strong>
+          <p>{{ selectedBuilding()?.name || 'No building selected' }}</p>
+          <p>{{ selectedFloor()?.name || 'No floor selected' }}</p>
+          <p>
+            Room {{ selectedRoom()?.roomNumber || 'Not selected' }}
+          </p>
+          @if (selectedRoom()?.exit; as exitName) {
+            <p>Recorded exit: {{ exitName }}</p>
+          }
+        </div>
+      </section>
+
+      <button class="logout-btn" (click)="logout()">
+        Sign Out
+      </button>
+    </div>
+  }
+</div>

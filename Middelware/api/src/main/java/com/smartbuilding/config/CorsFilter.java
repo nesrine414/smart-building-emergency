@@ -1,16 +1,20 @@
 package com.smartbuilding.config;
 
 import jakarta.ws.rs.container.ContainerRequestContext;
+import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.container.ContainerResponseFilter;
+import jakarta.ws.rs.container.PreMatching;
+import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
 import java.io.IOException;
+import java.net.URI;
 import java.util.List;
 
 @Provider
-public class CorsFilter implements ContainerResponseFilter {
+@PreMatching
+public class CorsFilter implements ContainerRequestFilter, ContainerResponseFilter {
 
-    // EXACTEMENT les origines autorisées (Front Office www:4200 et Back Office admin:4201)
     private static final List<String> ALLOWED_ORIGINS = List.of(
         "http://www.smartbuilding.local:4200",
         "https://www.smartbuilding.local:4200",
@@ -18,22 +22,104 @@ public class CorsFilter implements ContainerResponseFilter {
         "https://admin.smartbuilding.local:4201"
     );
 
+    private boolean isAllowedOrigin(String origin) {
+        if (origin == null) {
+            return false;
+        }
+
+        if (ALLOWED_ORIGINS.contains(origin)) {
+            return true;
+        }
+
+        try {
+            URI uri = URI.create(origin);
+            String host = uri.getHost();
+            String scheme = uri.getScheme();
+            int port = uri.getPort();
+
+            boolean localHost = "localhost".equalsIgnoreCase(host)
+                    || "127.0.0.1".equals(host);
+
+            boolean httpScheme = "http".equalsIgnoreCase(scheme)
+                    || "https".equalsIgnoreCase(scheme);
+
+            boolean validPort = port == -1 || (port >= 1 && port <= 65535);
+            boolean noPath = uri.getRawPath() == null || uri.getRawPath().isEmpty();
+
+            return localHost
+                    && httpScheme
+                    && validPort
+                    && noPath
+                    && uri.getRawQuery() == null
+                    && uri.getRawFragment() == null
+                    && uri.getRawUserInfo() == null;
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
+    }
+
+    private void addCorsHeaders(
+            Response.ResponseBuilder response,
+            String origin
+    ) {
+        response.header("Access-Control-Allow-Origin", origin);
+        response.header("Access-Control-Allow-Credentials", "true");
+        response.header(
+            "Access-Control-Allow-Methods",
+            "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD"
+        );
+        response.header(
+            "Access-Control-Allow-Headers",
+            "Content-Type, Authorization, Accept, Origin, X-Requested-With"
+        );
+        response.header("Access-Control-Max-Age", "3600");
+        response.header(
+            "Vary",
+            "Origin, Access-Control-Request-Method, Access-Control-Request-Headers"
+        );
+    }
+
     @Override
-    public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext) throws IOException {
+    public void filter(ContainerRequestContext requestContext) throws IOException {
+        if (!"OPTIONS".equalsIgnoreCase(requestContext.getMethod())) {
+            return;
+        }
+
         String origin = requestContext.getHeaderString("Origin");
 
-        // Autoriser UNIQUEMENT si l'origine fait partie de la liste stricte
-        if (origin != null && ALLOWED_ORIGINS.contains(origin)) {
-            responseContext.getHeaders().putSingle("Access-Control-Allow-Origin", origin);
-            responseContext.getHeaders().putSingle("Access-Control-Allow-Credentials", "true");
+        if (!isAllowedOrigin(origin)) {
+            requestContext.abortWith(
+                Response.status(Response.Status.FORBIDDEN).build()
+            );
+            return;
         }
-        // AUCUN fallback : si l'origine est inconnue, le header n'est pas injecté
+
+        Response.ResponseBuilder response = Response.noContent();
+        addCorsHeaders(response, origin);
+        requestContext.abortWith(response.build());
+    }
+
+    @Override
+    public void filter(
+            ContainerRequestContext requestContext,
+            ContainerResponseContext responseContext
+    ) throws IOException {
+        String origin = requestContext.getHeaderString("Origin");
+
+        if (isAllowedOrigin(origin)) {
+            responseContext.getHeaders().putSingle(
+                "Access-Control-Allow-Origin", origin
+            );
+            responseContext.getHeaders().putSingle(
+                "Access-Control-Allow-Credentials", "true"
+            );
+            responseContext.getHeaders().putSingle("Vary", "Origin");
+        }
 
         responseContext.getHeaders().putSingle(
             "Access-Control-Allow-Methods",
-            "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+            "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD"
         );
-
         responseContext.getHeaders().putSingle(
             "Access-Control-Allow-Headers",
             "Content-Type, Authorization, Accept, Origin, X-Requested-With"

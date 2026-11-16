@@ -1,0 +1,102 @@
+
+/* Data-driven room map enhancements */
+.floor-plan-svg svg {
+  display: block;
+  width: 100%;
+  min-width: 320px;
+  height: auto;
+  aspect-ratio: 100 / 60;
+}
+
+.room-group {
+  cursor: pointer;
+  outline: none;
+}
+
+.room-group:focus .room-rect {
+  stroke: #93c5fd;
+  stroke-width: 1.2;
+}
+
+.room-rect.room-selected {
+  stroke: #60a5fa;
+  stroke-width: 1.2;
+  fill: rgba(59, 130, 246, 0.22);
+}
+
+.room-name {
+  font-size: 3.2px;
+  pointer-events: none;
+}
+
+.room-info {
+  font-size: 2px;
+  pointer-events: none;
+}
+
+.alert-indicator-text {
+  fill: #fff;
+  font-size: 2.5px;
+  font-weight: 800;
+  pointer-events: none;
+}
+
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  color: #94a3b8;
+  font-size: 0.75rem;
+}
+
+.map-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.map-legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.legend-safe { background: #22c55e; }
+.legend-warning { background: #eab308; }
+.legend-danger { background: #ef4444; }
+
+.selected-room-card,
+.map-empty-state {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  background: #0f172a;
+  color: #cbd5e1;
+}
+
+.selected-room-card h3 {
+  margin: 0 0 0.5rem;
+  color: #f1f5f9;
+}
+
+.selected-room-card p {
+  margin: 0.25rem 0;
+  font-size: 0.875rem;
+}
+
+.room-alert-details {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #334155;
+  color: #fca5a5;
+}
+
+.route-disclaimer {
+  margin: 0 0 0.75rem;
+  color: #94a3b8;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}

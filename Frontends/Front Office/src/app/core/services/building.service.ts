@@ -1,89 +1,107 @@
-import { Injectable, signal } from '@angular/core';
-import { Building } from '../models';
+import { Injectable, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable, of, forkJoin, switchMap, map, tap } from 'rxjs';
+import { Building, BuildingView, Floor, Room, RoomView } from '../models';
+import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class BuildingService {
+  private readonly http = inject(HttpClient);
+  private readonly apiUrl = `${environment.apiUrl}/buildings`;
 
-  private readonly buildingList = signal<Building[]>(this.getMockBuildings());
-
+  private readonly buildingList = signal<BuildingView[]>([]);
   readonly buildings = this.buildingList.asReadonly();
 
-  getBuildingById(id: string): Building | undefined {
-    return this.buildingList().find(b => b.id === id);
+  constructor() {
+    this.refresh().subscribe({
+      error: error => console.error('Chargement bâtiments impossible', error)
+    });
   }
 
-  private getMockBuildings(): Building[] {
-    return [
+  refresh(): Observable<BuildingView[]> {
+    if (environment.useMock) {
+      return of(this.getMockBuildings()).pipe(
+        tap(items => this.buildingList.set(items))
+      );
+    }
+
+    return this.http.get<Building[]>(this.apiUrl).pipe(
+      switchMap(buildings => {
+        if (buildings.length === 0) return of([]);
+
+        return forkJoin(
+          buildings.map(building =>
+            this.http.get<Room[]>(
+              `${this.apiUrl}/${encodeURIComponent(building.id)}/rooms`
+            ).pipe(
+              map(rooms => this.toBuildingView(building, rooms))
+            )
+          )
+        );
+      }),
+      tap(items => this.buildingList.set(items))
+    );
+  }
+
+  getBuildings(): Observable<BuildingView[]> {
+    return this.refresh();
+  }
+
+  getBuildingById(id: string): BuildingView | undefined {
+    return this.buildingList().find(item => item.id === id);
+  }
+
+  private toBuildingView(building: Building, rooms: Room[]): BuildingView {
+    const levels = new Set<number>();
+
+    for (let level = 1; level <= building.floors; level++) {
+      levels.add(level);
+    }
+
+    rooms.forEach(room => levels.add(room.floor));
+
+    const floors: Floor[] = Array.from(levels).sort((a, b) => a - b).map(level => {
+      const floorRooms: RoomView[] = rooms
+        .filter(room => room.floor === level)
+        .map(room => ({
+          ...room,
+          name: `Office ${room.roomNumber}`,
+          floorId: `floor-${level}`,
+          type: 'OFFICE'
+        }));
+
+      return {
+        id: `floor-${level}`,
+        buildingId: building.id,
+        name: `Floor ${level}`,
+        level,
+        rooms: floorRooms
+      };
+    });
+
+    return {
+      ...building,
+      floors,
+      status: 'SAFE'
+    };
+  }
+
+  private getMockBuildings(): BuildingView[] {
+    const buildings: Building[] = [
       {
-        id: 'b-001',
-        name: 'Building A — Main Office',
-        address: '123 Smart Street, Tech City',
-        latitude: 36.8065,
-        longitude: 10.1815,
-        status: 'DANGER',
-        totalOccupants: 245,
-        floors: [
-          {
-            id: 'f-001',
-            buildingId: 'b-001',
-            name: 'Floor 1 — Ground',
-            level: 1,
-            rooms: [
-              { id: 'r-101', floorId: 'f-001', name: 'Lobby', type: 'LOBBY', capacity: 50, currentOccupants: 12 },
-              { id: 'r-102', floorId: 'f-001', name: 'Utility Room', type: 'UTILITY', capacity: 5, currentOccupants: 0 }
-            ]
-          },
-          {
-            id: 'f-002',
-            buildingId: 'b-001',
-            name: 'Floor 2 — Offices',
-            level: 2,
-            rooms: [
-              { id: 'r-201', floorId: 'f-002', name: 'Open Space A', type: 'OFFICE', capacity: 60, currentOccupants: 45 },
-              { id: 'r-202', floorId: 'f-002', name: 'Meeting Room B', type: 'OFFICE', capacity: 15, currentOccupants: 8 }
-            ]
-          },
-          {
-            id: 'f-003',
-            buildingId: 'b-001',
-            name: 'Floor 3 — IT & Servers',
-            level: 3,
-            rooms: [
-              { id: 'r-301', floorId: 'f-003', name: 'IT Office', type: 'OFFICE', capacity: 30, currentOccupants: 0 },
-              { id: 'r-302', floorId: 'f-003', name: 'Server Room', type: 'UTILITY', capacity: 10, currentOccupants: 0 }
-            ]
-          }
-        ]
-      },
-      {
-        id: 'b-002',
-        name: 'Building B — Annex',
-        address: '125 Smart Street, Tech City',
-        latitude: 36.8070,
-        longitude: 10.1820,
-        status: 'WARNING',
-        totalOccupants: 80,
-        floors: [
-          {
-            id: 'f-004',
-            buildingId: 'b-002',
-            name: 'Floor 1',
-            level: 1,
-            rooms: [
-              { id: 'r-401', floorId: 'f-004', name: 'Reception', type: 'LOBBY', capacity: 20, currentOccupants: 5 }
-            ]
-          },
-          {
-            id: 'f-005',
-            buildingId: 'b-002',
-            name: 'Floor 2',
-            level: 2,
-            rooms: [
-              { id: 'r-201', floorId: 'f-005', name: 'Kitchen', type: 'OTHER', capacity: 20, currentOccupants: 3 }
-            ]
-          }
-        ]
+        id: 'bld-01',
+        name: 'Main Tower',
+        address: 'Avenue Habib Bourguiba',
+        floors: 12
       }
     ];
+
+    const rooms: Room[] = [
+      { id: 'room-101', buildingId: 'bld-01', roomNumber: '101', floor: 1, x: 5, y: 10, width: 40, height: 35, exit: 'Escalier A' },
+      { id: 'room-102', buildingId: 'bld-01', roomNumber: '102', floor: 1, x: 55, y: 10, width: 40, height: 35, exit: 'Escalier B' },
+      { id: 'room-201', buildingId: 'bld-01', roomNumber: '201', floor: 2, x: 5, y: 10, width: 40, height: 35, exit: 'Escalier A' }
+    ];
+
+    return buildings.map(building => this.toBuildingView(building, rooms));
   }
 }

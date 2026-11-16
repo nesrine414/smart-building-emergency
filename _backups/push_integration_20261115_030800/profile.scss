@@ -1,0 +1,65 @@
+
+/* Occupant location preferences */
+.location-preferences {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #334155;
+  text-align: left;
+}
+
+.location-preferences h3 {
+  margin: 0 0 0.5rem;
+  color: #f1f5f9;
+  font-size: 1rem;
+}
+
+.preference-note {
+  margin: 0 0 1rem;
+  color: #94a3b8;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.location-preferences label {
+  display: block;
+  margin: 0.85rem 0 0.35rem;
+  color: #cbd5e1;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.location-preferences select {
+  width: 100%;
+  min-height: 42px;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #475569;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #f1f5f9;
+  font: inherit;
+}
+
+.location-preferences select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.location-summary {
+  margin-top: 1.25rem;
+  padding: 0.9rem;
+  border-radius: 8px;
+  background: #0f172a;
+  border: 1px solid #334155;
+}
+
+.location-summary strong {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: #93c5fd;
+}
+
+.location-summary p {
+  margin: 0.25rem 0;
+  color: #cbd5e1;
+  font-size: 0.875rem;
+}

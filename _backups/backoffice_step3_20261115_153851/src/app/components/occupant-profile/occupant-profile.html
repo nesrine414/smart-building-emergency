@@ -1,0 +1,84 @@
+
+<section class="profile-card">
+  <h2>Profil de l'occupant</h2>
+
+  <p class="description">
+    Renseignez votre emplacement pour recevoir les alertes qui concernent votre zone.
+  </p>
+
+  <form (ngSubmit)="saveProfile()">
+    <div class="form-group">
+      <label for="name">Nom de l'occupant</label>
+      <input
+        id="name"
+        type="text"
+        name="name"
+        [(ngModel)]="profile.name"
+        placeholder="Votre nom"
+        required
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="building">Identifiant du bâtiment</label>
+      <input
+        id="building"
+        type="text"
+        name="buildingId"
+        [(ngModel)]="profile.buildingId"
+        placeholder="Exemple : bld-01"
+        required
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="floor">Identifiant de l'étage</label>
+      <input
+        id="floor"
+        type="text"
+        name="floorId"
+        [(ngModel)]="profile.floorId"
+        placeholder="Exemple : floor-0"
+        required
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="room">Identifiant de la salle</label>
+      <input
+        id="room"
+        type="text"
+        name="roomId"
+        [(ngModel)]="profile.roomId"
+        placeholder="Exemple : room-101"
+        required
+      />
+    </div>
+
+    <button type="submit">Enregistrer mon profil</button>
+  </form>
+
+  <p class="message" *ngIf="message">
+    {{ message }}
+  </p>
+
+  <div class="push-section">
+    <h3>Notifications d'urgence</h3>
+
+    <p class="description">
+      Recevez une notification lorsqu'un incident concerne votre bâtiment.
+    </p>
+
+    <button
+      type="button"
+      (click)="enablePushNotifications()"
+      [disabled]="pushLoading"
+    >
+      {{ pushLoading ? 'Activation en cours...' : 'Activer les alertes' }}
+    </button>
+
+    <p class="message" *ngIf="pushMessage">
+      {{ pushMessage }}
+    </p>
+  </div>
+</section>

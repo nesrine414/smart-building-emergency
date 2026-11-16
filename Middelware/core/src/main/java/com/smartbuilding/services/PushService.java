@@ -216,8 +216,7 @@ public class PushService {
                 LOG.warning("Échec notification Push. HTTP " + status);
 
                 if (status == 404 || status == 410) {
-                    deleteSubscription(subscription.getEndpoint());
-                    LOG.info("Abonnement expiré supprimé.");
+                    LOG.warning("Abonnement Push expiré ou invalide : conservation de l'enregistrement MongoDB.");
                 }
             }
 

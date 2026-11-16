@@ -8,6 +8,7 @@ import com.smartbuilding.security.RequireRole;
 import com.smartbuilding.services.ActuatorService;
 import com.smartbuilding.services.BuildingManager;
 import com.smartbuilding.services.IncidentService;
+import com.smartbuilding.services.ActuatorStateService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
@@ -35,7 +36,8 @@ public class BuildingResource {
 
     @Inject
     private ActuatorService actuatorService;
-
+    @Inject
+    private ActuatorStateService actuatorStateService;
     // GET /api/buildings (Connecté requis : OCCUPANT ou ADMIN)
     @GET
     @Path("/buildings")
@@ -72,6 +74,12 @@ public class BuildingResource {
     @Path("/sensors")
     public List<Sensor> getSensors(@QueryParam("roomId") String roomId) {
         return buildingManager.getSensors(roomId);
+    }
+    // GET /api/rooms/{roomId}/actuators
+    @GET
+    @Path("/rooms/{roomId}/actuators")
+    public Response getActuatorStates(@PathParam("roomId") String roomId) {
+        return Response.ok(actuatorStateService.getStates(roomId)).build();
     }
 
     // POST /api/rooms/{roomId}/actuators (Rôle ADMIN requis !)

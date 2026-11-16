@@ -10,7 +10,7 @@ import { AuthService } from '../../core/auth/auth.service';
   styleUrl: './login.scss'
 })
 export class Login {
-  protected email = signal('');
+  protected username = signal('');
   protected password = signal('');
   protected errorMessage = signal('');
   protected isLoading = signal(false);
@@ -25,20 +25,29 @@ export class Login {
   }
 
   onSubmit(): void {
+    if (this.isLoading()) return;
+
     this.isLoading.set(true);
     this.errorMessage.set('');
 
-    const success = this.authService.login({
-      email: this.email(),
+    this.authService.login({
+      username: this.username().trim(),
       password: this.password()
+    }).subscribe({
+      next: () => {
+        this.router.navigate(['/dashboard']);
+      },
+      error: (error) => {
+        this.isLoading.set(false);
+        this.errorMessage.set(
+          error.status === 401
+            ? 'Identifiant ou mot de passe incorrect.'
+            : 'Impossible de contacter le serveur IAM.'
+        );
+      },
+      complete: () => {
+        this.isLoading.set(false);
+      }
     });
-
-    if (success) {
-      this.router.navigate(['/dashboard']);
-    } else {
-      this.errorMessage.set('Invalid email or password. Try user@smartbuilding.com / password');
-    }
-
-    this.isLoading.set(false);
   }
 }

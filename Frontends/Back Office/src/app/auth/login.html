@@ -1,0 +1,50 @@
+﻿<div class="login-page">
+  <section class="login-card">
+    <div class="login-brand">
+      <div class="brand-mark">SB</div>
+      <p class="eyebrow">SMART BUILDING</p>
+      <h1>Back Office</h1>
+      <p class="subtitle">Espace sécurisé de gestion des urgences</p>
+    </div>
+
+    @if (errorMessage()) {
+      <div class="error-message" role="alert">
+        {{ errorMessage() }}
+      </div>
+    }
+
+    <form (ngSubmit)="onSubmit()" class="login-form">
+      <label for="username">Nom d'utilisateur</label>
+      <input
+        id="username"
+        type="text"
+        [ngModel]="username()"
+        (ngModelChange)="username.set($event)"
+        name="username"
+        autocomplete="username"
+        placeholder="Votre identifiant"
+        required
+      />
+
+      <label for="password">Mot de passe</label>
+      <input
+        id="password"
+        type="password"
+        [ngModel]="password()"
+        (ngModelChange)="password.set($event)"
+        name="password"
+        autocomplete="current-password"
+        placeholder="Votre mot de passe"
+        required
+      />
+
+      <button type="submit" [disabled]="isLoading()">
+        {{ isLoading() ? 'Connexion en cours…' : 'Se connecter' }}
+      </button>
+    </form>
+
+    <p class="security-note">
+      Accès réservé aux administrateurs.
+    </p>
+  </section>
+</div>

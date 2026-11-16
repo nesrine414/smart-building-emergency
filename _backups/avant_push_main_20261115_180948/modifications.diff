@@ -1,0 +1,6081 @@
+﻿diff --git a/Frontends/Back Office/src/app/app.config.ts b/Frontends/Back Office/src/app/app.config.ts
+index 798c0e8..3456d64 100644
+--- a/Frontends/Back Office/src/app/app.config.ts	
++++ b/Frontends/Back Office/src/app/app.config.ts	
+@@ -1,16 +1,22 @@
+-
+-import { ApplicationConfig, isDevMode } from '@angular/core';
++´╗┐import { ApplicationConfig, isDevMode } from '@angular/core';
+ import { provideRouter } from '@angular/router';
+-import { provideHttpClient, withFetch } from '@angular/common/http';
++import {
++  provideHttpClient,
++  withFetch,
++  withInterceptors
++} from '@angular/common/http';
+ import { provideServiceWorker } from '@angular/service-worker';
+ 
+ import { routes } from './app.routes';
++import { authInterceptor } from './core/auth/auth.interceptor';
+ 
+ export const appConfig: ApplicationConfig = {
+   providers: [
+     provideRouter(routes),
+-    provideHttpClient(withFetch()),
+-
++    provideHttpClient(
++      withFetch(),
++      withInterceptors([authInterceptor])
++    ),
+     provideServiceWorker('ngsw-worker.js', {
+       enabled: !isDevMode(),
+       registrationStrategy: 'registerWhenStable:30000'
+diff --git a/Frontends/Back Office/src/app/app.html b/Frontends/Back Office/src/app/app.html
+index 288b9dc..74fc968 100644
+--- a/Frontends/Back Office/src/app/app.html	
++++ b/Frontends/Back Office/src/app/app.html	
+@@ -1,735 +1,8 @@
+-
+-@if (readings$ | async; as readings) {
+-  <div class="dashboard">
+-
+-    <!-- SIDEBAR -->
+-    <aside class="sidebar">
+-      <div class="brand">
+-        <div class="brand-icon">­ƒÅó</div>
+-        <div class="brand-text">
+-          <h2>Smart Building</h2>
+-          <span>Emergency System</span>
+-        </div>
+-      </div>
+-
+-      <div class="menu-label">MAIN MENU</div>
+-
+-      <nav class="navigation">
+-        <a href="#overview" class="nav-link active">
+-          <span class="nav-icon">Ôûª</span>
+-          <span>Dashboard</span>
+-        </a>
+-
+-        <a href="#building-map" class="nav-link">
+-          <span class="nav-icon">Ôîû</span>
+-          <span>Building Map</span>
+-        </a>
+-
+-        <a href="#sensors" class="nav-link">
+-          <span class="nav-icon">Ôùë</span>
+-          <span>Sensors</span>
+-        </a>
+-
+-        <a href="#alerts" class="nav-link">
+-          <span class="nav-icon">ÔÜá</span>
+-          <span>Alerts</span>
+-          @if (countAlerts(readings) > 0) {
+-            <span class="nav-counter">{{ countAlerts(readings) }}</span>
+-          }
+-        </a>
+-
+-        <a href="#incidents" class="nav-link">
+-          <span class="nav-icon">­ƒÜ¿</span>
+-          <span>Incidents</span>
+-        </a>
+-
+-        <a href="#occupant-profile" class="nav-link">
+-          <span class="nav-icon">­ƒæñ</span>
+-          <span>Occupant Profile</span>
+-        </a>
+-      </nav>
+-
+-      <div class="sidebar-bottom">
+-        <div class="system-status">
+-          @if (apiOnline$ | async) {
+-            <span class="status-dot online"></span>
+-            <div>
+-              <strong>System online</strong>
+-              <small>Monitoring active</small>
+-            </div>
+-          } @else {
+-            <span class="status-dot offline"></span>
+-            <div>
+-              <strong>System offline</strong>
+-              <small>API unavailable</small>
+-            </div>
+-          }
+-        </div>
+-
+-        <div class="sidebar-footer">
+-          <span>SMART BUILDING</span>
+-          <small>Emergency Management ┬À ┬® 2026</small>
+-        </div>
+-      </div>
+-    </aside>
+-
+-    <!-- MAIN CONTENT -->
+-    <main class="main-content">
+-
+-      <!-- HEADER -->
+-      <header class="topbar" id="overview">
+-        <div class="topbar-title">
+-          <div class="breadcrumb">MAIN MENU / DASHBOARD</div>
+-          <h1>Building Overview</h1>
+-          <p>Real-time monitoring and emergency management center.</p>
+-        </div>
+-
+-        <div class="topbar-right">
+-          <span class="live-indicator">
+-            <span class="status-dot"></span>
+-            LIVE MONITORING
+-          </span>
+-
+-          <div class="profile" title="Administrator">AD</div>
+-        </div>
+-      </header>
+-
+-      <!-- SAFETY STATUS -->
+-      <section
+-        class="safety-banner"
+-        [class.safety-alert]="hasSafetyAlert"
+-        [class.safety-safe]="!hasSafetyAlert"
+-        role="status"
+-        aria-live="polite"
+-      >
+-        <div class="safety-banner-icon">
+-          {{ hasSafetyAlert ? 'ÔÜá' : 'Ô£ô' }}
+-        </div>
+-
+-        <div class="safety-banner-content">
+-          <span class="section-eyebrow">BUILDING SAFETY STATUS</span>
+-
+-          <h2>
+-            {{ hasSafetyAlert ? 'Security Alert Detected' : 'Building Safe' }}
+-          </h2>
+-
+-          <p>
+-            {{
+-              hasSafetyAlert
+-                ? 'A dangerous measurement or active incident requires attention.'
+-                : 'No active incidents or dangerous gas readings detected.'
+-            }}
+-          </p>
+-        </div>
+-
+-        <span class="safety-status-label">
+-          {{ hasSafetyAlert ? 'ATTENTION REQUIRED' : 'ALL CLEAR' }}
+-        </span>
+-      </section>
+-
+-      <!-- STATISTICS -->
+-      <section class="stats-grid">
+-
+-        <article class="stat-card">
+-          <div class="stat-top">
+-            <span class="stat-icon blue">Ôùë</span>
+-            <span class="stat-label">TOTAL SENSORS</span>
+-          </div>
+-
+-          <div class="stat-number">
+-            {{ countUniqueSensors(readings) }}
+-          </div>
+-
+-          <div class="stat-description">
+-            Registered sensors reporting data
+-          </div>
+-        </article>
+-
+-        <article class="stat-card">
+-          <div class="stat-top">
+-            <span class="stat-icon green">Ô£ô</span>
+-            <span class="stat-label">ACTIVE SENSORS</span>
+-          </div>
+-
+-          <div class="stat-number">
+-            {{ countActiveSensors(readings) }}
+-          </div>
+-
+-          <div class="stat-description">
+-            Sensors with received readings
+-          </div>
+-        </article>
+-
+-        <article class="stat-card">
+-          <div class="stat-top">
+-            <span class="stat-icon red">ÔÜá</span>
+-            <span class="stat-label">ACTIVE ALERTS</span>
+-          </div>
+-
+-          <div class="stat-number alert-number">
+-            {{ countAlerts(readings) }}
+-          </div>
+-
+-          <div class="stat-description">
+-            Dangerous gas measurements
+-          </div>
+-        </article>
+-
+-        <article class="stat-card">
+-          <div class="stat-top">
+-            <span class="stat-icon orange">­ƒÜ¿</span>
+-            <span class="stat-label">OPEN INCIDENTS</span>
+-          </div>
+-
+-          <div class="stat-number">
+-            {{ incidents.length }}
+-          </div>
+-
+-          <div class="stat-description">
+-            Recorded emergency incidents
+-          </div>
+-        </article>
+-
+-      </section>
+-
+-      <!-- BUILDING MAP -->
+-      <section class="panel building-map-panel" id="building-map">
+-
+-        <div class="panel-heading">
+-          <div>
+-            <span class="section-eyebrow">BUILDING MONITORING</span>
+-            <h2>Building Map</h2>
+-            <p>Floor layout and emergency affected areas</p>
+-          </div>
+-
+-          <span class="alert-counter">
+-            {{ getAffectedRoomCount() }} affected rooms
+-          </span>
+-        </div>
+-
+-        @if (buildingError) {
+-          <p class="empty-state">{{ buildingError }}</p>
+-        } @else if (building) {
+-
+-          <div class="building-map-header">
+-            <div>
+-              <h3>­ƒÅó {{ building.name }}</h3>
+-              <p>{{ building.address }}</p>
+-            </div>
+-
+-            <div class="floor-selector">
+-              <label for="floor-select">Floor:</label>
+-
+-              <select
+-                id="floor-select"
+-                [value]="selectedFloorId"
+-                (change)="selectFloor($any($event.target).value)"
+-              >
+-                @for (floor of floors; track floor.id) {
+-                  <option [value]="floor.id">
+-                    {{ floor.name }}
+-                  </option>
+-                }
+-              </select>
+-            </div>
+-          </div>
+-
+-          @if (selectedFloor) {
+-
+-            <div class="building-map-content">
+-
+-              <div class="building-map-canvas">
+-                <svg
+-                  viewBox="0 0 600 350"
+-                  class="building-svg"
+-                  role="img"
+-                  aria-label="Building floor plan"
+-                >
+-                  <rect
+-                    x="20" y="20"
+-                    width="560" height="310"
+-                    rx="12"
+-                    class="map-outline"
+-                  />
+-
+-                  <!-- OFFICE 101 -->
+-                  <g>
+-                    <rect
+-                      x="40" y="40"
+-                      width="170" height="115"
+-                      rx="8"
+-                      [class]="getRoomStatusClass({
+-                        id: 'room-101',
+-                        name: 'Office 101',
+-                        type: 'OFFICE'
+-                      })"
+-                    />
+-                    <text x="125" y="90" class="map-room-label">
+-                      Office 101
+-                    </text>
+-                    <text x="125" y="115" class="map-room-icon">
+-                      {{ isRoomAffected('room-101') ? 'ÔÜá' : 'Ô£ô' }}
+-                    </text>
+-                  </g>
+-
+-                  <!-- OFFICE 102 -->
+-                  <g>
+-                    <rect
+-                      x="230" y="40"
+-                      width="150" height="115"
+-                      rx="8"
+-                      [class]="getRoomStatusClass({
+-                        id: 'room-102',
+-                        name: 'Office 102',
+-                        type: 'OFFICE'
+-                      })"
+-                    />
+-                    <text x="305" y="90" class="map-room-label">
+-                      Office 102
+-                    </text>
+-                    <text x="305" y="115" class="map-room-icon">
+-                      {{ isRoomAffected('room-102') ? 'ÔÜá' : 'Ô£ô' }}
+-                    </text>
+-                  </g>
+-
+-                  <!-- OFFICE 103 -->
+-                  <g>
+-                    <rect
+-                      x="400" y="40"
+-                      width="150" height="115"
+-                      rx="8"
+-                      [class]="getRoomStatusClass({
+-                        id: 'room-103',
+-                        name: 'Office 103',
+-                        type: 'OFFICE'
+-                      })"
+-                    />
+-                    <text x="475" y="90" class="map-room-label">
+-                      Office 103
+-                    </text>
+-                    <text x="475" y="115" class="map-room-icon">
+-                      {{ isRoomAffected('room-103') ? 'ÔÜá' : 'Ô£ô' }}
+-                    </text>
+-                  </g>
+-
+-                  <!-- HALLWAY -->
+-                  <g>
+-                    <rect
+-                      x="40" y="175"
+-                      width="510" height="55"
+-                      rx="8"
+-                      class="room-hallway"
+-                    />
+-                    <text x="295" y="208" class="map-room-label">
+-                      Main Hallway
+-                    </text>
+-                  </g>
+-
+-                  <!-- STAIRCASE -->
+-                  <g>
+-                    <rect
+-                      x="40" y="250"
+-                      width="160" height="60"
+-                      rx="8"
+-                      class="room-staircase"
+-                    />
+-                    <text x="120" y="285" class="map-room-label">
+-                      Staircase
+-                    </text>
+-                  </g>
+-
+-                  <!-- EXIT -->
+-                  <g>
+-                    <rect
+-                      x="400" y="250"
+-                      width="150" height="60"
+-                      rx="8"
+-                      class="room-exit"
+-                    />
+-                    <text x="475" y="275" class="map-room-label">
+-                      Emergency Exit
+-                    </text>
+-                    <text x="475" y="298" class="map-room-icon">
+-                      ­ƒÜ¬
+-                    </text>
+-                  </g>
+-                </svg>
+-              </div>
+-
+-              <!-- LEGEND -->
+-              <div class="map-legend">
+-                <div class="legend-item">
+-                  <span class="legend-color safe"></span>
+-                  <span>Safe room</span>
+-                </div>
+-
+-                <div class="legend-item">
+-                  <span class="legend-color danger"></span>
+-                  <span>Affected room</span>
+-                </div>
+-
+-                <div class="legend-item">
+-                  <span class="legend-color exit"></span>
+-                  <span>Emergency exit</span>
+-                </div>
+-
+-                <div class="legend-item">
+-                  <span class="legend-color hallway"></span>
+-                  <span>Hallway</span>
+-                </div>
+-              </div>
+-
+-            </div>
+-
+-            <!-- EMERGENCY DETAILS -->
+-            @if (getAffectedRoomCount() > 0) {
+-              <div class="affected-room-message">
+-                <strong>ÔÜá Emergency warning</strong>
+-
+-                <p>
+-                  One or more rooms are affected by active incidents.
+-                  Follow the emergency recommendations.
+-                </p>
+-
+-                @for (room of selectedFloorRooms; track room.id) {
+-                  @if (isRoomAffected(room.id)) {
+-                    <div class="affected-room-item">
+-                      <strong>{{ room.name }}</strong>
+-
+-                      @for (incident of getRoomIncidents(room.id); track incident.id) {
+-                        <p>
+-                          {{ incident.type }} ┬À
+-                          {{ incident.severity }} ┬À
+-                          {{ incident.status }}
+-                        </p>
+-
+-                        <p>{{ incident.recommendation }}</p>
+-                      }
+-                    </div>
+-                  }
+-                }
+-              </div>
+-            } @else {
+-              <div class="map-safe-message">
+-                Ô£ô No affected rooms on this floor.
+-              </div>
+-            }
+-
+-          } @else {
+-            <p class="empty-state">No floor available.</p>
+-          }
+-
+-        } @else {
+-          <p class="empty-state">Loading building map...</p>
+-        }
+-
+-      </section>
+-
+-      <!-- CHARTS -->
+-      <section class="charts-grid">
+-
+-        <article class="panel chart-panel">
+-          <div class="panel-heading">
+-            <div>
+-              <span class="section-eyebrow">ENVIRONMENTAL MONITORING</span>
+-              <h2>Gas Concentration</h2>
+-              <p>Historical gas sensor measurements</p>
+-            </div>
+-
+-            <span class="chart-icon red">GAS</span>
+-          </div>
+-
+-          <div class="history-chart">
+-            <canvas #gasCanvas></canvas>
+-          </div>
+-        </article>
+-
+-        <article class="panel chart-panel">
+-          <div class="panel-heading">
+-            <div>
+-              <span class="section-eyebrow">ENVIRONMENTAL MONITORING</span>
+-              <h2>Temperature History</h2>
+-              <p>Historical temperature measurements</p>
+-            </div>
+-
+-            <span class="chart-icon orange">TEMP</span>
+-          </div>
+-
+-          <div class="history-chart">
+-            <canvas #temperatureCanvas></canvas>
+-          </div>
+-        </article>
+-
+-      </section>
+-
+-      <!-- ALERTS -->
+-      <section class="panel alerts-panel" id="alerts">
+-
+-        <div class="panel-heading">
+-          <div>
+-            <span class="section-eyebrow">REAL-TIME NOTIFICATIONS</span>
+-            <h2>Recent Alerts</h2>
+-            <p>Latest dangerous sensor measurements</p>
+-          </div>
+-
+-          <span class="alert-counter">
+-            {{ countAlerts(readings) }} active
+-          </span>
+-        </div>
+-
+-        @if (getLatestAlerts(readings).length > 0) {
+-
+-          @for (alert of getLatestAlerts(readings); track trackReading($index, alert)) {
+-            <div class="alert-item">
+-              <div class="alert-symbol">ÔÜá</div>
+-
+-              <div class="alert-information">
+-                <strong>High gas concentration detected</strong>
+-
+-                <span>
+-                  Sensor {{ alert.sensorId }} ┬À
+-                  {{ alert.value }} {{ alert.unit }}
+-                </span>
+-
+-                <small>
+-                  {{ alert.timestamp | date:'short' }}
+-                </small>
+-              </div>
+-
+-              <span class="status-badge danger">
+-                HIGH ALERT
+-              </span>
+-            </div>
+-          }
+-
+-        } @else {
+-          <div class="no-alerts">
+-            <span>Ô£ô</span>
+-            No active alerts. All monitored readings are within configured limits.
+-          </div>
+-        }
+-
+-      </section>
+-
+-      <!-- INCIDENTS -->
+-      <section class="panel incidents-panel" id="incidents">
+-
+-        <div class="panel-heading">
+-          <div>
+-            <span class="section-eyebrow">EMERGENCY MANAGEMENT</span>
+-            <h2>Emergency Incidents</h2>
+-            <p>Review and manage detected emergency events</p>
+-          </div>
+-
+-          <span class="alert-counter">
+-            {{ incidents.length }} incidents
+-          </span>
+-        </div>
+-
+-        @if (incidentError) {
+-          <p class="empty-state">{{ incidentError }}</p>
+-        } @else if (incidents.length > 0) {
+-
+-          <div class="table-wrapper">
+-            <table>
+-              <thead>
+-                <tr>
+-                  <th>Incident</th>
+-                  <th>Severity</th>
+-                  <th>Description</th>
+-                  <th>Room</th>
+-                  <th>Status</th>
+-                  <th>Date</th>
+-                  <th>Actions</th>
+-                </tr>
+-              </thead>
+-
+-              <tbody>
+-                @for (incident of incidents; track incident.id) {
+-                  <tr>
+-                    <td>
+-                      <strong>{{ incident.type }}</strong>
+-                    </td>
+-
+-                    <td>
+-                      <span
+-                        class="status-badge"
+-                        [class.danger]="incident.severity === 'CRITICAL' || incident.severity === 'HIGH'"
+-                        [class.warning]="incident.severity === 'MEDIUM'"
+-                        [class.normal]="incident.severity === 'LOW'"
+-                      >
+-                        {{ incident.severity }}
+-                      </span>
+-                    </td>
+-
+-                    <td class="incident-description">
+-                      {{ incident.description }}
+-                    </td>
+-
+-                    <td>{{ incident.roomId }}</td>
+-
+-                    <td>
+-                      <span
+-                        class="status-badge"
+-                        [class.danger]="incident.status === 'OPEN'"
+-                        [class.warning]="incident.status === 'ACKNOWLEDGED'"
+-                        [class.normal]="incident.status === 'RESOLVED'"
+-                      >
+-                        {{ incident.status }}
+-                      </span>
+-                    </td>
+-
+-                    <td>{{ incident.timestamp | date:'short' }}</td>
+-
+-                    <td>
+-                      <div class="incident-actions">
+-                        @if (incident.status === 'OPEN') {
+-                          <button
+-                            type="button"
+-                            class="incident-action acknowledge"
+-                            (click)="acknowledgeIncident(incident.id)"
+-                          >
+-                            Acquitter
+-                          </button>
+-                        }
+-
+-                        @if (incident.status !== 'RESOLVED') {
+-                          <button
+-                            type="button"
+-                            class="incident-action resolve"
+-                            (click)="resolveIncident(incident.id)"
+-                          >
+-                            R├®soudre
+-                          </button>
+-                        }
+-                      </div>
+-                    </td>
+-                  </tr>
+-                }
+-              </tbody>
+-            </table>
+-          </div>
+-
+-        } @else {
+-          <div class="no-alerts">
+-            Ô£ô No incidents recorded.
+-          </div>
+-        }
+-
+-      </section>
+-
+-      <!-- SENSORS -->
+-      <section class="panel sensors-panel" id="sensors">
+-
+-        <div class="panel-heading">
+-          <div>
+-            <span class="section-eyebrow">IOT DEVICE MANAGEMENT</span>
+-            <h2>Latest Sensor Readings</h2>
+-            <p>Real-time monitoring of connected building sensors</p>
+-          </div>
+-
+-          <span class="refresh-label">
+-            <span class="status-dot"></span>
+-            Refresh every 5 seconds
+-          </span>
+-        </div>
+-
+-        <div class="table-wrapper">
+-          <table>
+-            <thead>
+-              <tr>
+-                <th>Sensor Type</th>
+-                <th>Measured Value</th>
+-                <th>Sensor ID</th>
+-                <th>Date & Time</th>
+-                <th>Status</th>
+-              </tr>
+-            </thead>
+-
+-            <tbody>
+-              @for (reading of getSortedReadings(readings); track trackReading($index, reading)) {
+-                <tr>
+-                  <td>
+-                    <span class="sensor-type">
+-                      {{ reading.type }}
+-                    </span>
+-                  </td>
+-
+-                  <td>
+-                    <strong [class.gas-alert]="isGasAlert(reading)">
+-                      {{ reading.value }} {{ reading.unit }}
+-                    </strong>
+-                  </td>
+-
+-                  <td class="sensor-id">
+-                    {{ reading.sensorId }}
+-                  </td>
+-
+-                  <td class="date-cell">
+-                    {{ reading.timestamp | date:'short' }}
+-                  </td>
+-
+-                  <td>
+-                    @if (isGasAlert(reading)) {
+-                      <span class="status-badge danger">
+-                        High alert
+-                      </span>
+-                    } @else {
+-                      <span class="status-badge normal">
+-                        Normal
+-                      </span>
+-                    }
+-                  </td>
+-                </tr>
+-              } @empty {
+-                <tr>
+-                  <td colspan="5" class="empty-state">
+-                    No sensor readings available.
+-                  </td>
+-                </tr>
+-              }
+-            </tbody>
+-          </table>
+-        </div>
+-
+-      </section>
+-
+-      <!-- OCCUPANT PROFILE -->
+-      <section class="panel occupant-profile-panel" id="occupant-profile">
+-
+-        <details>
+-          <summary class="profile-details-heading">
+-            <div>
+-              <span class="section-eyebrow">USER MANAGEMENT</span>
+-              <h2>Occupant Profile</h2>
+-              <p>Manage occupant location and emergency notification preferences</p>
+-            </div>
+-
+-            <span class="profile-toggle">´╝ï</span>
+-          </summary>
+-
+-          <div class="profile-details-content">
+-            <app-occupant-profile></app-occupant-profile>
+-          </div>
+-        </details>
+-
+-      </section>
+-
+-      <!-- FOOTER -->
+-      <footer class="page-footer">
+-        <div>
+-          <strong>Smart Building Emergency System</strong>
+-          <span>Intelligent Building Monitoring & Emergency Management</span>
+-        </div>
+-
+-        <span>Data refresh interval: 5 seconds ┬À ┬® 2026</span>
+-      </footer>
+-
+-    </main>
+-  </div>
+-} @else {
+-  <div class="loading-screen">
+-    <h2>­ƒÅó Smart Building Emergency System</h2>
+-    <p>Loading sensor readings...</p>
++´╗┐@if (auth.accessDeniedMessage()) {
++  <div class="access-denied-banner" role="alert">
++    <span>{{ auth.accessDeniedMessage() }}</span>
++    <button type="button" (click)="dismissAccessDenied()">Fermer</button>
+   </div>
+ }
++
++<router-outlet />
+diff --git a/Frontends/Back Office/src/app/app.routes.server.ts b/Frontends/Back Office/src/app/app.routes.server.ts
+index ffd37b1..afeea4a 100644
+--- a/Frontends/Back Office/src/app/app.routes.server.ts	
++++ b/Frontends/Back Office/src/app/app.routes.server.ts	
+@@ -1,8 +1,8 @@
+-import { RenderMode, ServerRoute } from '@angular/ssr';
++´╗┐import { RenderMode, ServerRoute } from '@angular/ssr';
+ 
+ export const serverRoutes: ServerRoute[] = [
+   {
+     path: '**',
+-    renderMode: RenderMode.Prerender
++    renderMode: RenderMode.Client
+   }
+ ];
+diff --git a/Frontends/Back Office/src/app/app.routes.ts b/Frontends/Back Office/src/app/app.routes.ts
+index dc39edb..38c47b1 100644
+--- a/Frontends/Back Office/src/app/app.routes.ts	
++++ b/Frontends/Back Office/src/app/app.routes.ts	
+@@ -1,3 +1,25 @@
+-import { Routes } from '@angular/router';
++´╗┐import { Routes } from '@angular/router';
++import { adminGuard } from './core/auth/admin.guard';
+ 
+-export const routes: Routes = [];
++export const routes: Routes = [
++  {
++    path: 'login',
++    loadComponent: () =>
++      import('./auth/login').then(module => module.LoginComponent)
++  },
++  {
++    path: 'dashboard',
++    canActivate: [adminGuard],
++    loadComponent: () =>
++      import('./dashboard/dashboard').then(module => module.Dashboard)
++  },
++  {
++    path: '',
++    pathMatch: 'full',
++    redirectTo: 'dashboard'
++  },
++  {
++    path: '**',
++    redirectTo: 'dashboard'
++  }
++];
+diff --git a/Frontends/Back Office/src/app/app.scss b/Frontends/Back Office/src/app/app.scss
+index 2c83a02..b631dc4 100644
+--- a/Frontends/Back Office/src/app/app.scss	
++++ b/Frontends/Back Office/src/app/app.scss	
+@@ -1,1196 +1,21 @@
+-
+-:host {
+-  display: block;
+-  min-height: 100vh;
+-  color: #e7edf7;
+-  background: #0b1220;
+-  font-family: "Segoe UI", Arial, sans-serif;
+-}
+-
+-* {
+-  box-sizing: border-box;
+-}
+-
+-.dashboard {
+-  display: flex;
+-  min-height: 100vh;
+-}
+-
+-/* =========================
+-   SIDEBAR
+-========================= */
+-
+-.sidebar {
+-  position: sticky;
+-  top: 0;
+-  width: 250px;
+-  min-width: 250px;
+-  height: 100vh;
+-  padding: 26px 18px;
+-  display: flex;
+-  flex-direction: column;
+-  background: #111b2e;
+-  border-right: 1px solid #25334a;
+-}
+-
+-.brand {
+-  display: flex;
+-  align-items: center;
+-  gap: 12px;
+-  padding: 4px 8px 36px;
+-}
+-
+-.brand-icon {
+-  width: 44px;
+-  height: 44px;
+-  display: grid;
+-  place-items: center;
+-  border-radius: 12px;
+-  background: #1e3a5f;
+-  font-size: 23px;
+-}
+-
+-.brand h2 {
+-  margin: 0;
+-  color: #f8fafc;
+-  font-size: 15px;
+-  font-weight: 750;
+-}
+-
+-.brand h2 + h2 {
+-  margin-top: 4px;
+-  color: #91a4bf;
+-  font-size: 12px;
+-  font-weight: 500;
+-}
+-
+-.menu-label {
+-  padding: 10px;
+-  color: #71829d;
+-  font-size: 10px;
+-  font-weight: 800;
+-  letter-spacing: 1.4px;
+-}
+-
+-.navigation {
+-  display: grid;
+-  gap: 8px;
+-}
+-
+-.nav-link {
+-  display: flex;
+-  align-items: center;
+-  gap: 13px;
+-  padding: 13px 14px;
+-  border-radius: 9px;
+-  color: #aab8cc;
+-  font-size: 13px;
+-  text-decoration: none;
+-  transition: 0.2s ease;
+-}
+-
+-.nav-link span {
+-  width: 20px;
+-  font-size: 17px;
+-  text-align: center;
+-}
+-
+-.nav-link:hover,
+-.nav-link.active {
+-  color: #fff;
+-  background: #23416b;
+-}
+-
+-.nav-link.active {
+-  box-shadow: inset 3px 0 #60a5fa;
+-}
+-
+-.sidebar-bottom {
+-  margin-top: auto;
+-}
+-
+-.system-status {
+-  display: flex;
+-  align-items: center;
+-  gap: 11px;
+-  padding: 14px 10px;
+-  border: 1px solid #2a4059;
+-  border-radius: 10px;
+-  background: #16243a;
+-}
+-
+-.system-status strong {
+-  display: block;
+-  font-size: 12px;
+-}
+-
+-.system-status.online {
+-  color: #22c55e;
+-}
+-
+-.system-status.offline {
+-  color: #ef4444;
+-}
+-
+-.system-status.checking {
+-  color: #f59e0b;
+-}
+-
+-.system-status small {
+-  display: block;
+-  margin-top: 4px;
+-  color: #91a2ba;
+-  font-size: 11px;
+-}
+-
+-.status-dot {
+-  width: 8px;
+-  height: 8px;
+-  flex-shrink: 0;
+-  display: inline-block;
+-  border-radius: 50%;
+-  background: #35d399;
+-  box-shadow: 0 0 10px rgba(53, 211, 153, 0.4);
+-}
+-
+-.status-dot.online {
+-  background: #22c55e;
+-}
+-
+-.status-dot.offline {
+-  background: #ef4444;
+-  box-shadow: none;
+-}
+-
+-.sidebar-footer {
+-  margin-top: 20px;
+-  color: #71829d;
+-  font-size: 10px;
+-  text-align: center;
+-}
+-
+-/* =========================
+-   MAIN CONTENT
+-========================= */
+-
+-.main-content {
+-  flex: 1;
+-  min-width: 0;
+-  padding: 30px 34px;
+-}
+-
+-.topbar {
+-  display: flex;
+-  justify-content: space-between;
+-  align-items: center;
+-  gap: 20px;
+-  margin-bottom: 28px;
+-}
+-
+-.breadcrumb {
+-  margin-bottom: 9px;
+-  color: #8495ae;
+-  font-size: 12px;
+-}
+-
+-.topbar h1 {
+-  margin: 0;
+-  color: #f8fafc;
+-  font-size: 28px;
+-  font-weight: 750;
+-  letter-spacing: -0.5px;
+-}
+-
+-.topbar p {
+-  margin: 8px 0 0;
+-  color: #92a1b7;
+-  font-size: 13px;
+-}
+-
+-.topbar-right {
+-  display: flex;
+-  align-items: center;
+-  gap: 18px;
+-}
+-
+-.live-indicator {
+-  display: flex;
+-  align-items: center;
+-  gap: 8px;
+-  padding: 9px 13px;
+-  color: #5ee0ad;
+-  background: #123328;
+-  border: 1px solid #245541;
+-  border-radius: 30px;
+-  font-size: 12px;
+-  font-weight: 700;
+-}
+-
+-.profile {
+-  width: 40px;
+-  height: 40px;
+-  display: grid;
+-  place-items: center;
+-  color: white;
+-  background: #315b91;
+-  border-radius: 50%;
+-  font-size: 13px;
+-  font-weight: 800;
+-}
+-
+-/* =========================
+-   GENERAL PANELS
+-========================= */
+-
+-.panel,
+-.stat-card {
+-  background: #151f31;
+-  border: 1px solid #28374e;
+-  border-radius: 13px;
+-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.10);
+-}
+-
+-.panel {
+-  padding: 22px;
+-  margin-bottom: 22px;
+-}
+-
+-.panel-heading {
+-  display: flex;
+-  justify-content: space-between;
+-  align-items: center;
+-  gap: 12px;
+-  margin-bottom: 22px;
+-}
+-
+-.panel-heading h2 {
+-  margin: 0;
+-  color: #f1f5f9;
+-  font-size: 16px;
+-  font-weight: 750;
+-}
+-
+-.panel-heading p {
+-  margin: 6px 0 0;
+-  color: #8d9db4;
+-  font-size: 12px;
+-}
+-
+-/* =========================
+-   SAFETY BANNER
+-========================= */
+-
+-.safety-banner {
+-  display: flex;
+-  align-items: center;
+-  gap: 16px;
+-  padding: 19px 22px;
+-  margin-bottom: 22px;
+-  border: 1px solid transparent;
+-  border-radius: 13px;
+-  transition: 0.3s ease;
+-}
+-
+-.safety-banner-icon {
+-  width: 46px;
+-  height: 46px;
+-  flex-shrink: 0;
+-  display: grid;
+-  place-items: center;
+-  border-radius: 12px;
+-  font-size: 24px;
+-  font-weight: 800;
+-}
+-
+-.safety-banner h2 {
+-  margin: 0;
+-  font-size: 17px;
+-  font-weight: 800;
+-}
+-
+-.safety-banner p {
+-  margin: 5px 0 0;
+-  font-size: 12px;
+-  line-height: 1.6;
+-}
+-
+-.safety-banner.safety-safe {
+-  color: #5ee0ad;
+-  background: #15362d;
+-  border-color: #245541;
+-}
+-
+-.safety-safe .safety-banner-icon {
+-  color: #5ee0ad;
+-  background: #1c493b;
+-}
+-
+-.safety-banner.safety-alert {
+-  color: #ff929c;
+-  background: #42232c;
+-  border-color: #71303c;
+-}
+-
+-.safety-alert .safety-banner-icon {
+-  color: #fb7185;
+-  background: #542b37;
+-}
+-
+-/* =========================
+-   OCCUPANT PROFILE
+-========================= */
+-
+-.occupant-profile-panel {
+-  margin-bottom: 24px;
+-}
+-
+-.profile-card {
+-  width: 100%;
+-  color: #e7edf7;
+-}
+-
+-.profile-card h2 {
+-  margin: 0 0 8px;
+-  color: #f8fafc;
+-  font-size: 18px;
+-}
+-
+-.profile-card h3 {
+-  margin: 0 0 10px;
+-  color: #f1f5f9;
+-  font-size: 15px;
+-}
+-
+-.description {
+-  margin: 0 0 18px;
+-  color: #94a3b8;
+-  font-size: 12px;
+-  line-height: 1.6;
+-}
+-
+-.profile-card form {
+-  display: grid;
+-  grid-template-columns: repeat(2, minmax(0, 1fr));
+-  gap: 16px;
+-}
+-
+-.form-group {
+-  display: flex;
+-  flex-direction: column;
+-  gap: 8px;
+-}
+-
+-.form-group label {
+-  color: #cbd5e1;
+-  font-size: 12px;
+-  font-weight: 650;
+-}
+-
+-.form-group input {
+-  width: 100%;
+-  padding: 12px 13px;
+-  color: #f8fafc;
+-  background: #101b2b;
+-  border: 1px solid #334155;
+-  border-radius: 8px;
+-  outline: none;
+-  font: inherit;
+-  font-size: 13px;
+-  transition: border-color 0.2s, box-shadow 0.2s;
+-}
+-
+-.form-group input:focus {
+-  border-color: #60a5fa;
+-  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.12);
+-}
+-
+-.profile-card form > button {
+-  grid-column: 1 / -1;
+-}
+-
+-.profile-card button {
+-  width: fit-content;
+-  padding: 11px 18px;
+-  color: white;
+-  background: #2563eb;
+-  border: none;
+-  border-radius: 8px;
+-  font-size: 12px;
+-  font-weight: 700;
+-  cursor: pointer;
+-  transition: background 0.2s, transform 0.2s;
+-}
+-
+-.profile-card button:hover:not(:disabled) {
+-  background: #1d4ed8;
+-  transform: translateY(-1px);
+-}
+-
+-.profile-card button:disabled {
+-  opacity: 0.6;
+-  cursor: not-allowed;
+-}
+-
+-.message {
+-  margin: 12px 0;
+-  color: #5ee0ad;
+-  font-size: 12px;
+-}
+-
+-.push-section {
+-  margin-top: 24px;
+-  padding: 18px;
+-  background: #101b2b;
+-  border: 1px solid #293b54;
+-  border-radius: 10px;
+-}
+-
+-.push-section .description {
+-  margin-bottom: 14px;
+-}
+-
+-/* =========================
+-   BUILDING MAP
+-========================= */
+-
+-.building-map-panel {
+-  margin-bottom: 24px;
+-}
+-
+-.building-map-header {
+-  display: flex;
+-  align-items: center;
+-  justify-content: space-between;
+-  gap: 16px;
+-  flex-wrap: wrap;
+-  margin: 22px 0;
+-}
+-
+-.building-map-header h3 {
+-  margin: 0 0 5px;
+-  color: #f1f5f9;
+-  font-size: 17px;
+-}
+-
+-.building-map-header p {
+-  margin: 0;
+-  color: #94a3b8;
+-  font-size: 12px;
+-}
+-
+-.floor-selector {
+-  display: flex;
+-  align-items: center;
+-  gap: 10px;
+-  color: #cbd5e1;
+-  font-size: 13px;
+-}
+-
+-.floor-selector select {
+-  padding: 9px 12px;
+-  color: #e2e8f0;
+-  background: #172337;
+-  border: 1px solid #334155;
+-  border-radius: 8px;
+-}
+-
+-.building-map-canvas {
+-  width: 100%;
+-  overflow-x: auto;
+-  padding: 12px;
+-  background: #101b2b;
+-  border: 1px solid #26364d;
+-  border-radius: 12px;
+-}
+-
+-.building-svg {
+-  display: block;
+-  width: 100%;
+-  min-width: 420px;
+-  height: auto;
+-}
+-
+-.map-outline {
+-  fill: #172337;
+-  stroke: #64748b;
+-  stroke-width: 2;
+-}
+-
+-.room-safe {
+-  fill: #245541;
+-  stroke: #4ade80;
+-  stroke-width: 2;
+-}
+-
+-.room-danger {
+-  fill: #71303c;
+-  stroke: #fb7185;
+-  stroke-width: 3;
+-}
+-
+-.room-exit {
+-  fill: #174c65;
+-  stroke: #38bdf8;
+-  stroke-width: 2;
+-}
+-
+-.room-hallway {
+-  fill: #334155;
+-  stroke: #64748b;
+-  stroke-width: 2;
+-}
+-
+-.room-staircase {
+-  fill: #51416e;
+-  stroke: #a78bfa;
+-  stroke-width: 2;
+-}
+-
+-.map-room-label {
+-  fill: #f8fafc;
+-  font-size: 13px;
+-  text-anchor: middle;
+-  font-weight: 700;
+-}
+-
+-.map-room-icon {
+-  fill: #ffffff;
+-  font-size: 15px;
+-  text-anchor: middle;
+-}
+-
+-.map-legend {
+-  display: flex;
+-  flex-wrap: wrap;
+-  gap: 18px;
+-  margin-top: 18px;
+-}
+-
+-.legend-item {
+-  display: flex;
+-  align-items: center;
+-  gap: 8px;
+-  color: #cbd5e1;
+-  font-size: 12px;
+-}
+-
+-.legend-color {
+-  width: 12px;
+-  height: 12px;
+-  display: inline-block;
+-  border-radius: 4px;
+-}
+-
+-.legend-color.safe {
+-  background: #4ade80;
+-}
+-
+-.legend-color.danger {
+-  background: #fb7185;
+-}
+-
+-.legend-color.exit {
+-  background: #38bdf8;
+-}
+-
+-.legend-color.hallway {
+-  background: #64748b;
+-}
+-
+-.affected-room-message {
+-  margin-top: 18px;
+-  padding: 16px;
+-  color: #fecdd3;
+-  background: #42232c;
+-  border: 1px solid #71303c;
+-  border-radius: 10px;
+-}
+-
+-.affected-room-message > strong {
+-  font-size: 14px;
+-}
+-
+-.affected-room-message p {
+-  margin: 8px 0;
+-  font-size: 12px;
+-  line-height: 1.6;
+-}
+-
+-.affected-room-item {
+-  margin-top: 12px;
+-  padding: 12px;
+-  background: rgba(0, 0, 0, 0.15);
+-  border-radius: 8px;
+-}
+-
+-.affected-room-item > strong {
+-  color: #fff;
+-}
+-
+-.map-safe-message {
+-  margin-top: 18px;
+-  padding: 14px;
+-  color: #5ee0ad;
+-  background: #15362d;
+-  border: 1px solid #245541;
+-  border-radius: 9px;
+-  font-size: 13px;
+-}
+-
+-/* =========================
+-   STATISTICS
+-========================= */
+-
+-.stats-grid {
+-  display: grid;
+-  grid-template-columns: repeat(3, minmax(0, 1fr));
+-  gap: 18px;
+-  margin-bottom: 22px;
+-}
+-
+-.stat-card {
+-  padding: 20px;
+-  transition: transform 0.2s, border-color 0.2s;
+-}
+-
+-.stat-card:hover {
+-  transform: translateY(-3px);
+-  border-color: #456181;
+-}
+-
+-.stat-top {
+-  display: flex;
+-  justify-content: space-between;
+-  align-items: center;
+-}
+-
+-.stat-icon {
+-  width: 39px;
+-  height: 39px;
+-  display: grid;
+-  place-items: center;
+-  border-radius: 10px;
+-  font-size: 19px;
+-}
+-
+-.blue {
+-  color: #60a5fa;
+-  background: #1c3455;
+-}
+-
+-.green {
+-  color: #4adea3;
+-  background: #173d32;
+-}
+-
+-.red {
+-  color: #fb7185;
+-  background: #472633;
+-}
+-
+-.orange {
+-  color: #fbbf24;
+-  background: #49391d;
+-}
+-
+-.stat-label {
+-  color: #91a2bb;
+-  font-size: 10px;
+-  font-weight: 800;
+-  letter-spacing: 1px;
+-}
+-
+-.stat-number {
+-  margin-top: 18px;
+-  color: #f8fafc;
+-  font-size: 32px;
+-  font-weight: 800;
+-}
+-
+-.alert-number {
+-  color: #fb7185;
+-}
+-
+-.stat-description {
+-  margin-top: 5px;
+-  color: #8d9db4;
+-  font-size: 12px;
+-}
+-
+-/* =========================
+-   CHARTS
+-========================= */
+-
+-.charts-grid {
+-  display: grid;
+-  grid-template-columns: repeat(2, minmax(0, 1fr));
+-  gap: 18px;
+-  margin-bottom: 22px;
+-}
+-
+-.chart-panel {
+-  margin-bottom: 0;
+-}
+-
+-.chart-icon {
+-  padding: 7px 10px;
+-  border-radius: 7px;
+-  font-size: 10px;
+-  font-weight: 800;
+-}
+-
+-.history-chart {
++´╗┐.access-denied-banner {
+   position: relative;
+-  width: 100%;
+-  height: 280px;
+-  min-height: 280px;
+-  margin-top: 20px;
+-}
+-
+-.history-chart canvas {
+-  display: block;
+-  width: 100% !important;
+-  height: 100% !important;
+-}
+-
+-/* =========================
+-   ALERTS
+-========================= */
+-
+-.alerts-panel {
+-  margin-bottom: 22px;
+-}
+-
+-.alert-counter {
+-  padding: 7px 11px;
+-  color: #fb929c;
+-  background: #42232c;
+-  border-radius: 20px;
+-  font-size: 11px;
+-  font-weight: 700;
+-  white-space: nowrap;
+-}
+-
+-.alert-item {
++  z-index: 1000;
+   display: flex;
++  justify-content: center;
+   align-items: center;
+-  gap: 14px;
+-  padding: 15px;
+-  background: #261d2a;
+-  border: 1px solid #59313b;
+-  border-radius: 10px;
+-}
+-
+-.alert-symbol {
+-  width: 38px;
+-  height: 38px;
+-  display: grid;
+-  place-items: center;
+-  flex-shrink: 0;
+-  color: #fb7185;
+-  background: #482832;
+-  border-radius: 10px;
+-  font-size: 18px;
+-}
+-
+-.alert-information {
+-  flex: 1;
+-  min-width: 0;
+-}
+-
+-.alert-information strong,
+-.alert-information span,
+-.alert-information small {
+-  display: block;
+-}
+-
+-.alert-information strong {
+-  color: #ffe4e6;
+-  font-size: 13px;
+-}
+-
+-.alert-information span {
+-  margin-top: 5px;
+-  color: #d2a8b0;
+-  font-size: 11px;
+-}
+-
+-.alert-information small {
+-  margin-top: 5px;
+-  color: #a98d99;
+-  font-size: 10px;
+-}
+-
+-.no-alerts {
+-  padding: 18px;
+-  color: #5ee0ad;
+-  background: #15362d;
+-  border: 1px solid #245541;
+-  border-radius: 9px;
+-  font-size: 13px;
+-}
+-
+-/* =========================
+-   TABLES
+-========================= */
+-
+-.table-wrapper {
+-  width: 100%;
+-  overflow-x: auto;
+-  border: 1px solid #29374c;
+-  border-radius: 9px;
+-}
+-
+-table {
+-  width: 100%;
+-  min-width: 650px;
+-  border-collapse: collapse;
+-  text-align: left;
+-}
+-
+-thead {
+-  background: #1c2940;
+-}
+-
+-th {
+-  padding: 14px;
+-  color: #91a4bf;
+-  font-size: 10px;
+-  font-weight: 800;
+-  letter-spacing: 0.7px;
+-  text-transform: uppercase;
+-  white-space: nowrap;
+-}
+-
+-td {
+-  padding: 14px;
+-  color: #dce6f4;
+-  border-bottom: 1px solid #29374c;
+-  font-size: 12px;
+-}
+-
+-tbody tr {
+-  transition: background 0.2s;
+-}
+-
+-tbody tr:hover {
+-  background: #1d2b41;
+-}
+-
+-tbody tr:last-child td {
+-  border-bottom: none;
+-}
+-
+-.sensor-type {
+-  color: #f1f5f9;
+-  font-weight: 800;
+-}
+-
+-.sensor-id {
+-  color: #9aabc1;
+-}
+-
+-.date-cell {
+-  color: #aab8cb;
+-  white-space: nowrap;
+-}
+-
+-.gas-alert {
+-  color: #fb7185;
+-}
+-
+-.status-badge {
+-  display: inline-block;
+-  padding: 6px 10px;
+-  border-radius: 20px;
+-  font-size: 10px;
+-  font-weight: 800;
+-  white-space: nowrap;
+-}
+-
+-.status-badge.normal {
+-  color: #5ee0ad;
+-  background: #173d32;
+-}
+-
+-.status-badge.danger {
+-  color: #ff929c;
+-  background: rgba(239, 68, 68, 0.15);
+-}
+-
+-.empty-state {
+-  padding: 28px;
+-  color: #9aabc1;
+-  text-align: center;
+-}
+-
+-/* =========================
+-   INCIDENT MANAGEMENT
+-========================= */
+-
+-.incidents-panel {
+-  margin-top: 24px;
++  gap: 18px;
++  padding: 12px 20px;
++  background: #7f1d1d;
++  color: #fee2e2;
++  font-weight: 600;
+ }
+ 
+-.incident-action {
+-  border: none;
++.access-denied-banner button {
++  padding: 5px 10px;
++  border: 1px solid #fecaca;
+   border-radius: 6px;
+-  padding: 8px 12px;
+-  margin: 3px;
+-  font-size: 11px;
+-  font-weight: 700;
++  background: transparent;
++  color: inherit;
+   cursor: pointer;
+-  transition: opacity 0.2s, transform 0.2s;
+-}
+-
+-.incident-action:hover {
+-  opacity: 0.85;
+-  transform: translateY(-1px);
+-}
+-
+-.incident-action.acknowledge {
+-  background: #2563eb;
+-  color: white;
+-}
+-
+-.incident-action.resolve {
+-  background: #16a34a;
+-  color: white;
+-}
+-
+-/* =========================
+-   SENSOR STATUS
+-========================= */
+-
+-.sensor-status {
+-  display: inline-flex;
+-  align-items: center;
+-  gap: 7px;
+-  font-size: 12px;
+-  font-weight: 500;
+-}
+-
+-.sensor-status.active {
+-  color: #16a34a;
+-}
+-
+-.sensor-status.inactive {
+-  color: #ef4444;
+-}
+-
+-.status-indicator {
+-  width: 8px;
+-  height: 8px;
+-  border-radius: 50%;
+-  display: inline-block;
+-}
+-
+-.sensor-status.active .status-indicator {
+-  background: #16a34a;
+-}
+-
+-.sensor-status.inactive .status-indicator {
+-  background: #ef4444;
+-}
+-
+-.refresh-label {
+-  display: flex;
+-  align-items: center;
+-  gap: 8px;
+-  color: #9aabc1;
+-  font-size: 11px;
+-  white-space: nowrap;
+-}
+-
+-/* =========================
+-   FOOTER
+-========================= */
+-
+-.page-footer {
+-  display: flex;
+-  justify-content: space-between;
+-  gap: 12px;
+-  padding: 15px 0 5px;
+-  color: #75869f;
+-  font-size: 10px;
+-}
+-
+-/* =========================
+-   LOADING
+-========================= */
+-
+-.loading-screen {
+-  min-height: 100vh;
+-  display: flex;
+-  flex-direction: column;
+-  align-items: center;
+-  justify-content: center;
+-  color: #e7edf7;
+-  background: #0b1220;
+-  text-align: center;
+-}
+-
+-.loading-screen h2 {
+-  font-size: 22px;
+-}
+-
+-.loading-screen p {
+-  color: #94a3b8;
+-  font-size: 13px;
+-}
+-
+-/* =========================
+-   RESPONSIVE
+-========================= */
+-
+-@media (max-width: 1050px) {
+-  .sidebar {
+-    width: 210px;
+-    min-width: 210px;
+-  }
+-
+-  .main-content {
+-    padding: 24px 20px;
+-  }
+-
+-  .stats-grid {
+-    gap: 12px;
+-  }
+-}
+-
+-@media (max-width: 760px) {
+-  .dashboard {
+-    display: block;
+-  }
+-
+-  .sidebar {
+-    position: relative;
+-    width: 100%;
+-    min-width: 0;
+-    height: auto;
+-    min-height: auto;
+-    padding: 14px;
+-  }
+-
+-  .brand {
+-    padding: 4px 6px 14px;
+-  }
+-
+-  .menu-label,
+-  .sidebar-bottom {
+-    display: none;
+-  }
+-
+-  .navigation {
+-    display: flex;
+-    flex-wrap: wrap;
+-    gap: 6px;
+-  }
+-
+-  .nav-link {
+-    flex: 1 1 30%;
+-    justify-content: center;
+-    padding: 10px 6px;
+-    font-size: 11px;
+-  }
+-
+-  .nav-link span {
+-    display: none;
+-  }
+-
+-  .main-content {
+-    padding: 22px 14px;
+-  }
+-
+-  .topbar {
+-    align-items: flex-start;
+-  }
+-
+-  .topbar h1 {
+-    font-size: 22px;
+-  }
+-
+-  .topbar-right {
+-    gap: 9px;
+-  }
+-
+-  .live-indicator {
+-    font-size: 0;
+-    padding: 10px;
+-  }
+-
+-  .stats-grid,
+-  .charts-grid {
+-    grid-template-columns: 1fr;
+-  }
+-
+-  .panel {
+-    padding: 16px;
+-  }
+-
+-  .panel-heading {
+-    align-items: flex-start;
+-    flex-wrap: wrap;
+-  }
+-
+-  .profile-card form {
+-    grid-template-columns: 1fr;
+-  }
+-
+-  .profile-card form > button {
+-    grid-column: auto;
+-    width: 100%;
+-  }
+-
+-  .alert-item {
+-    align-items: flex-start;
+-    flex-wrap: wrap;
+-  }
+-
+-  .alert-item .status-badge {
+-    margin-left: 52px;
+-  }
+-
+-  .page-footer {
+-    flex-direction: column;
+-  }
+-
+-  .safety-banner {
+-    padding: 15px;
+-  }
+-}
+-
+-@media (max-width: 480px) {
+-  .navigation {
+-    display: grid;
+-    grid-template-columns: repeat(2, minmax(0, 1fr));
+-  }
+-
+-  .nav-link {
+-    justify-content: flex-start;
+-    padding: 11px;
+-  }
+-
+-  .topbar {
+-    flex-direction: column;
+-  }
+-
+-  .topbar-right {
+-    width: 100%;
+-    justify-content: flex-end;
+-  }
+-
+-  .building-map-header {
+-    align-items: flex-start;
+-    flex-direction: column;
+-  }
+-
+-  .map-legend {
+-    gap: 12px;
+-  }
+-
+-  .history-chart {
+-    height: 230px;
+-    min-height: 230px;
+-  }
+ }
+diff --git a/Frontends/Back Office/src/app/app.ts b/Frontends/Back Office/src/app/app.ts
+index e06ec0f..7b86603 100644
+--- a/Frontends/Back Office/src/app/app.ts	
++++ b/Frontends/Back Office/src/app/app.ts	
+@@ -1,629 +1,18 @@
+-
+-import {
+-  Component,
+-  inject,
+-  AfterViewInit,
+-  OnDestroy,
+-  ViewChild,
+-  ElementRef,
+-  PLATFORM_ID
+-} from '@angular/core';
+-
+-import { AsyncPipe, DatePipe, isPlatformBrowser } from '@angular/common';
+-
+-import {
+-  interval,
+-  startWith,
+-  switchMap,
+-  shareReplay,
+-  Subscription,
+-  catchError,
+-  of
+-} from 'rxjs';
+-
+-import { ReadingService } from './services/reading.service';
+-import { SensorReading } from './models/sensor-reading.model';
+-
+-import { IncidentService } from './services/incident.service';
+-import { Incident } from './models/incident.model';
+-
+-import { RealtimeService } from './services/realtime.service';
+-
+-import { BuildingService } from './services/building.service';
+-import {
+-  Building,
+-  BuildingFloor,
+-  BuildingRoom
+-} from './models/building.model';
+-
+-import { OccupantProfileComponent } from './components/occupant-profile/occupant-profile';
+-
+-import { Chart, registerables } from 'chart.js';
+-
+-Chart.register(...registerables);
++´╗┐import { Component, inject } from '@angular/core';
++import { RouterOutlet } from '@angular/router';
++import { AuthService } from './core/auth/auth.service';
+ 
+ @Component({
+   selector: 'app-root',
+   standalone: true,
+-  imports: [AsyncPipe, DatePipe, OccupantProfileComponent],
++  imports: [RouterOutlet],
+   templateUrl: './app.html',
+   styleUrl: './app.scss'
+ })
+-export class App implements AfterViewInit, OnDestroy {
+-
+-  private readingService = inject(ReadingService);
+-  private incidentService = inject(IncidentService);
+-  private realtimeService = inject(RealtimeService);
+-  private buildingService = inject(BuildingService);
+-  private platformId = inject(PLATFORM_ID);
+-
+-  // ==============================
+-  // INCIDENTS
+-  // ==============================
+-
+-  incidents: Incident[] = [];
+-  incidentError = '';
+-
+-  get openIncidentCount(): number {
+-    return this.incidents.filter(incident =>
+-      incident.status === 'OPEN' ||
+-      incident.status === 'ACKNOWLEDGED'
+-    ).length;
+-  }
+-
+-  get hasActiveIncidents(): boolean {
+-    return this.openIncidentCount > 0;
+-  }
+-
+-  private knownIncidentIds = new Set<string>();
+-  private initialIncidentsLoaded = false;
+-
+-  // ==============================
+-  // SENSOR READINGS
+-  // ==============================
+-
+-  currentReadings: SensorReading[] = [];
+-
+-  get hasSafetyAlert(): boolean {
+-    return (
+-      this.hasActiveIncidents ||
+-      this.countAlerts(this.currentReadings) > 0
+-    );
+-  }
+-
+-  readings$ = this.readingService.watchReadings().pipe(
+-    catchError(error => {
+-      console.error('Erreur lors de la r├®cup├®ration des mesures :', error);
+-      return of([]);
+-    }),
+-    shareReplay({ bufferSize: 1, refCount: true })
+-  );
+-
+-  // ==============================
+-  // BUILDING MAP
+-  // ==============================
+-
+-  building: Building | null = null;
+-  buildingError = '';
+-  selectedFloorId = '';
+-
+-  get floors(): BuildingFloor[] {
+-    return this.building?.floors ?? [];
+-  }
+-
+-  get selectedFloor(): BuildingFloor | undefined {
+-    return this.floors.find(
+-      floor => floor.id === this.selectedFloorId
+-    );
+-  }
+-
+-  get selectedFloorRooms(): BuildingRoom[] {
+-    return this.selectedFloor?.rooms ?? [];
+-  }
+-
+-  loadBuilding(): void {
+-    this.buildingService.getBuildings().subscribe({
+-      next: buildings => {
+-        this.building = buildings[0] ?? null;
+-
+-        if (this.building) {
+-          this.selectedFloorId =
+-            this.building.floors[0]?.id ?? '';
+-        }
+-
+-        this.buildingError = '';
+-        console.log('B├ótiment charg├® :', this.building);
+-      },
+-      error: error => {
+-        console.error('Erreur de chargement du b├ótiment :', error);
+-        this.buildingError = 'Impossible de charger le b├ótiment.';
+-      }
+-    });
+-  }
+-
+-  selectFloor(floorId: string): void {
+-    this.selectedFloorId = floorId;
+-  }
+-
+-  isRoomAffected(roomId: string): boolean {
+-    const hasActiveIncident = this.incidents.some(incident => {
+-      const active =
+-        incident.status === 'OPEN' ||
+-        incident.status === 'ACKNOWLEDGED';
+-
+-      return active && (
+-        incident.roomId === roomId ||
+-        incident.affectedRoomIds?.includes(roomId)
+-      );
+-    });
+-
+-    const hasGasAlert = this.getLatestReadingsBySensor(
+-      this.currentReadings
+-    ).some(reading =>
+-      reading.roomId === roomId &&
+-      this.isGasAlert(reading)
+-    );
+-
+-    return hasActiveIncident || hasGasAlert;
+-  }
+-
+-  getRoomIncidents(roomId: string): Incident[] {
+-    return this.incidents.filter(incident => {
+-      const active =
+-        incident.status === 'OPEN' ||
+-        incident.status === 'ACKNOWLEDGED';
+-
+-      return active && (
+-        incident.roomId === roomId ||
+-        incident.affectedRoomIds?.includes(roomId)
+-      );
+-    });
+-  }
+-
+-  getRoomStatusClass(room: BuildingRoom): string {
+-    if (room.type === 'EXIT') return 'room-exit';
+-    if (room.type === 'HALLWAY') return 'room-hallway';
+-    if (room.type === 'STAIRCASE') return 'room-staircase';
+-
+-    return this.isRoomAffected(room.id)
+-      ? 'room-danger'
+-      : 'room-safe';
+-  }
+-
+-  getAffectedRoomCount(): number {
+-    return this.selectedFloorRooms.filter(
+-      room => this.isRoomAffected(room.id)
+-    ).length;
+-  }
+-
+-  // ==============================
+-  // CHARTS
+-  // ==============================
+-
+-  @ViewChild('gasCanvas')
+-  gasCanvas?: ElementRef<HTMLCanvasElement>;
+-
+-  @ViewChild('temperatureCanvas')
+-  temperatureCanvas?: ElementRef<HTMLCanvasElement>;
+-
+-  gasChart: Chart | null = null;
+-  temperatureChart: Chart | null = null;
+-
+-  // ==============================
+-  // SUBSCRIPTIONS
+-  // ==============================
+-
+-  private readingsSubscription?: Subscription;
+-  private realtimeSubscription?: Subscription;
+-
+-  // ==============================
+-  // LOAD INCIDENTS
+-  // ==============================
+-
+-  loadIncidents(notifyNew = false): void {
+-    this.incidentService.getIncidents().subscribe({
+-      next: data => {
+-        console.log('Incidents r├®cup├®r├®s depuis API :', data);
+-
+-        if (!this.initialIncidentsLoaded) {
+-          data.forEach(incident => {
+-            this.knownIncidentIds.add(incident.id);
+-          });
+-
+-          this.initialIncidentsLoaded = true;
+-        } else if (notifyNew) {
+-          data.forEach(incident => {
+-            if (!this.knownIncidentIds.has(incident.id)) {
+-              console.log('NOUVEL INCIDENT D├ëTECT├ë :', incident);
+-              this.showIncidentNotification(incident);
+-              this.knownIncidentIds.add(incident.id);
+-            }
+-          });
+-        }
+-
+-        this.incidents = data;
+-        this.incidentError = '';
+-      },
+-      error: error => {
+-        console.error('Erreur de chargement des incidents :', error);
+-        this.incidentError = 'Impossible de charger les incidents.';
+-      }
+-    });
+-  }
+-
+-  // ==============================
+-  // BROWSER NOTIFICATIONS
+-  // ==============================
+-
+-  private showIncidentNotification(incident: Incident): void {
+-    if (!isPlatformBrowser(this.platformId)) return;
+-
+-    if (!('Notification' in window)) {
+-      console.error('API Notification non disponible.');
+-      return;
+-    }
+-
+-    if (Notification.permission !== 'granted') {
+-      console.warn('Autorisation de notification non accord├®e.');
+-      return;
+-    }
+-
+-    try {
+-      const title = incident.type === 'GAS_LEAK'
+-        ? '­ƒÜ¿ Nouvelle fuite de gaz'
+-        : '­ƒöÑ Nouvel incident incendie';
+-
+-      const notification = new Notification(title, {
+-        body: `${incident.description}\nGravit├® : ${incident.severity}`,
+-        icon: '/favicon.ico',
+-        tag: `incident-${incident.id}`,
+-        requireInteraction: true
+-      });
+-
+-      notification.onclick = () => {
+-        window.focus();
+-        notification.close();
+-      };
+-
+-    } catch (error) {
+-      console.error('Impossible de cr├®er la notification :', error);
+-    }
+-  }
+-
+-  // ==============================
+-  // API STATUS
+-  // ==============================
+-
+-  apiOnline$ = interval(5000).pipe(
+-    startWith(0),
+-    switchMap(() =>
+-      this.readingService.checkApiStatus().pipe(
+-        catchError(error => {
+-          console.error('API indisponible :', error);
+-          return of(false);
+-        })
+-      )
+-    ),
+-    shareReplay({ bufferSize: 1, refCount: true })
+-  );
+-
+-  // ==============================
+-  // INITIALIZATION
+-  // ==============================
+-
+-  ngAfterViewInit(): void {
+-    this.loadBuilding();
+-    this.loadIncidents();
+-
+-    this.readingsSubscription = this.readings$.subscribe(readings => {
+-      this.currentReadings = readings;
+-      this.updateHistoryCharts(readings);
+-    });
+-
+-    this.realtimeService.connect();
+-
+-    this.realtimeSubscription =
+-      this.realtimeService.events$.subscribe(event => {
+-        console.log('├ëv├®nement WebSocket re├ºu :', event);
+-        this.loadIncidents(true);
+-      });
+-  }
+-
+-  // ==============================
+-  // TIMESTAMP
+-  // ==============================
+-
+-  private toMilliseconds(timestamp: number): number {
+-    return timestamp < 1000000000000
+-      ? timestamp * 1000
+-      : timestamp;
+-  }
+-
+-  // ==============================
+-  // LATEST READINGS
+-  // ==============================
+-
+-  private getLatestReadingsBySensor(
+-    readings: SensorReading[]
+-  ): SensorReading[] {
+-
+-    const latestBySensor = new Map<string, SensorReading>();
+-
+-    for (const reading of readings) {
+-      if (!reading.sensorId) continue;
+-
+-      const current = latestBySensor.get(reading.sensorId);
+-
+-      if (
+-        !current ||
+-        this.toMilliseconds(reading.timestamp) >
+-        this.toMilliseconds(current.timestamp)
+-      ) {
+-        latestBySensor.set(reading.sensorId, reading);
+-      }
+-    }
+-
+-    return Array.from(latestBySensor.values());
+-  }
+-
+-  // ==============================
+-  // HISTORY CHARTS
+-  // ==============================
+-
+-  updateHistoryCharts(readings: SensorReading[]): void {
+-    if (!this.gasCanvas || !this.temperatureCanvas) return;
+-
+-    this.updateOneChart(
+-      this.gasCanvas.nativeElement,
+-      readings,
+-      'GAS',
+-      'Gas concentration (ppm)',
+-      '#ef4444',
+-      'gas'
+-    );
+-
+-    this.updateOneChart(
+-      this.temperatureCanvas.nativeElement,
+-      readings,
+-      'TEMPERATURE',
+-      'Temperature (┬░C)',
+-      '#f59e0b',
+-      'temperature'
+-    );
+-  }
+-
+-  updateOneChart(
+-    canvas: HTMLCanvasElement,
+-    readings: SensorReading[],
+-    sensorType: string,
+-    label: string,
+-    color: string,
+-    chartType: 'gas' | 'temperature'
+-  ): void {
+-
+-    const history = readings
+-      .filter(reading =>
+-        reading.type === sensorType &&
+-        Number.isFinite(reading.timestamp) &&
+-        Number.isFinite(reading.value)
+-      )
+-      .slice()
+-      .sort((a, b) =>
+-        this.toMilliseconds(a.timestamp) -
+-        this.toMilliseconds(b.timestamp)
+-      );
+-
+-    const labels = history.map(reading =>
+-      new Date(this.toMilliseconds(reading.timestamp))
+-        .toLocaleTimeString()
+-    );
+-
+-    const values = history.map(reading => reading.value);
+-
+-    let chart = chartType === 'gas'
+-      ? this.gasChart
+-      : this.temperatureChart;
+-
+-    if (!chart) {
+-      chart = new Chart(canvas, {
+-        type: 'line',
+-        data: {
+-          labels,
+-          datasets: [{
+-            label,
+-            data: values,
+-            borderColor: color,
+-            backgroundColor: color + '33',
+-            borderWidth: 2,
+-            pointRadius: 3,
+-            pointHoverRadius: 5,
+-            fill: true,
+-            tension: 0.3
+-          }]
+-        },
+-        options: {
+-          responsive: true,
+-          maintainAspectRatio: false,
+-          animation: false,
+-          plugins: {
+-            legend: {
+-              display: true,
+-              labels: { color: '#cbd5e1' }
+-            }
+-          },
+-          scales: {
+-            x: {
+-              ticks: {
+-                color: '#94a3b8',
+-                maxTicksLimit: 8
+-              },
+-              grid: {
+-                color: 'rgba(148, 163, 184, 0.12)'
+-              },
+-              title: {
+-                display: true,
+-                text: 'Time',
+-                color: '#94a3b8'
+-              }
+-            },
+-            y: {
+-              beginAtZero: true,
+-              ticks: { color: '#94a3b8' },
+-              grid: {
+-                color: 'rgba(148, 163, 184, 0.12)'
+-              },
+-              title: {
+-                display: true,
+-                text: label,
+-                color: '#94a3b8'
+-              }
+-            }
+-          }
+-        }
+-      });
+-
+-      if (chartType === 'gas') {
+-        this.gasChart = chart;
+-      } else {
+-        this.temperatureChart = chart;
+-      }
+-
+-    } else {
+-      chart.data.labels = labels;
+-      chart.data.datasets[0].data = values;
+-      chart.update('none');
+-    }
+-  }
+-
+-  // ==============================
+-  // GAS ALERTS
+-  // ==============================
+-
+-  isGasAlert(reading: SensorReading): boolean {
+-    return reading.type === 'GAS' && reading.value > 1000;
+-  }
+-
+-  countAlerts(readings: SensorReading[]): number {
+-    return this.getLatestReadingsBySensor(readings).filter(
+-      reading => this.isGasAlert(reading)
+-    ).length;
+-  }
+-
+-  getLatestAlerts(readings: SensorReading[]): SensorReading[] {
+-    return this.getLatestReadingsBySensor(readings).filter(
+-      reading => this.isGasAlert(reading)
+-    );
+-  }
+-
+-  // ==============================
+-  // SENSOR COUNTS
+-  // ==============================
+-
+-  countUniqueSensors(readings: SensorReading[]): number {
+-    return new Set(
+-      readings
+-        .filter(reading => reading.sensorId)
+-        .map(reading => reading.sensorId)
+-    ).size;
+-  }
+-
+-  countActiveSensors(readings: SensorReading[]): number {
+-    // Un capteur est consid├®r├® actif d├¿s qu'une mesure valide
+-    // est pr├®sente dans le flux de mesures re├ºu.
+-    return this.getLatestReadingsBySensor(readings).filter(
+-      reading =>
+-        !!reading.sensorId &&
+-        Number.isFinite(reading.timestamp) &&
+-        Number.isFinite(reading.value)
+-    ).length;
+-  }
+-
+-  // ==============================
+-  // CURRENT VALUES
+-  // ==============================
+-
+-  getCurrentValue(readings: SensorReading[], type: string): number {
+-    const latest = readings
+-      .filter(reading => reading.type === type)
+-      .slice()
+-      .sort((a, b) =>
+-        this.toMilliseconds(b.timestamp) -
+-        this.toMilliseconds(a.timestamp)
+-      )[0];
+-
+-    return latest?.value ?? 0;
+-  }
+-
+-  getCurrentUnit(readings: SensorReading[], type: string): string {
+-    const latest = readings
+-      .filter(reading => reading.type === type)
+-      .slice()
+-      .sort((a, b) =>
+-        this.toMilliseconds(b.timestamp) -
+-        this.toMilliseconds(a.timestamp)
+-      )[0];
+-
+-    return latest?.unit ?? '';
+-  }
+-
+-  getBarWidth(readings: SensorReading[], type: string): number {
+-    const value = this.getCurrentValue(readings, type);
+-    const maximum = type === 'GAS' ? 2000 : 50;
+-
+-    return Math.min(100, Math.max(0, (value / maximum) * 100));
+-  }
+-
+-  // ==============================
+-  // SORT READINGS
+-  // ==============================
+-
+-  getSortedReadings(readings: SensorReading[]): SensorReading[] {
+-    return [...readings].sort((a, b) =>
+-      this.toMilliseconds(b.timestamp) -
+-      this.toMilliseconds(a.timestamp)
+-    );
+-  }
+-
+-  trackReading(index: number, reading: SensorReading): string {
+-    return reading.id ||
+-      `${reading.sensorId}-${reading.timestamp}-${index}`;
+-  }
+-
+-  // ==============================
+-  // INCIDENT ACTIONS
+-  // ==============================
+-
+-  acknowledgeIncident(id: string): void {
+-    this.incidentService.updateStatus(id, 'ACKNOWLEDGED').subscribe({
+-      next: () => this.loadIncidents(),
+-      error: error => {
+-        console.error('Erreur lors de lÔÇÖacquittement :', error);
+-        this.incidentError = 'Impossible dÔÇÖacquitter cet incident.';
+-      }
+-    });
+-  }
+-
+-  resolveIncident(id: string): void {
+-    this.incidentService.updateStatus(id, 'RESOLVED').subscribe({
+-      next: () => this.loadIncidents(),
+-      error: error => {
+-        console.error('Erreur lors de la r├®solution :', error);
+-        this.incidentError = 'Impossible de r├®soudre cet incident.';
+-      }
+-    });
+-  }
+-
+-  // ==============================
+-  // CLEANUP
+-  // ==============================
+-
+-  ngOnDestroy(): void {
+-    this.readingsSubscription?.unsubscribe();
+-    this.realtimeSubscription?.unsubscribe();
+-
+-    this.realtimeService.disconnect();
++export class App {
++  protected readonly auth = inject(AuthService);
+ 
+-    this.gasChart?.destroy();
+-    this.temperatureChart?.destroy();
++  protected dismissAccessDenied(): void {
++    this.auth.clearAccessDenied();
+   }
+ }
+diff --git a/Frontends/Back Office/src/app/services/realtime.service.ts b/Frontends/Back Office/src/app/services/realtime.service.ts
+index e2b4a46..f5f5953 100644
+--- a/Frontends/Back Office/src/app/services/realtime.service.ts	
++++ b/Frontends/Back Office/src/app/services/realtime.service.ts	
+@@ -1,18 +1,24 @@
+-
+-import { Injectable, NgZone, OnDestroy, inject, PLATFORM_ID } from '@angular/core';
++´╗┐import {
++  Injectable,
++  NgZone,
++  OnDestroy,
++  inject,
++  PLATFORM_ID
++} from '@angular/core';
+ import { isPlatformBrowser } from '@angular/common';
+ import { Observable, Subject, timer, Subscription } from 'rxjs';
+ import { environment } from '../../environments/environment';
++import { AuthService } from '../core/auth/auth.service';
+ 
+ @Injectable({
+   providedIn: 'root'
+ })
+ export class RealtimeService implements OnDestroy {
++  private readonly zone = inject(NgZone);
++  private readonly platformId = inject(PLATFORM_ID);
++  private readonly authService = inject(AuthService);
+ 
+-  private zone = inject(NgZone);
+-  private platformId = inject(PLATFORM_ID);
+-
+-  private eventsSubject = new Subject<any>();
++  private readonly eventsSubject = new Subject<any>();
+   private socket: WebSocket | null = null;
+   private reconnectSubscription?: Subscription;
+   private reconnectDelay = 3000;
+@@ -25,28 +31,36 @@ export class RealtimeService implements OnDestroy {
+       return;
+     }
+ 
++    // Autoriser une nouvelle connexion apr├¿s une navigation.
++    this.destroyed = false;
++
+     if (
+-      this.destroyed ||
+       this.socket?.readyState === WebSocket.OPEN ||
+       this.socket?.readyState === WebSocket.CONNECTING
+     ) {
+       return;
+     }
+ 
+-    const wsUrl = environment.apiUrl
+-      .replace(/^http:/, 'ws:')
+-      .replace(/^https:/, 'wss:')
+-      + '/ws/events';
++    const token = this.authService.getToken();
++
++    if (!token) {
++      console.warn('WebSocket non connect├® : JWT ADMIN absent.');
++      return;
++    }
++
++    const separator = environment.wsUrl.includes('?') ? '&' : '?';
++    const authenticatedUrl =
++      `${environment.wsUrl}${separator}token=${encodeURIComponent(token)}`;
+ 
+     try {
+-      this.socket = new WebSocket(wsUrl);
++      this.socket = new WebSocket(authenticatedUrl);
+ 
+       this.socket.onopen = () => {
+         this.reconnectDelay = 3000;
+-        console.log('WebSocket connect├®');
++        console.log('WebSocket ADMIN connect├®.');
+       };
+ 
+-      this.socket.onmessage = (message) => {
++      this.socket.onmessage = message => {
+         this.zone.run(() => {
+           try {
+             this.eventsSubject.next(JSON.parse(message.data));
+@@ -56,7 +70,7 @@ export class RealtimeService implements OnDestroy {
+         });
+       };
+ 
+-      this.socket.onerror = (error) => {
++      this.socket.onerror = error => {
+         console.error('Erreur WebSocket :', error);
+       };
+ 
+@@ -67,7 +81,6 @@ export class RealtimeService implements OnDestroy {
+           this.scheduleReconnect();
+         }
+       };
+-
+     } catch (error) {
+       console.error('Erreur de connexion WebSocket :', error);
+       this.scheduleReconnect();
+diff --git a/Frontends/Back Office/src/environments/environment.ts b/Frontends/Back Office/src/environments/environment.ts
+index 9423364..ae249f3 100644
+--- a/Frontends/Back Office/src/environments/environment.ts	
++++ b/Frontends/Back Office/src/environments/environment.ts	
+@@ -1,6 +1,7 @@
+-
+-export const environment = {
++´╗┐export const environment = {
+   production: false,
+   useMock: false,
+-  apiUrl: 'http://localhost:8081/api'
++  apiUrl: 'http://localhost:8081/api',
++  iamUrl: 'http://localhost:8081/iam/api',
++  wsUrl: 'ws://localhost:8081/api/ws/events'
+ };
+diff --git a/Frontends/Front Office/angular.json b/Frontends/Front Office/angular.json
+index abf29ff..f9b90c4 100644
+--- a/Frontends/Front Office/angular.json	
++++ b/Frontends/Front Office/angular.json	
+@@ -2,7 +2,8 @@
+   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+   "version": 1,
+   "cli": {
+-    "packageManager": "npm"
++    "packageManager": "npm",
++    "analytics": "304d06ae-b939-49bc-8f58-a3d1806e9bd8"
+   },
+   "newProjectRoot": "projects",
+   "projects": {
+@@ -69,7 +70,8 @@
+                   "maximumError": "8kB"
+                 }
+               ],
+-              "outputHashing": "all"
++              "outputHashing": "all",
++              "serviceWorker": "ngsw-config.json"
+             },
+             "development": {
+               "optimization": false,
+diff --git a/Frontends/Front Office/package-lock.json b/Frontends/Front Office/package-lock.json
+index d35588a..0480bfe 100644
+--- a/Frontends/Front Office/package-lock.json	
++++ b/Frontends/Front Office/package-lock.json	
+@@ -14,6 +14,7 @@
+         "@angular/forms": "^21.2.0",
+         "@angular/platform-browser": "^21.2.0",
+         "@angular/router": "^21.2.0",
++        "@angular/service-worker": "21.2.25",
+         "rxjs": "~7.8.0",
+         "tslib": "^2.3.0"
+       },
+@@ -454,7 +455,6 @@
+       "resolved": "https://registry.npmjs.org/@angular/common/-/common-21.2.25.tgz",
+       "integrity": "sha512-1oxSrFqMyJF6xYXBDrciZSe3A67E5feYQXhmxH3d0hLe0wWM/pFZTvCvSnA65wHj8NTonuI7/HMBPwRKddHoGw==",
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "tslib": "^2.3.0"
+       },
+@@ -471,7 +471,6 @@
+       "resolved": "https://registry.npmjs.org/@angular/compiler/-/compiler-21.2.25.tgz",
+       "integrity": "sha512-jR/TiwrHeLEOPT3fVp9q14UkCsBNni8xUIfof8F7JZW4Ze7/LpTLI2OWxajckWmR0+kCKam5RhWeFd5m/F553Q==",
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "tslib": "^2.3.0"
+       },
+@@ -485,7 +484,6 @@
+       "integrity": "sha512-5qMekFc1QNJ7zxTqekOTRnY9WgYSo5nfqED14sou15uScepL+yDM07UrvVsR94CGc78/nhevYWLXbb4iPPZ00Q==",
+       "dev": true,
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "@babel/core": "7.29.7",
+         "@jridgewell/sourcemap-codec": "^1.4.14",
+@@ -518,7 +516,6 @@
+       "resolved": "https://registry.npmjs.org/@angular/core/-/core-21.2.25.tgz",
+       "integrity": "sha512-cku7EX0igTPnuqEWZ1NiQY4Pn1g2xBljQSk1+bXRKnudJiZCK8e1u2v0byNzWuKwmdz7kKXjz71o224HrtccVA==",
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "tslib": "^2.3.0"
+       },
+@@ -563,7 +560,6 @@
+       "resolved": "https://registry.npmjs.org/@angular/platform-browser/-/platform-browser-21.2.25.tgz",
+       "integrity": "sha512-hQgeKZiKt42P+jcf9j7o3c1GSOwOXrAYX2hXCs4A0+/AQ1neAQ20bjjUAgz1fGC4P3bNdurw1ZLLhMA+ZBKPtg==",
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "tslib": "^2.3.0"
+       },
+@@ -599,6 +595,25 @@
+         "rxjs": "^6.5.3 || ^7.4.0"
+       }
+     },
++    "node_modules/@angular/service-worker": {
++      "version": "21.2.25",
++      "resolved": "https://registry.npmjs.org/@angular/service-worker/-/service-worker-21.2.25.tgz",
++      "integrity": "sha512-uG0KWXwLuWqhCqt0Eh9txiVLqm00zdworUYAqsHrrw/AT8s9C12yi2i+AsOU1YCzaluOe/OduKojyMdAJulrpA==",
++      "license": "MIT",
++      "dependencies": {
++        "tslib": "^2.3.0"
++      },
++      "bin": {
++        "ngsw-config": "ngsw-config.js"
++      },
++      "engines": {
++        "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
++      },
++      "peerDependencies": {
++        "@angular/core": "21.2.25",
++        "rxjs": "^6.5.3 || ^7.4.0"
++      }
++    },
+     "node_modules/@babel/code-frame": {
+       "version": "7.29.7",
+       "resolved": "https://registry.npmjs.org/@babel/code-frame/-/code-frame-7.29.7.tgz",
+@@ -630,7 +645,6 @@
+       "integrity": "sha512-RgHBCvtjbOK2gXSNBNIkNoEc9qoVEtau3hj8gEqKQuL3HZAibKarWFEI3Lfm6EYKkLalOh8eSrj9b+ch9H/VBA==",
+       "dev": true,
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "@babel/code-frame": "^7.29.7",
+         "@babel/generator": "^7.29.7",
+@@ -893,17 +907,6 @@
+         "node": ">=6.9.0"
+       }
+     },
+-    "node_modules/@emnapi/wasi-threads": {
+-      "version": "1.2.3",
+-      "resolved": "https://registry.npmjs.org/@emnapi/wasi-threads/-/wasi-threads-1.2.3.tgz",
+-      "integrity": "sha512-ELEBe8PsLvvJ6QMr0zLt8ffvOHW/dc1m3CEzNMg7aJUv3bMaoDtw2TXyDAwkYBuroxxuHEwhRTLJSe5sya547g==",
+-      "dev": true,
+-      "license": "MIT",
+-      "optional": true,
+-      "dependencies": {
+-        "tslib": "^2.4.0"
+-      }
+-    },
+     "node_modules/@esbuild/aix-ppc64": {
+       "version": "0.28.1",
+       "resolved": "https://registry.npmjs.org/@esbuild/aix-ppc64/-/aix-ppc64-0.28.1.tgz",
+@@ -1613,7 +1616,6 @@
+       "integrity": "sha512-Dx/y9bCQcXLI5ooQ5KyvA4FTgeo2jYj/7plWfV5Ak5wDPKQZgudKez2ixyfz7tKXzcJciTxqLeK7R9HItwiByg==",
+       "dev": true,
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "@inquirer/checkbox": "^4.3.2",
+         "@inquirer/confirm": "^5.1.21",
+@@ -3934,7 +3936,6 @@
+         }
+       ],
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "baseline-browser-mapping": "^2.11.33",
+         "caniuse-lite": "^1.0.30001819",
+@@ -4076,7 +4077,6 @@
+       "integrity": "sha512-TQMmc3w+5AxjpL8iIiwebF73dRDF4fBIieAqGn9RGCWaEVwQ6Fb2cGe31Yns0RRIzii5goJ1Y7xbMwo1TxMplw==",
+       "dev": true,
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "readdirp": "^5.0.0"
+       },
+@@ -5017,7 +5017,6 @@
+       "integrity": "sha512-yhRLQ21U6qa9Hsu2N7Qcbh8tE+WKEcoErjIo56LeSGiGXGp9sA7UpE86Ui9uexb61KakiGwuHMn2QdV7w6i6kQ==",
+       "dev": true,
+       "license": "MIT",
+-      "peer": true,
+       "engines": {
+         "node": ">=16.9.0"
+       }
+@@ -5406,7 +5405,6 @@
+       "integrity": "sha512-ME4Fb83LgEgwNw96RKNvKV4VTLuXfoKudAmm2lP8Kk87KaMK0/Xrx/aAkMWmT8mDb+3MlFDspfbCs7adjRxA2g==",
+       "dev": true,
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "cli-truncate": "^5.0.0",
+         "colorette": "^2.0.20",
+@@ -6511,7 +6509,6 @@
+         }
+       ],
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "nanoid": "^3.3.20",
+         "picocolors": "^1.1.1",
+@@ -6802,7 +6799,6 @@
+       "resolved": "https://registry.npmjs.org/rxjs/-/rxjs-7.8.2.tgz",
+       "integrity": "sha512-dhKf903U/PQZY6boNNtAGdWbG85WAbjT/1xYoZIC7FAY0yWapOBQVsVrDl58W86//e1VpMNBtRV4MaXfdMySFA==",
+       "license": "Apache-2.0",
+-      "peer": true,
+       "dependencies": {
+         "tslib": "^2.1.0"
+       }
+@@ -7313,8 +7309,7 @@
+       "version": "2.9.1",
+       "resolved": "https://registry.npmjs.org/tslib/-/tslib-2.9.1.tgz",
+       "integrity": "sha512-a4Ux9VKuIMHsOS7ENbEq6hK2ZGYIT27Rtl0E4eD9KqwxhKiQeMZE/9xb3IdYwWaSOyIBQLExhQgXDTYoiCxnWA==",
+-      "license": "0BSD",
+-      "peer": true
++      "license": "0BSD"
+     },
+     "node_modules/tuf-js": {
+       "version": "4.1.0",
+@@ -7370,7 +7365,6 @@
+       "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==",
+       "dev": true,
+       "license": "Apache-2.0",
+-      "peer": true,
+       "bin": {
+         "tsc": "bin/tsc",
+         "tsserver": "bin/tsserver"
+@@ -7456,7 +7450,6 @@
+       "integrity": "sha512-AHEzTORMbi7/7aXp7w7KZ5+DCUdSeLsJz0grY8xHpc9DHdYb0vQu6DqJfm2tOw3gDExNgPgnJTXxM6syYFHaCA==",
+       "dev": true,
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "esbuild": "^0.27.0 || ^0.28.0",
+         "fdir": "^6.5.0",
+@@ -7752,7 +7745,6 @@
+       "integrity": "sha512-4UmzQUF5fxvfcYHlbjBmejU+w+hbDnWFx4aS8kBx7nPBHcO2SqPbpAG8snbdg+Xse4pRefR98hgjFgIMCI/UhA==",
+       "dev": true,
+       "license": "MIT",
+-      "peer": true,
+       "funding": {
+         "url": "https://github.com/sponsors/colinhacks"
+       }
+diff --git a/Frontends/Front Office/package.json b/Frontends/Front Office/package.json
+index 3a69368..8e6ca84 100644
+--- a/Frontends/Front Office/package.json	
++++ b/Frontends/Front Office/package.json	
+@@ -17,6 +17,7 @@
+     "@angular/forms": "^21.2.0",
+     "@angular/platform-browser": "^21.2.0",
+     "@angular/router": "^21.2.0",
++    "@angular/service-worker": "21.2.25",
+     "rxjs": "~7.8.0",
+     "tslib": "^2.3.0"
+   },
+@@ -27,4 +28,4 @@
+     "prettier": "^3.8.1",
+     "typescript": "~5.9.2"
+   }
+-}
+\ No newline at end of file
++}
+diff --git a/Frontends/Front Office/src/app/app.config.ts b/Frontends/Front Office/src/app/app.config.ts
+index 5d7b94b..6ac0005 100644
+--- a/Frontends/Front Office/src/app/app.config.ts	
++++ b/Frontends/Front Office/src/app/app.config.ts	
+@@ -1,14 +1,18 @@
+-import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
++import { ApplicationConfig, provideBrowserGlobalErrorListeners, isDevMode } from '@angular/core';
+ import { provideRouter } from '@angular/router';
+ import { provideHttpClient, withInterceptors } from '@angular/common/http';
+ 
+ import { routes } from './app.routes';
+ import { authInterceptor } from './core/interceptors/auth.interceptor';
++import { provideServiceWorker } from '@angular/service-worker';
+ 
+ export const appConfig: ApplicationConfig = {
+   providers: [
+     provideBrowserGlobalErrorListeners(),
+     provideRouter(routes),
+-    provideHttpClient(withInterceptors([authInterceptor]))
++    provideHttpClient(withInterceptors([authInterceptor])), provideServiceWorker('ngsw-worker.js', {
++            enabled: !isDevMode(),
++            registrationStrategy: 'registerWhenStable:30000'
++          })
+   ]
+ };
+diff --git a/Frontends/Front Office/src/app/core/auth/auth.service.ts b/Frontends/Front Office/src/app/core/auth/auth.service.ts
+index 762c30e..9cebe74 100644
+--- a/Frontends/Front Office/src/app/core/auth/auth.service.ts	
++++ b/Frontends/Front Office/src/app/core/auth/auth.service.ts	
+@@ -1,53 +1,60 @@
+-import { Injectable, signal, computed } from '@angular/core';
++import { Injectable, inject, signal, computed, PLATFORM_ID } from '@angular/core';
++import { isPlatformBrowser } from '@angular/common';
++import { HttpClient } from '@angular/common/http';
+ import { Router } from '@angular/router';
++import { Observable, map } from 'rxjs';
+ import { User, LoginRequest, LoginResponse } from '../models';
++import { environment } from '../../../environments/environment';
+ 
+ @Injectable({ providedIn: 'root' })
+ export class AuthService {
++  private readonly http = inject(HttpClient);
++  private readonly router = inject(Router);
++  private readonly platformId = inject(PLATFORM_ID);
+ 
+   private readonly currentUser = signal<User | null>(null);
+   private readonly token = signal<string | null>(null);
+ 
+   readonly user = this.currentUser.asReadonly();
+-  readonly isAuthenticated = computed(() => this.currentUser() !== null);
++  readonly isAuthenticated = computed(
++    () => this.currentUser() !== null && this.token() !== null
++  );
+ 
+-  constructor(private readonly router: Router) {
++  constructor() {
+     this.loadFromStorage();
+   }
+ 
+-  /**
+-   * Mock login ÔÇö will be replaced by real IAM call.
+-   */
+-  login(request: LoginRequest): boolean {
+-    // Mock credentials
+-    if (request.email === 'user@smartbuilding.com' && request.password === 'password') {
+-      const mockUser: User = {
+-        id: 'u-001',
+-        email: request.email,
+-        firstName: 'Ines',
+-        lastName: 'Occupant',
+-        role: 'OCCUPANT',
+-        buildingId: 'b-001',
+-        floorId: 'f-002',
+-        roomId: 'r-005'
+-      };
+-      const mockResponse: LoginResponse = {
+-        accessToken: 'mock-jwt-token-' + Date.now(),
+-        refreshToken: 'mock-refresh-token',
+-        expiresIn: 3600,
+-        user: mockUser
+-      };
+-      this.setSession(mockResponse);
+-      return true;
+-    }
+-    return false;
++  login(request: LoginRequest): Observable<User> {
++    return this.http.post<LoginResponse>(
++      `${environment.iamUrl}/auth/login`,
++      request
++    ).pipe(
++      map(response => {
++        const user: User = {
++          id: request.username,
++          username: request.username,
++          email: request.username,
++          firstName: response.name,
++          lastName: '',
++          role: response.role
++        };
++
++        this.setSession(response, user);
++        return user;
++      })
++    );
+   }
+ 
+   logout(): void {
+     this.currentUser.set(null);
+     this.token.set(null);
+-    localStorage.removeItem('auth_token');
+-    localStorage.removeItem('auth_user');
++
++    if (isPlatformBrowser(this.platformId)) {
++      localStorage.removeItem('auth_token');
++      localStorage.removeItem('auth_user');
++      localStorage.removeItem('auth_expires_at');
++    }
++
+     this.router.navigate(['/login']);
+   }
+ 
+@@ -55,23 +62,40 @@ export class AuthService {
+     return this.token();
+   }
+ 
+-  private setSession(response: LoginResponse): void {
+-    this.currentUser.set(response.user);
+-    this.token.set(response.accessToken);
+-    localStorage.setItem('auth_token', response.accessToken);
+-    localStorage.setItem('auth_user', JSON.stringify(response.user));
++  private setSession(response: LoginResponse, user: User): void {
++    this.currentUser.set(user);
++    this.token.set(response.token);
++
++    if (isPlatformBrowser(this.platformId)) {
++      localStorage.setItem('auth_token', response.token);
++      localStorage.setItem('auth_user', JSON.stringify(user));
++      localStorage.setItem('auth_expires_at', String(response.expiresAt));
++    }
+   }
+ 
+   private loadFromStorage(): void {
++    if (!isPlatformBrowser(this.platformId)) {
++      return;
++    }
++
+     const token = localStorage.getItem('auth_token');
+     const userJson = localStorage.getItem('auth_user');
+-    if (token && userJson) {
+-      try {
+-        this.currentUser.set(JSON.parse(userJson));
+-        this.token.set(token);
+-      } catch {
+-        this.logout();
+-      }
++    const expiresAt = Number(localStorage.getItem('auth_expires_at'));
++
++    if (!token || !userJson || !expiresAt || Date.now() >= expiresAt) {
++      localStorage.removeItem('auth_token');
++      localStorage.removeItem('auth_user');
++      localStorage.removeItem('auth_expires_at');
++      return;
++    }
++
++    try {
++      this.currentUser.set(JSON.parse(userJson) as User);
++      this.token.set(token);
++    } catch {
++      localStorage.removeItem('auth_token');
++      localStorage.removeItem('auth_user');
++      localStorage.removeItem('auth_expires_at');
+     }
+   }
+-}
++}
+\ No newline at end of file
+diff --git a/Frontends/Front Office/src/app/core/models/building.model.ts b/Frontends/Front Office/src/app/core/models/building.model.ts
+index 347e3ca..f9a85c5 100644
+--- a/Frontends/Front Office/src/app/core/models/building.model.ts	
++++ b/Frontends/Front Office/src/app/core/models/building.model.ts	
+@@ -2,34 +2,41 @@ export interface Building {
+   id: string;
+   name: string;
+   address: string;
+-  latitude: number;
+-  longitude: number;
+-  floors: Floor[];
+-  totalOccupants?: number;
+-  status: 'SAFE' | 'WARNING' | 'DANGER' | 'EVACUATING';
++  floors: number;
+ }
+ 
+-export interface Floor {
++export interface Room {
+   id: string;
+   buildingId: string;
+-  name: string;
+-  level: number;
+-  rooms: Room[];
+-  floorPlanUrl?: string;
++  roomNumber: string;
++  floor: number;
++  x: number;
++  y: number;
++  width: number;
++  height: number;
++  exit: string;
+ }
+ 
+-export interface Room {
+-  id: string;
+-  floorId: string;
++export interface RoomView extends Room {
+   name: string;
+-  type: 'OFFICE' | 'HALLWAY' | 'STAIRWAY' | 'ELEVATOR' | 'LOBBY' | 'PARKING' | 'UTILITY' | 'OTHER';
++  floorId: string;
++  type: string;
+   capacity?: number;
+   currentOccupants?: number;
+-  sensors?: string[];
+-  x?: number;
+-  y?: number;
+-  width?: number;
+-  height?: number;
++}
++
++export interface Floor {
++  id: string;
++  buildingId: string;
++  name: string;
++  level: number;
++  rooms: RoomView[];
++}
++
++export interface BuildingView extends Omit<Building, 'floors'> {
++  floors: Floor[];
++  status: 'SAFE' | 'WARNING' | 'DANGER' | 'EVACUATING';
++  totalOccupants?: number;
+ }
+ 
+ export interface MapPosition {
+@@ -40,4 +47,4 @@ export interface MapPosition {
+   y: number;
+   label?: string;
+   type: 'INCIDENT' | 'SENSOR' | 'EXIT' | 'USER' | 'HAZARD';
+-}
++}
+\ No newline at end of file
+diff --git a/Frontends/Front Office/src/app/core/models/incident.model.ts b/Frontends/Front Office/src/app/core/models/incident.model.ts
+index de35db1..75e7ffa 100644
+--- a/Frontends/Front Office/src/app/core/models/incident.model.ts	
++++ b/Frontends/Front Office/src/app/core/models/incident.model.ts	
+@@ -1,24 +1,31 @@
+-export type IncidentStatus = 'REPORTED' | 'IN_PROGRESS' | 'CONTAINED' | 'RESOLVED' | 'CLOSED';
+-export type IncidentPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
++export type IncidentStatus = 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED';
++export type IncidentSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+ 
+ export interface Incident {
+   id: string;
+-  title: string;
+-  description: string;
+-  status: IncidentStatus;
+-  priority: IncidentPriority;
+-  type: string;
+   buildingId: string;
+-  buildingName: string;
+-  floorId?: string;
++  roomId: string;
++  sensorId: string;
++  type: string;
++  severity: IncidentSeverity;
++  status: IncidentStatus;
++  description: string;
++  occupied: boolean;
++  timestamp: number;
++  updatedAt: number;
++  affectedRoomIds: string[];
++  recommendation?: string;
++
++  // Compatibilite temporaire avec les anciens composants
++  title?: string;
++  priority?: IncidentSeverity;
++  buildingName?: string;
+   floorName?: string;
+-  roomId?: string;
+   roomName?: string;
+-  reportedBy: string;
+-  reportedAt: string;
+-  updatedAt: string;
+-  resolvedAt?: string;
+-  alerts: string[];
++  reportedBy?: string;
++  reportedAt?: number;
++  resolvedAt?: number;
++  alerts?: string[];
+   assignedTo?: string[];
+   notes?: string[];
+-}
++}
+\ No newline at end of file
+diff --git a/Frontends/Front Office/src/app/core/models/index.ts b/Frontends/Front Office/src/app/core/models/index.ts
+index f04f59a..f90e7c2 100644
+--- a/Frontends/Front Office/src/app/core/models/index.ts	
++++ b/Frontends/Front Office/src/app/core/models/index.ts	
+@@ -3,3 +3,4 @@ export * from './alert.model';
+ export * from './incident.model';
+ export * from './building.model';
+ export * from './notification.model';
++export * from './sensor-reading.model';
+\ No newline at end of file
+diff --git a/Frontends/Front Office/src/app/core/models/user.model.ts b/Frontends/Front Office/src/app/core/models/user.model.ts
+index 8e6b1e6..a8c3aef 100644
+--- a/Frontends/Front Office/src/app/core/models/user.model.ts	
++++ b/Frontends/Front Office/src/app/core/models/user.model.ts	
+@@ -1,26 +1,27 @@
++export type UserRole = 'OCCUPANT' | 'ADMIN' | 'FIREFIGHTER';
++
+ export interface User {
+   id: string;
+-  email: string;
++  username: string;
++  email?: string;
+   firstName: string;
+   lastName: string;
+-  role: 'OCCUPANT' | 'ADMIN' | 'FIREFIGHTER';
++  role: UserRole;
+   buildingId?: string;
+   floorId?: string;
+   roomId?: string;
+   phone?: string;
+   avatarUrl?: string;
+-  createdAt?: string;
+-  updatedAt?: string;
+ }
+ 
+ export interface LoginRequest {
+-  email: string;
++  username: string;
+   password: string;
+ }
+ 
+ export interface LoginResponse {
+-  accessToken: string;
+-  refreshToken: string;
+-  expiresIn: number;
+-  user: User;
+-}
++  token: string;
++  role: UserRole;
++  name: string;
++  expiresAt: number;
++}
+\ No newline at end of file
+diff --git a/Frontends/Front Office/src/app/core/services/alert.service.ts b/Frontends/Front Office/src/app/core/services/alert.service.ts
+index 0fb596e..4f28e15 100644
+--- a/Frontends/Front Office/src/app/core/services/alert.service.ts	
++++ b/Frontends/Front Office/src/app/core/services/alert.service.ts	
+@@ -1,91 +1,48 @@
+-import { Injectable, signal } from '@angular/core';
+-import { Alert, AlertSeverity, AlertStatus, AlertType } from '../models';
++import { Injectable, computed, inject } from '@angular/core';
++import { Alert, AlertStatus } from '../models';
++import { IncidentService } from './incident.service';
+ 
+ @Injectable({ providedIn: 'root' })
+ export class AlertService {
++  private readonly incidentService = inject(IncidentService);
+ 
+-  private readonly alertList = signal<Alert[]>(this.getMockAlerts());
++  readonly alerts = computed<Alert[]>(() =>
++    this.incidentService.incidents().map(incident => {
++      const status: AlertStatus =
++        incident.status === 'OPEN' ? 'ACTIVE' :
++        incident.status === 'ACKNOWLEDGED' ? 'ACKNOWLEDGED' : 'RESOLVED';
+ 
+-  readonly alerts = this.alertList.asReadonly();
++      return {
++        id: incident.id,
++        type: incident.type as Alert['type'],
++        severity: incident.severity,
++        status,
++        title: incident.type.replace(/_/g, ' '),
++        description: incident.description,
++        buildingId: incident.buildingId,
++        buildingName: incident.buildingId,
++        roomId: incident.roomId,
++        roomName: incident.roomId,
++        sensorId: incident.sensorId,
++        triggeredAt: new Date(incident.timestamp).toISOString(),
++        recommendations: incident.recommendation
++          ? [incident.recommendation]
++          : []
++      };
++    })
++  );
+ 
+   getActiveAlerts(): Alert[] {
+-    return this.alertList().filter(a => a.status === 'ACTIVE');
++    return this.alerts().filter(alert => alert.status === 'ACTIVE');
+   }
+ 
+   getCriticalAlerts(): Alert[] {
+-    return this.alertList().filter(a => a.severity === 'CRITICAL' && a.status === 'ACTIVE');
++    return this.alerts().filter(
++      alert => alert.severity === 'CRITICAL' && alert.status === 'ACTIVE'
++    );
+   }
+ 
+   getAlertById(id: string): Alert | undefined {
+-    return this.alertList().find(a => a.id === id);
++    return this.alerts().find(alert => alert.id === id);
+   }
+-
+-  /**
+-   * Mock alerts ÔÇö will be replaced by REST API calls.
+-   */
+-  private getMockAlerts(): Alert[] {
+-    return [
+-      {
+-        id: 'a-001',
+-        type: 'FIRE',
+-        severity: 'CRITICAL',
+-        status: 'ACTIVE',
+-        title: 'Fire Detected ÔÇö Building A, Floor 3',
+-        description: 'Smoke and heat sensors triggered in Room 302. Immediate evacuation recommended.',
+-        buildingId: 'b-001',
+-        buildingName: 'Building A ÔÇö Main Office',
+-        floorId: 'f-003',
+-        floorName: 'Floor 3',
+-        roomId: 'r-302',
+-        roomName: 'Room 302 ÔÇö Server Room',
+-        triggeredAt: new Date(Date.now() - 5 * 60_000).toISOString(),
+-        recommendations: [
+-          'Evacuate Floor 3 immediately',
+-          'Use stairway B (nearest safe exit)',
+-          'Do not use elevators',
+-          'Proceed to Assembly Point C'
+-        ]
+-      },
+-      {
+-        id: 'a-002',
+-        type: 'GAS_LEAK',
+-        severity: 'HIGH',
+-        status: 'ACTIVE',
+-        title: 'Gas Leak Warning ÔÇö Building A, Floor 1',
+-        description: 'Elevated methane levels detected in the utility room. Ventilation activated.',
+-        buildingId: 'b-001',
+-        buildingName: 'Building A ÔÇö Main Office',
+-        floorId: 'f-001',
+-        floorName: 'Floor 1',
+-        roomId: 'r-101',
+-        roomName: 'Room 101 ÔÇö Utility Room',
+-        triggeredAt: new Date(Date.now() - 15 * 60_000).toISOString(),
+-        recommendations: [
+-          'Avoid Floor 1 utility area',
+-          'Ventilation system activated automatically',
+-          'Maintenance team dispatched'
+-        ]
+-      },
+-      {
+-        id: 'a-003',
+-        type: 'SMOKE',
+-        severity: 'MEDIUM',
+-        status: 'ACKNOWLEDGED',
+-        title: 'Smoke Detected ÔÇö Building B, Floor 2',
+-        description: 'Light smoke detected in kitchen area. Under investigation.',
+-        buildingId: 'b-002',
+-        buildingName: 'Building B ÔÇö Annex',
+-        floorId: 'f-002',
+-        floorName: 'Floor 2',
+-        roomId: 'r-201',
+-        roomName: 'Room 201 ÔÇö Kitchen',
+-        triggeredAt: new Date(Date.now() - 30 * 60_000).toISOString(),
+-        acknowledgedAt: new Date(Date.now() - 25 * 60_000).toISOString(),
+-        recommendations: [
+-          'Stay away from Floor 2 kitchen',
+-          'Investigation in progress'
+-        ]
+-      }
+-    ];
+-  }
+-}
++}
+\ No newline at end of file
+diff --git a/Frontends/Front Office/src/app/core/services/building.service.ts b/Frontends/Front Office/src/app/core/services/building.service.ts
+index 126590b..e5c25b3 100644
+--- a/Frontends/Front Office/src/app/core/services/building.service.ts	
++++ b/Frontends/Front Office/src/app/core/services/building.service.ts	
+@@ -1,89 +1,107 @@
+-import { Injectable, signal } from '@angular/core';
+-import { Building } from '../models';
++import { Injectable, inject, signal } from '@angular/core';
++import { HttpClient } from '@angular/common/http';
++import { Observable, of, forkJoin, switchMap, map, tap } from 'rxjs';
++import { Building, BuildingView, Floor, Room, RoomView } from '../models';
++import { environment } from '../../../environments/environment';
+ 
+ @Injectable({ providedIn: 'root' })
+ export class BuildingService {
++  private readonly http = inject(HttpClient);
++  private readonly apiUrl = `${environment.apiUrl}/buildings`;
+ 
+-  private readonly buildingList = signal<Building[]>(this.getMockBuildings());
+-
++  private readonly buildingList = signal<BuildingView[]>([]);
+   readonly buildings = this.buildingList.asReadonly();
+ 
+-  getBuildingById(id: string): Building | undefined {
+-    return this.buildingList().find(b => b.id === id);
++  constructor() {
++    this.refresh().subscribe({
++      error: error => console.error('Chargement b├ótiments impossible', error)
++    });
+   }
+ 
+-  private getMockBuildings(): Building[] {
+-    return [
+-      {
+-        id: 'b-001',
+-        name: 'Building A ÔÇö Main Office',
+-        address: '123 Smart Street, Tech City',
+-        latitude: 36.8065,
+-        longitude: 10.1815,
+-        status: 'DANGER',
+-        totalOccupants: 245,
+-        floors: [
+-          {
+-            id: 'f-001',
+-            buildingId: 'b-001',
+-            name: 'Floor 1 ÔÇö Ground',
+-            level: 1,
+-            rooms: [
+-              { id: 'r-101', floorId: 'f-001', name: 'Lobby', type: 'LOBBY', capacity: 50, currentOccupants: 12 },
+-              { id: 'r-102', floorId: 'f-001', name: 'Utility Room', type: 'UTILITY', capacity: 5, currentOccupants: 0 }
+-            ]
+-          },
+-          {
+-            id: 'f-002',
+-            buildingId: 'b-001',
+-            name: 'Floor 2 ÔÇö Offices',
+-            level: 2,
+-            rooms: [
+-              { id: 'r-201', floorId: 'f-002', name: 'Open Space A', type: 'OFFICE', capacity: 60, currentOccupants: 45 },
+-              { id: 'r-202', floorId: 'f-002', name: 'Meeting Room B', type: 'OFFICE', capacity: 15, currentOccupants: 8 }
+-            ]
+-          },
+-          {
+-            id: 'f-003',
+-            buildingId: 'b-001',
+-            name: 'Floor 3 ÔÇö IT & Servers',
+-            level: 3,
+-            rooms: [
+-              { id: 'r-301', floorId: 'f-003', name: 'IT Office', type: 'OFFICE', capacity: 30, currentOccupants: 0 },
+-              { id: 'r-302', floorId: 'f-003', name: 'Server Room', type: 'UTILITY', capacity: 10, currentOccupants: 0 }
+-            ]
+-          }
+-        ]
+-      },
++  refresh(): Observable<BuildingView[]> {
++    if (environment.useMock) {
++      return of(this.getMockBuildings()).pipe(
++        tap(items => this.buildingList.set(items))
++      );
++    }
++
++    return this.http.get<Building[]>(this.apiUrl).pipe(
++      switchMap(buildings => {
++        if (buildings.length === 0) return of([]);
++
++        return forkJoin(
++          buildings.map(building =>
++            this.http.get<Room[]>(
++              `${this.apiUrl}/${encodeURIComponent(building.id)}/rooms`
++            ).pipe(
++              map(rooms => this.toBuildingView(building, rooms))
++            )
++          )
++        );
++      }),
++      tap(items => this.buildingList.set(items))
++    );
++  }
++
++  getBuildings(): Observable<BuildingView[]> {
++    return this.refresh();
++  }
++
++  getBuildingById(id: string): BuildingView | undefined {
++    return this.buildingList().find(item => item.id === id);
++  }
++
++  private toBuildingView(building: Building, rooms: Room[]): BuildingView {
++    const levels = new Set<number>();
++
++    for (let level = 1; level <= building.floors; level++) {
++      levels.add(level);
++    }
++
++    rooms.forEach(room => levels.add(room.floor));
++
++    const floors: Floor[] = Array.from(levels).sort((a, b) => a - b).map(level => {
++      const floorRooms: RoomView[] = rooms
++        .filter(room => room.floor === level)
++        .map(room => ({
++          ...room,
++          name: `Office ${room.roomNumber}`,
++          floorId: `floor-${level}`,
++          type: 'OFFICE'
++        }));
++
++      return {
++        id: `floor-${level}`,
++        buildingId: building.id,
++        name: `Floor ${level}`,
++        level,
++        rooms: floorRooms
++      };
++    });
++
++    return {
++      ...building,
++      floors,
++      status: 'SAFE'
++    };
++  }
++
++  private getMockBuildings(): BuildingView[] {
++    const buildings: Building[] = [
+       {
+-        id: 'b-002',
+-        name: 'Building B ÔÇö Annex',
+-        address: '125 Smart Street, Tech City',
+-        latitude: 36.8070,
+-        longitude: 10.1820,
+-        status: 'WARNING',
+-        totalOccupants: 80,
+-        floors: [
+-          {
+-            id: 'f-004',
+-            buildingId: 'b-002',
+-            name: 'Floor 1',
+-            level: 1,
+-            rooms: [
+-              { id: 'r-401', floorId: 'f-004', name: 'Reception', type: 'LOBBY', capacity: 20, currentOccupants: 5 }
+-            ]
+-          },
+-          {
+-            id: 'f-005',
+-            buildingId: 'b-002',
+-            name: 'Floor 2',
+-            level: 2,
+-            rooms: [
+-              { id: 'r-201', floorId: 'f-005', name: 'Kitchen', type: 'OTHER', capacity: 20, currentOccupants: 3 }
+-            ]
+-          }
+-        ]
++        id: 'bld-01',
++        name: 'Main Tower',
++        address: 'Avenue Habib Bourguiba',
++        floors: 12
+       }
+     ];
++
++    const rooms: Room[] = [
++      { id: 'room-101', buildingId: 'bld-01', roomNumber: '101', floor: 1, x: 5, y: 10, width: 40, height: 35, exit: 'Escalier A' },
++      { id: 'room-102', buildingId: 'bld-01', roomNumber: '102', floor: 1, x: 55, y: 10, width: 40, height: 35, exit: 'Escalier B' },
++      { id: 'room-201', buildingId: 'bld-01', roomNumber: '201', floor: 2, x: 5, y: 10, width: 40, height: 35, exit: 'Escalier A' }
++    ];
++
++    return buildings.map(building => this.toBuildingView(building, rooms));
+   }
+-}
++}
+\ No newline at end of file
+diff --git a/Frontends/Front Office/src/app/core/services/incident.service.ts b/Frontends/Front Office/src/app/core/services/incident.service.ts
+index e41c00b..da51a85 100644
+--- a/Frontends/Front Office/src/app/core/services/incident.service.ts	
++++ b/Frontends/Front Office/src/app/core/services/incident.service.ts	
+@@ -1,62 +1,147 @@
+-import { Injectable, signal } from '@angular/core';
++import { Injectable, inject, signal } from '@angular/core';
++import { HttpClient } from '@angular/common/http';
++import { Observable, of, map, tap, throwError } from 'rxjs';
++
+ import { Incident } from '../models';
++import { RealtimeService } from './realtime.service';
++import { environment } from '../../../environments/environment';
+ 
+ @Injectable({ providedIn: 'root' })
+ export class IncidentService {
++  private readonly http = inject(HttpClient);
++  private readonly realtime = inject(RealtimeService);
++  private readonly apiUrl = `${environment.apiUrl}/incidents`;
+ 
+-  private readonly incidentList = signal<Incident[]>(this.getMockIncidents());
+-
++  private readonly incidentList = signal<Incident[]>([]);
+   readonly incidents = this.incidentList.asReadonly();
+ 
+-  getActiveIncidents(): Incident[] {
+-    return this.incidentList().filter(i => i.status !== 'CLOSED' && i.status !== 'RESOLVED');
++  constructor() {
++    this.refresh().subscribe({
++      error: error => console.error('Chargement incidents impossible.', error)
++    });
++
++    this.realtime.incidents$.subscribe(event => {
++      const updated = this.normalize(event.data);
++
++      this.incidentList.update(items => {
++        const exists = items.some(item => item.id === updated.id);
++
++        return exists
++          ? items.map(item => item.id === updated.id ? updated : item)
++          : [updated, ...items];
++      });
++    });
++  }
++
++  refresh(): Observable<Incident[]> {
++    const request = environment.useMock
++      ? of(this.getMockIncidents())
++      : this.http.get<Incident[]>(this.apiUrl);
++
++    return request.pipe(
++      map(items => items.map(item => this.normalize(item))),
++      tap(items => this.incidentList.set(items))
++    );
++  }
++
++  getIncidents(status?: string): Observable<Incident[]> {
++    return this.refresh().pipe(
++      map(items => status ? items.filter(item => item.status === status) : items)
++    );
++  }
++
++  fetchIncidentById(id: string): Observable<Incident> {
++    if (environment.useMock) {
++      const found = this.incidentList().find(item => item.id === id);
++
++      return found
++        ? of(found)
++        : throwError(() => new Error('Incident introuvable.'));
++    }
++
++    return this.http.get<Incident>(
++      `${this.apiUrl}/${encodeURIComponent(id)}`
++    ).pipe(map(item => this.normalize(item)));
+   }
+ 
+   getIncidentById(id: string): Incident | undefined {
+-    return this.incidentList().find(i => i.id === id);
++    return this.incidentList().find(item => item.id === id);
+   }
+ 
+-  private getMockIncidents(): Incident[] {
+-    return [
+-      {
+-        id: 'inc-001',
+-        title: 'Fire in Server Room',
+-        description: 'Fire detected by multiple sensors in Room 302. Fire suppression activated.',
+-        status: 'IN_PROGRESS',
+-        priority: 'CRITICAL',
+-        type: 'FIRE',
+-        buildingId: 'b-001',
+-        buildingName: 'Building A ÔÇö Main Office',
+-        floorId: 'f-003',
+-        floorName: 'Floor 3',
+-        roomId: 'r-302',
+-        roomName: 'Room 302 ÔÇö Server Room',
+-        reportedBy: 'System (Automatic)',
+-        reportedAt: new Date(Date.now() - 5 * 60_000).toISOString(),
+-        updatedAt: new Date(Date.now() - 2 * 60_000).toISOString(),
+-        alerts: ['a-001'],
+-        assignedTo: ['Fire Response Team'],
+-        notes: ['Automatic fire suppression activated', 'Floor 3 evacuation in progress']
+-      },
+-      {
+-        id: 'inc-002',
+-        title: 'Gas Leak in Utility Room',
+-        description: 'Methane levels above threshold in utility room. Ventilation engaged.',
+-        status: 'REPORTED',
+-        priority: 'HIGH',
+-        type: 'GAS_LEAK',
+-        buildingId: 'b-001',
+-        buildingName: 'Building A ÔÇö Main Office',
+-        floorId: 'f-001',
+-        floorName: 'Floor 1',
+-        roomId: 'r-101',
+-        roomName: 'Room 101 ÔÇö Utility Room',
+-        reportedBy: 'System (Automatic)',
+-        reportedAt: new Date(Date.now() - 15 * 60_000).toISOString(),
+-        updatedAt: new Date(Date.now() - 10 * 60_000).toISOString(),
+-        alerts: ['a-002'],
+-        assignedTo: ['Maintenance Team']
++  getActiveIncidents(): Incident[] {
++    return this.incidentList().filter(item => item.status !== 'RESOLVED');
++  }
++
++  updateStatus(
++    id: string,
++    status: 'ACKNOWLEDGED' | 'RESOLVED'
++  ): Observable<Incident> {
++    if (environment.useMock) {
++      const current = this.getIncidentById(id);
++
++      if (!current) {
++        return throwError(() => new Error('Incident introuvable.'));
+       }
+-    ];
++
++      const updated = this.normalize({
++        ...current,
++        status,
++        updatedAt: Date.now()
++      });
++
++      this.replaceIncident(updated);
++      return of(updated);
++    }
++
++    return this.http.patch<Incident>(
++      `${this.apiUrl}/${encodeURIComponent(id)}`,
++      { status }
++    ).pipe(
++      map(item => this.normalize(item)),
++      tap(item => this.replaceIncident(item))
++    );
++  }
++
++  private replaceIncident(updated: Incident): void {
++    this.incidentList.update(items =>
++      items.map(item => item.id === updated.id ? updated : item)
++    );
++  }
++
++  private normalize(item: Incident): Incident {
++    const timestamp = Number(item.timestamp || Date.now());
++
++    return {
++      ...item,
++      timestamp,
++      updatedAt: Number(item.updatedAt || timestamp),
++      affectedRoomIds: item.affectedRoomIds ?? [],
++      title: item.title ?? item.type.replace(/_/g, ' '),
++      priority: item.severity,
++      buildingName: item.buildingId,
++      roomName: item.roomId,
++      reportedBy: 'Smart Building System',
++      reportedAt: timestamp
++    };
++  }
++
++  private getMockIncidents(): Incident[] {
++    const now = Date.now();
++
++    return [{
++      id: 'mock-gas-101',
++      buildingId: 'bld-01',
++      roomId: 'room-101',
++      sensorId: 'gas-101',
++      type: 'GAS_LEAK',
++      severity: 'CRITICAL',
++      status: 'OPEN',
++      description: 'Simulation de fuite de gaz dans la salle 101.',
++      occupied: true,
++      timestamp: now,
++      updatedAt: now,
++      affectedRoomIds: ['room-101'],
++      recommendation: 'Quitter la zone et suivre la sortie conseill├®e.'
++    }];
+   }
+-}
++}
+\ No newline at end of file
+diff --git a/Frontends/Front Office/src/app/core/services/notification.service.ts b/Frontends/Front Office/src/app/core/services/notification.service.ts
+index a10064e..9737a2d 100644
+--- a/Frontends/Front Office/src/app/core/services/notification.service.ts	
++++ b/Frontends/Front Office/src/app/core/services/notification.service.ts	
+@@ -1,67 +1,125 @@
+-import { Injectable, signal, computed } from '@angular/core';
++´╗┐import { Injectable, computed, inject, signal } from '@angular/core';
+ import { AppNotification } from '../models';
++import { IncidentService } from './incident.service';
+ 
+ @Injectable({ providedIn: 'root' })
+ export class NotificationService {
++  private readonly incidentService = inject(IncidentService);
+ 
+-  private readonly notificationList = signal<AppNotification[]>(this.getMockNotifications());
++  private readonly storageKey = 'smart-building-notifications-read-v1';
+ 
+-  readonly notifications = this.notificationList.asReadonly();
+-  readonly unreadCount = computed(() => this.notificationList().filter(n => !n.read).length);
++  private readonly readIds = signal<Set<string>>(this.loadReadIds());
++
++  readonly notifications = computed<AppNotification[]>(() => {
++    const read = this.readIds();
++
++    return [...this.incidentService.incidents()]
++      .sort((a, b) => Number(b.timestamp) - Number(a.timestamp))
++      .map(incident => {
++        const severity = String(incident.severity).toUpperCase();
++
++        let displaySeverity: 'INFO' | 'WARNING' | 'DANGER' = 'INFO';
++
++        if (severity === 'CRITICAL' || severity === 'HIGH') {
++          displaySeverity = 'DANGER';
++        } else if (severity === 'MEDIUM') {
++          displaySeverity = 'WARNING';
++        }
++
++        const location = [
++          incident.buildingId,
++          incident.roomId
++        ].filter(Boolean).join(' ÔÇö ');
++
++        const message = [
++          incident.description,
++          location ? `Emplacement : ${location}` : '',
++          incident.recommendation
++            ? `Consigne : ${incident.recommendation}`
++            : ''
++        ].filter(Boolean).join(' | ');
++
++        const timestamp = Number(incident.timestamp);
++        const createdAt = new Date(
++          Number.isFinite(timestamp) && timestamp > 0
++            ? timestamp
++            : Date.now()
++        ).toISOString();
++
++        return {
++          id: incident.id,
++          type: 'INCIDENT',
++          title: incident.title || incident.type.replace(/_/g, ' '),
++          message,
++          read: read.has(incident.id),
++          createdAt,
++          severity: displaySeverity,
++          link: '/incidents'
++        };
++      });
++  });
++
++  readonly unreadCount = computed(
++    () => this.notifications().filter(notification => !notification.read).length
++  );
+ 
+   markAsRead(id: string): void {
+-    this.notificationList.update(list =>
+-      list.map(n => n.id === id ? { ...n, read: true } : n)
+-    );
++    this.readIds.update(current => {
++      const updated = new Set(current);
++      updated.add(id);
++      this.saveReadIds(updated);
++      return updated;
++    });
+   }
+ 
+   markAllAsRead(): void {
+-    this.notificationList.update(list =>
+-      list.map(n => ({ ...n, read: true }))
+-    );
++    this.readIds.update(current => {
++      const updated = new Set(current);
++
++      for (const incident of this.incidentService.incidents()) {
++        updated.add(incident.id);
++      }
++
++      this.saveReadIds(updated);
++      return updated;
++    });
++  }
++
++  private loadReadIds(): Set<string> {
++    try {
++      if (typeof localStorage === 'undefined') {
++        return new Set<string>();
++      }
++
++      const raw = localStorage.getItem(this.storageKey);
++      if (!raw) return new Set<string>();
++
++      const parsed: unknown = JSON.parse(raw);
++
++      if (!Array.isArray(parsed)) {
++        return new Set<string>();
++      }
++
++      return new Set(
++        parsed.filter((value): value is string =>
++          typeof value === 'string'
++        )
++      );
++    } catch {
++      return new Set<string>();
++    }
+   }
+ 
+-  private getMockNotifications(): AppNotification[] {
+-    return [
+-      {
+-        id: 'n-001',
+-        type: 'ALERT',
+-        title: 'CRITICAL: Fire Detected',
+-        message: 'Fire detected in Building A, Floor 3, Room 302. Evacuate immediately.',
+-        read: false,
+-        createdAt: new Date(Date.now() - 5 * 60_000).toISOString(),
+-        severity: 'DANGER',
+-        link: '/alerts'
+-      },
+-      {
+-        id: 'n-002',
+-        type: 'ALERT',
+-        title: 'WARNING: Gas Leak',
+-        message: 'Gas leak detected in Building A, Floor 1. Avoid the area.',
+-        read: false,
+-        createdAt: new Date(Date.now() - 15 * 60_000).toISOString(),
+-        severity: 'WARNING',
+-        link: '/alerts'
+-      },
+-      {
+-        id: 'n-003',
+-        type: 'RECOMMENDATION',
+-        title: 'AI Safety Recommendation',
+-        message: 'Based on current conditions, use Exit B on Floor 2 for fastest evacuation.',
+-        read: false,
+-        createdAt: new Date(Date.now() - 8 * 60_000).toISOString(),
+-        severity: 'INFO',
+-        link: '/building-map'
+-      },
+-      {
+-        id: 'n-004',
+-        type: 'SYSTEM',
+-        title: 'System Status Update',
+-        message: 'All fire suppression systems on Floor 3 are active and operational.',
+-        read: true,
+-        createdAt: new Date(Date.now() - 3 * 60_000).toISOString(),
+-        severity: 'INFO'
++  private saveReadIds(ids: Set<string>): void {
++    try {
++      if (typeof localStorage !== 'undefined') {
++        localStorage.setItem(
++          this.storageKey,
++          JSON.stringify([...ids])
++        );
+       }
+-    ];
++    } catch (error) {
++      console.warn('Impossible de m├®moriser les notifications lues.', error);
++    }
+   }
+ }
+diff --git a/Frontends/Front Office/src/app/features/building-map/building-map.html b/Frontends/Front Office/src/app/features/building-map/building-map.html
+index 23f0ac6..4d4ff9b 100644
+--- a/Frontends/Front Office/src/app/features/building-map/building-map.html	
++++ b/Frontends/Front Office/src/app/features/building-map/building-map.html	
+@@ -1,28 +1,37 @@
+ <div class="map-page">
+   <div class="page-header">
+-    <h1>­ƒù║´©Å Building Floor Plan</h1>
+-    <p>Indoor localization &amp; incident mapping</p>
++    <h1>Building Floor Plan</h1>
++    <p>Live building layout and incident locations</p>
+   </div>
+ 
+-  <!-- Building Selector -->
+-  <div class="building-selector">
+-    @for (building of buildings(); track building.id) {
+-      <button
+-        class="building-btn"
+-        [class.active]="selectedBuildingId() === building.id"
+-        (click)="selectBuilding(building.id)"
+-      >
+-        <span class="building-status-dot" [class]="'dot-' + building.status.toLowerCase()"></span>
+-        {{ building.name }}
+-      </button>
+-    }
+-  </div>
++  @if (buildings().length === 0) {
++    <div class="map-empty-state">
++      No building data is currently available.
++    </div>
++  } @else {
++    <div class="building-selector" aria-label="Select building">
++      @for (building of buildings(); track building.id) {
++        <button
++          type="button"
++          class="building-btn"
++          [class.active]="selectedBuildingId() === building.id"
++          (click)="selectBuilding(building.id)"
++        >
++          <span
++            class="building-status-dot"
++            [class]="'dot-' + building.status.toLowerCase()"
++          ></span>
++          {{ building.name }}
++        </button>
++      }
++    </div>
++  }
+ 
+-  <!-- Floor Tabs -->
+   @if (selectedBuilding(); as building) {
+-    <div class="floor-tabs">
++    <div class="floor-tabs" aria-label="Select floor">
+       @for (floor of building.floors; track floor.id) {
+         <button
++          type="button"
+           class="floor-tab"
+           [class.active]="selectedFloorLevel() === floor.level"
+           (click)="selectFloor(floor.level)"
+@@ -33,161 +42,167 @@
+     </div>
+   }
+ 
+-  <!-- Floor Plan Visualization -->
+   @if (selectedFloor(); as floor) {
+     <div class="floor-plan-container">
+       <div class="floor-plan-header">
+-        <h2>{{ floor.name }}</h2>
++        <h2>{{ selectedBuilding()?.name }} - {{ floor.name }}</h2>
+         @if (floorAlerts().length > 0) {
+-          <span class="alert-count-badge">{{ floorAlerts().length }} active alert(s)</span>
++          <span class="alert-count-badge">
++            {{ floorAlerts().length }} active incident(s)
++          </span>
+         } @else {
+-          <span class="safe-badge">Ô£à All clear</span>
++          <span class="safe-badge">No active incidents reported</span>
+         }
+       </div>
+ 
+-      <!-- SVG Floor Plan -->
+-      <div class="floor-plan-svg">
+-        <svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
+-          <!-- Background -->
+-          <rect x="0" y="0" width="800" height="400" fill="#0f172a" rx="8"/>
+-          <!-- Outer walls -->
+-          <rect x="20" y="20" width="760" height="360" fill="none" stroke="#475569" stroke-width="3" rx="4"/>
++      @if (floor.rooms.length > 0) {
++        <div class="floor-plan-svg">
++          <svg
++            viewBox="0 0 100 60"
++            role="img"
++            [attr.aria-label]="'Floor plan for ' + floor.name"
++            xmlns="http://www.w3.org/2000/svg"
++          >
++            <rect x="0" y="0" width="100" height="60" fill="#0f172a" rx="2"/>
++            <rect
++              x="2" y="2"
++              width="96" height="56"
++              fill="none"
++              stroke="#64748b"
++              stroke-width="0.7"
++              rx="1"
++            />
+ 
+-          @for (room of floor.rooms; track room.id; let i = $index) {
+-            <!-- Room -->
+-            <g>
+-              <rect
+-                [attr.x]="40 + i * 350"
+-                y="40"
+-                width="320"
+-                height="160"
+-                [class]="getRoomStatusClass(room.id)"
+-                class="room-rect"
+-                rx="4"
+-              />
+-              <text
+-                [attr.x]="200 + i * 350"
+-                y="100"
+-                text-anchor="middle"
+-                class="room-name"
+-              >{{ room.name }}</text>
+-              <text
+-                [attr.x]="200 + i * 350"
+-                y="125"
+-                text-anchor="middle"
+-                class="room-info"
+-              >{{ room.type }} ÔÇó Cap: {{ room.capacity }}</text>
+-              <text
+-                [attr.x]="200 + i * 350"
+-                y="148"
+-                text-anchor="middle"
+-                class="room-occupants"
+-              >­ƒæñ {{ room.currentOccupants }}/{{ room.capacity }}</text>
+-
+-              <!-- Alert indicator -->
+-              @if (getRoomAlerts(room.id).length > 0) {
+-                <circle
+-                  [attr.cx]="340 + i * 350"
+-                  cy="60"
+-                  r="16"
+-                  class="alert-indicator-bg"
++            @for (room of floor.rooms; track room.id) {
++              <g
++                class="room-group"
++                role="button"
++                tabindex="0"
++                (click)="selectRoom(room.id)"
++                (keydown.enter)="selectRoom(room.id)"
++                (keydown.space)="selectRoom(room.id); $event.preventDefault()"
++                [attr.aria-label]="'Room ' + room.roomNumber"
++              >
++                <rect
++                  class="room-rect"
++                  [class]="getRoomStatusClass(room.id)"
++                  [class.room-selected]="selectedRoomId() === room.id"
++                  [attr.x]="room.x"
++                  [attr.y]="room.y"
++                  [attr.width]="room.width"
++                  [attr.height]="room.height"
++                  rx="1"
+                 />
++
+                 <text
+-                  [attr.x]="340 + i * 350"
+-                  y="65"
++                  class="room-name"
++                  [attr.x]="room.x + room.width / 2"
++                  [attr.y]="room.y + room.height / 2 - 1"
+                   text-anchor="middle"
+-                  class="alert-indicator-text"
+-                >{{ getAlertIcon(getRoomAlerts(room.id)[0].type) }}</text>
+-              }
+-            </g>
+-          }
+-
+-          <!-- Hallway -->
+-          <rect x="40" y="220" width="720" height="60" fill="#1e293b" stroke="#334155" stroke-width="1" rx="2"/>
+-          <text x="400" y="255" text-anchor="middle" class="room-info">HALLWAY</text>
++                >
++                  {{ room.roomNumber }}
++                </text>
+ 
+-          <!-- Exit markers -->
+-          <g>
+-            <rect x="30" y="230" width="30" height="40" fill="#22c55e" rx="4" opacity="0.3"/>
+-            <text x="45" y="255" text-anchor="middle" class="exit-text">EXIT</text>
+-          </g>
+-          <g>
+-            <rect x="740" y="230" width="30" height="40" fill="#22c55e" rx="4" opacity="0.3"/>
+-            <text x="755" y="255" text-anchor="middle" class="exit-text">EXIT</text>
+-          </g>
++                <text
++                  class="room-info"
++                  [attr.x]="room.x + room.width / 2"
++                  [attr.y]="room.y + room.height / 2 + 3"
++                  text-anchor="middle"
++                >
++                  {{ room.exit || 'Exit not specified' }}
++                </text>
+ 
+-          <!-- Stairway -->
+-          <rect x="40" y="300" width="120" height="60" fill="#1e293b" stroke="#334155" stroke-width="1" rx="2"/>
+-          <text x="100" y="325" text-anchor="middle" class="room-info">­ƒ¬£ Stairway A</text>
+-          <text x="100" y="345" text-anchor="middle" class="exit-text">SAFE Ô£à</text>
++                @if (getRoomAlerts(room.id).length > 0) {
++                  <circle
++                    class="alert-indicator-bg"
++                    [attr.cx]="room.x + room.width - 3"
++                    [attr.cy]="room.y + 3"
++                    r="2.2"
++                  />
++                  <text
++                    class="alert-indicator-text"
++                    [attr.x]="room.x + room.width - 3"
++                    [attr.y]="room.y + 3.8"
++                    text-anchor="middle"
++                  >!</text>
++                }
++              </g>
++            }
++          </svg>
++        </div>
+ 
+-          <!-- Elevator -->
+-          <rect x="200" y="300" width="80" height="60" fill="#1e293b" stroke="#ef4444" stroke-width="1" stroke-dasharray="4" rx="2"/>
+-          <text x="240" y="325" text-anchor="middle" class="room-info">­ƒøù Elevator</text>
+-          <text x="240" y="345" text-anchor="middle" class="danger-text">DO NOT USE</text>
++        <div class="map-legend">
++          <span><i class="legend-safe"></i> No active incident</span>
++          <span><i class="legend-warning"></i> Active incident</span>
++          <span><i class="legend-danger"></i> Critical incident</span>
++        </div>
+ 
+-          <!-- Stairway B -->
+-          <rect x="640" y="300" width="120" height="60" fill="#1e293b" stroke="#334155" stroke-width="1" rx="2"/>
+-          <text x="700" y="325" text-anchor="middle" class="room-info">­ƒ¬£ Stairway B</text>
+-          <text x="700" y="345" text-anchor="middle" class="exit-text">SAFE Ô£à</text>
++        @if (selectedRoom(); as room) {
++          <div class="selected-room-card">
++            <div>
++              <h3>Room {{ room.roomNumber }}</h3>
++              <p>Building: {{ selectedBuilding()?.name }}</p>
++              <p>Floor: {{ floor.level }}</p>
++              <p>Recorded exit: {{ room.exit || 'Not specified' }}</p>
++            </div>
+ 
+-          <!-- Legend -->
+-          <g transform="translate(340, 310)">
+-            <rect x="0" y="0" width="230" height="50" fill="#0f172a" rx="4" stroke="#334155"/>
+-            <circle cx="15" cy="15" r="6" fill="#22c55e" opacity="0.5"/>
+-            <text x="28" y="19" class="legend-text">Safe</text>
+-            <circle cx="80" cy="15" r="6" fill="#eab308" opacity="0.5"/>
+-            <text x="93" y="19" class="legend-text">Warning</text>
+-            <circle cx="160" cy="15" r="6" fill="#ef4444" opacity="0.5"/>
+-            <text x="173" y="19" class="legend-text">Danger</text>
+-            <text x="10" y="40" class="legend-text">­ƒƒó Exit   ­ƒö┤ Hazard   ­ƒæñ Occupants</text>
+-          </g>
+-        </svg>
+-      </div>
++            @if (getRoomAlerts(room.id).length > 0) {
++              <div class="room-alert-details">
++                <strong>Active incidents</strong>
++                @for (alert of getRoomAlerts(room.id); track alert.id) {
++                  <p>{{ alert.type }} - {{ alert.severity }}</p>
++                  <p>{{ alert.description }}</p>
++                }
++              </div>
++            } @else {
++              <p>No active incident reported for this room.</p>
++            }
++          </div>
++        }
++      } @else {
++        <div class="map-empty-state">
++          No rooms are registered for this floor.
++        </div>
++      }
+     </div>
+ 
+-    <!-- Floor Alerts Detail -->
+     @if (floorAlerts().length > 0) {
+       <div class="floor-alerts">
+-        <h3>ÔÜá´©Å Active Alerts on This Floor</h3>
++        <h3>Active incidents on this floor</h3>
+         @for (alert of floorAlerts(); track alert.id) {
+           <div class="floor-alert-card">
+             <span class="alert-icon">{{ getAlertIcon(alert.type) }}</span>
+             <div class="alert-info">
+-              <strong>{{ alert.title }}</strong>
+-              <p>{{ alert.roomName }} ÔÇö {{ alert.description }}</p>
++              <strong>{{ alert.type }} - {{ alert.severity }}</strong>
++              <p>{{ alert.roomId }} - {{ alert.description }}</p>
+             </div>
+           </div>
+         }
+       </div>
+     }
+-  }
+ 
+-  <!-- Evacuation Routes -->
+-  <div class="evacuation-section">
+-    <h3>­ƒÜ¬ Evacuation Routes</h3>
+-    <div class="route-cards">
+-      <div class="route-card safe">
+-        <span class="route-icon">­ƒ¬£</span>
+-        <div>
+-          <strong>Stairway A (West)</strong>
+-          <p>Clear ÔÇö Recommended route</p>
+-        </div>
+-      </div>
+-      <div class="route-card safe">
+-        <span class="route-icon">­ƒ¬£</span>
+-        <div>
+-          <strong>Stairway B (East)</strong>
+-          <p>Clear ÔÇö Alternative route</p>
+-        </div>
+-      </div>
+-      <div class="route-card danger">
+-        <span class="route-icon">­ƒøù</span>
+-        <div>
+-          <strong>Elevator</strong>
+-          <p>Ôøö Do not use during emergency</p>
+-        </div>
++    <div class="evacuation-section">
++      <h3>Recorded room exits</h3>
++      <p class="route-disclaimer">
++        These are the exit labels registered in the building data.
++        Their current safety and accessibility have not been verified by this map.
++        Follow official emergency instructions.
++      </p>
++
++      <div class="route-cards">
++        @for (room of floor.rooms; track room.id) {
++          <div class="route-card">
++            <div>
++              <strong>Room {{ room.roomNumber }}</strong>
++              <p>{{ room.exit || 'No exit recorded' }}</p>
++            </div>
++          </div>
++        }
+       </div>
+     </div>
+-  </div>
+-</div>
++  } @else if (buildings().length > 0) {
++    <div class="map-empty-state">
++      No floor is selected or available for this building.
++    </div>
++  }
++</div>
+\ No newline at end of file
+diff --git a/Frontends/Front Office/src/app/features/building-map/building-map.scss b/Frontends/Front Office/src/app/features/building-map/building-map.scss
+index 7f11be2..9813577 100644
+--- a/Frontends/Front Office/src/app/features/building-map/building-map.scss	
++++ b/Frontends/Front Office/src/app/features/building-map/building-map.scss	
+@@ -1,216 +1,102 @@
+-.map-page {
+-  padding: 1rem;
+-  max-width: 900px;
+-  margin: 0 auto;
+-}
+-
+-.page-header {
+-  margin-bottom: 1.5rem;
+-  h1 { font-size: 1.5rem; font-weight: 700; color: #f1f5f9; margin: 0; }
+-  p { color: #94a3b8; font-size: 0.875rem; margin: 0.25rem 0 0; }
+-}
+ 
+-/* Building Selector */
+-.building-selector {
+-  display: flex;
+-  gap: 0.5rem;
+-  margin-bottom: 1rem;
+-  overflow-x: auto;
+-  padding-bottom: 0.25rem;
++/* Data-driven room map enhancements */
++.floor-plan-svg svg {
++  display: block;
++  width: 100%;
++  min-width: 320px;
++  height: auto;
++  aspect-ratio: 100 / 60;
+ }
+ 
+-.building-btn {
+-  background: #1e293b;
+-  border: 1px solid #334155;
+-  color: #94a3b8;
+-  padding: 0.5rem 1rem;
+-  border-radius: 8px;
+-  font-size: 0.8125rem;
++.room-group {
+   cursor: pointer;
+-  white-space: nowrap;
+-  display: flex;
+-  align-items: center;
+-  gap: 0.5rem;
+-  transition: all 0.2s;
+-
+-  &.active {
+-    background: #334155;
+-    color: #f1f5f9;
+-    border-color: #3b82f6;
+-  }
+-
+-  &:hover:not(.active) {
+-    background: #334155;
+-  }
++  outline: none;
+ }
+ 
+-.building-status-dot {
+-  width: 8px;
+-  height: 8px;
+-  border-radius: 50%;
+-
+-  &.dot-safe { background: #22c55e; }
+-  &.dot-warning { background: #eab308; }
+-  &.dot-danger { background: #ef4444; animation: blink 1s infinite; }
+-  &.dot-evacuating { background: #ef4444; animation: blink 0.5s infinite; }
++.room-group:focus .room-rect {
++  stroke: #93c5fd;
++  stroke-width: 1.2;
+ }
+ 
+-@keyframes blink {
+-  0%, 100% { opacity: 1; }
+-  50% { opacity: 0.3; }
++.room-rect.room-selected {
++  stroke: #60a5fa;
++  stroke-width: 1.2;
++  fill: rgba(59, 130, 246, 0.22);
+ }
+ 
+-/* Floor Tabs */
+-.floor-tabs {
+-  display: flex;
+-  gap: 0.25rem;
+-  margin-bottom: 1.25rem;
+-  background: #1e293b;
+-  border-radius: 8px;
+-  padding: 0.25rem;
++.room-name {
++  font-size: 3.2px;
++  pointer-events: none;
+ }
+ 
+-.floor-tab {
+-  flex: 1;
+-  background: none;
+-  border: none;
+-  color: #94a3b8;
+-  padding: 0.5rem;
+-  border-radius: 6px;
+-  font-size: 0.8125rem;
+-  cursor: pointer;
+-  transition: all 0.2s;
+-
+-  &.active {
+-    background: #3b82f6;
+-    color: #fff;
+-  }
+-
+-  &:hover:not(.active) {
+-    background: #334155;
+-  }
++.room-info {
++  font-size: 2px;
++  pointer-events: none;
+ }
+ 
+-/* Floor Plan Container */
+-.floor-plan-container {
+-  background: #1e293b;
+-  border-radius: 12px;
+-  padding: 1rem;
+-  border: 1px solid #334155;
+-  margin-bottom: 1.5rem;
++.alert-indicator-text {
++  fill: #fff;
++  font-size: 2.5px;
++  font-weight: 800;
++  pointer-events: none;
+ }
+ 
+-.floor-plan-header {
++.map-legend {
+   display: flex;
+-  justify-content: space-between;
+-  align-items: center;
+-  margin-bottom: 1rem;
+-
+-  h2 { font-size: 1rem; font-weight: 600; color: #f1f5f9; margin: 0; }
+-}
+-
+-.alert-count-badge {
+-  background: rgba(239, 68, 68, 0.2);
+-  color: #fca5a5;
++  flex-wrap: wrap;
++  gap: 1rem;
++  margin-top: 0.75rem;
++  color: #94a3b8;
+   font-size: 0.75rem;
+-  font-weight: 600;
+-  padding: 0.25rem 0.75rem;
+-  border-radius: 9999px;
+-}
+-
+-.safe-badge {
+-  font-size: 0.8125rem;
+-  color: #86efac;
+ }
+ 
+-/* SVG Floor Plan */
+-.floor-plan-svg {
+-  width: 100%;
+-  overflow-x: auto;
+-
+-  svg {
+-    width: 100%;
+-    min-width: 600px;
+-    height: auto;
+-  }
+-}
+-
+-.room-rect {
+-  stroke-width: 2;
+-  cursor: pointer;
+-  transition: opacity 0.2s;
+-
+-  &:hover { opacity: 0.85; }
+-  &.room-safe { fill: rgba(34, 197, 94, 0.1); stroke: #22c55e; }
+-  &.room-warning { fill: rgba(234, 179, 8, 0.15); stroke: #eab308; }
+-  &.room-critical { fill: rgba(239, 68, 68, 0.15); stroke: #ef4444; animation: blink 1s infinite; }
++.map-legend span {
++  display: inline-flex;
++  align-items: center;
++  gap: 0.4rem;
+ }
+ 
+-.room-name { fill: #f1f5f9; font-size: 14px; font-weight: 600; }
+-.room-info { fill: #94a3b8; font-size: 11px; }
+-.room-occupants { fill: #cbd5e1; font-size: 12px; }
+-.exit-text { fill: #22c55e; font-size: 10px; font-weight: 600; }
+-.danger-text { fill: #ef4444; font-size: 10px; font-weight: 600; }
+-.legend-text { fill: #94a3b8; font-size: 10px; }
+-
+-.alert-indicator-bg {
+-  fill: rgba(239, 68, 68, 0.3);
+-  stroke: #ef4444;
+-  stroke-width: 2;
+-  animation: blink 1s infinite;
++.map-legend i {
++  display: inline-block;
++  width: 10px;
++  height: 10px;
++  border-radius: 50%;
+ }
+ 
+-.alert-indicator-text { font-size: 16px; }
+-
+-/* Floor Alerts */
+-.floor-alerts {
+-  margin-bottom: 1.5rem;
++.legend-safe { background: #22c55e; }
++.legend-warning { background: #eab308; }
++.legend-danger { background: #ef4444; }
+ 
+-  h3 { font-size: 1rem; font-weight: 600; color: #f1f5f9; margin: 0 0 0.75rem; }
+-}
+-
+-.floor-alert-card {
+-  background: #1e293b;
+-  border: 1px solid rgba(239, 68, 68, 0.3);
++.selected-room-card,
++.map-empty-state {
++  margin-top: 1rem;
++  padding: 1rem;
++  border: 1px solid #334155;
+   border-radius: 10px;
+-  padding: 0.75rem 1rem;
+-  display: flex;
+-  gap: 0.75rem;
+-  align-items: flex-start;
+-  margin-bottom: 0.5rem;
+-
+-  .alert-icon { font-size: 1.5rem; flex-shrink: 0; }
+-  .alert-info {
+-    strong { font-size: 0.875rem; color: #f1f5f9; }
+-    p { font-size: 0.8125rem; color: #94a3b8; margin: 0.25rem 0 0; }
+-  }
++  background: #0f172a;
++  color: #cbd5e1;
+ }
+ 
+-/* Evacuation Section */
+-.evacuation-section {
+-  h3 { font-size: 1rem; font-weight: 600; color: #f1f5f9; margin: 0 0 0.75rem; }
++.selected-room-card h3 {
++  margin: 0 0 0.5rem;
++  color: #f1f5f9;
+ }
+ 
+-.route-cards {
+-  display: flex;
+-  flex-direction: column;
+-  gap: 0.5rem;
++.selected-room-card p {
++  margin: 0.25rem 0;
++  font-size: 0.875rem;
+ }
+ 
+-.route-card {
+-  background: #1e293b;
+-  border-radius: 10px;
+-  padding: 0.75rem 1rem;
+-  display: flex;
+-  gap: 0.75rem;
+-  align-items: center;
+-  border: 1px solid #334155;
+-
+-  &.safe { border-left: 3px solid #22c55e; }
+-  &.danger { border-left: 3px solid #ef4444; opacity: 0.7; }
+-
+-  .route-icon { font-size: 1.25rem; }
+-
+-  strong { font-size: 0.875rem; color: #f1f5f9; display: block; }
+-  p { font-size: 0.8125rem; color: #94a3b8; margin: 0.125rem 0 0; }
++.room-alert-details {
++  margin-top: 0.75rem;
++  padding-top: 0.75rem;
++  border-top: 1px solid #334155;
++  color: #fca5a5;
+ }
++
++.route-disclaimer {
++  margin: 0 0 0.75rem;
++  color: #94a3b8;
++  font-size: 0.8125rem;
++  line-height: 1.5;
++}
+\ No newline at end of file
+diff --git a/Frontends/Front Office/src/app/features/building-map/building-map.ts b/Frontends/Front Office/src/app/features/building-map/building-map.ts
+index 1676d94..2328008 100644
+--- a/Frontends/Front Office/src/app/features/building-map/building-map.ts	
++++ b/Frontends/Front Office/src/app/features/building-map/building-map.ts	
+@@ -1,7 +1,7 @@
+ import { Component, signal, computed, inject } from '@angular/core';
+ import { BuildingService } from '../../core/services/building.service';
+ import { AlertService } from '../../core/services/alert.service';
+-import { Building, Floor } from '../../core/models';
++import { BuildingView } from '../../core/models';
+ 
+ @Component({
+   selector: 'app-building-map',
+@@ -9,69 +9,89 @@ import { Building, Floor } from '../../core/models';
+   styleUrl: './building-map.scss'
+ })
+ export class BuildingMap {
+-
+   private readonly buildingService = inject(BuildingService);
+   private readonly alertService = inject(AlertService);
+ 
+   protected readonly buildings = this.buildingService.buildings;
+   protected readonly alerts = this.alertService.alerts;
+ 
+-  protected readonly selectedBuildingId = signal<string>('b-001');
+-  protected readonly selectedFloorLevel = signal<number>(3);
++  protected readonly selectedBuildingId = signal<string>('bld-01');
++  protected readonly selectedFloorLevel = signal<number>(1);
++  protected readonly selectedRoomId = signal<string | null>(null);
+ 
+-  protected readonly selectedBuilding = computed(() =>
++  protected readonly selectedBuilding = computed<BuildingView | undefined>(() =>
+     this.buildings().find(b => b.id === this.selectedBuildingId())
+   );
+ 
+   protected readonly selectedFloor = computed(() =>
+-    this.selectedBuilding()?.floors.find(f => f.level === this.selectedFloorLevel())
++    this.selectedBuilding()?.floors.find(
++      floor => floor.level === this.selectedFloorLevel()
++    )
++  );
++
++  protected readonly selectedRoom = computed(() =>
++    this.selectedFloor()?.rooms.find(room => room.id === this.selectedRoomId())
+   );
+ 
+   protected readonly floorAlerts = computed(() => {
+     const floor = this.selectedFloor();
+     if (!floor) return [];
+-    return this.alerts().filter(a =>
+-      a.buildingId === this.selectedBuildingId() &&
+-      a.floorId === floor.id &&
+-      a.status === 'ACTIVE'
++
++    const roomIds = new Set(floor.rooms.map(room => room.id));
++
++    return this.alerts().filter(alert =>
++      alert.buildingId === this.selectedBuildingId() &&
++      alert.status === 'ACTIVE' &&
++      !!alert.roomId &&
++      roomIds.has(alert.roomId)
+     );
+   });
+ 
+   selectBuilding(id: string): void {
+     this.selectedBuildingId.set(id);
+-    const building = this.buildings().find(b => b.id === id);
+-    if (building && building.floors.length > 0) {
++    this.selectedRoomId.set(null);
++
++    const building = this.buildings().find(item => item.id === id);
++    if (building?.floors.length) {
+       this.selectedFloorLevel.set(building.floors[0].level);
+     }
+   }
+ 
+   selectFloor(level: number): void {
+     this.selectedFloorLevel.set(level);
++    this.selectedRoomId.set(null);
+   }
+ 
+-  getRoomStatusClass(roomId: string): string {
+-    const hasAlert = this.alerts().some(a =>
+-      a.roomId === roomId && a.status === 'ACTIVE'
++  selectRoom(id: string): void {
++    this.selectedRoomId.set(
++      this.selectedRoomId() === id ? null : id
+     );
+-    if (hasAlert) {
+-      const critical = this.alerts().some(a =>
+-        a.roomId === roomId && a.severity === 'CRITICAL' && a.status === 'ACTIVE'
+-      );
+-      return critical ? 'room-critical' : 'room-warning';
+-    }
+-    return 'room-safe';
+   }
+ 
+   getRoomAlerts(roomId: string) {
+-    return this.alerts().filter(a => a.roomId === roomId && a.status === 'ACTIVE');
++    return this.alerts().filter(alert =>
++      alert.buildingId === this.selectedBuildingId() &&
++      alert.roomId === roomId &&
++      alert.status === 'ACTIVE'
++    );
++  }
++
++  getRoomStatusClass(roomId: string): string {
++    const roomAlerts = this.getRoomAlerts(roomId);
++
++    if (roomAlerts.length === 0) return 'room-safe';
++
++    return roomAlerts.some(alert => alert.severity === 'CRITICAL')
++      ? 'room-critical'
++      : 'room-warning';
+   }
+ 
+   getAlertIcon(type: string): string {
+     switch (type) {
+-      case 'FIRE': return '­ƒöÑ';
+-      case 'GAS_LEAK': return '­ƒÆ¿';
+-      case 'SMOKE': return '­ƒî½´©Å';
+-      default: return 'ÔÜá´©Å';
++      case 'FIRE': return 'FIRE';
++      case 'GAS_LEAK': return 'GAS';
++      case 'SMOKE': return 'SMOKE';
++      default: return 'ALERT';
+     }
+   }
+-}
++}
+\ No newline at end of file
+diff --git a/Frontends/Front Office/src/app/features/dashboard/dashboard.html b/Frontends/Front Office/src/app/features/dashboard/dashboard.html
+index 8efd4f0..63077d4 100644
+--- a/Frontends/Front Office/src/app/features/dashboard/dashboard.html	
++++ b/Frontends/Front Office/src/app/features/dashboard/dashboard.html	
+@@ -51,6 +51,27 @@
+     </div>
+   </section>
+ 
++  <!-- Latest Sensor Readings -->
++  <section class="section">
++    <div class="section-header">
++      <h2>Live sensor readings</h2>
++      <span>{{ latestReadings().length }} capteurs</span>
++    </div>
++
++    <div class="readings-grid">
++      @for (reading of latestReadings(); track reading.sensorId) {
++        <article class="reading-card">
++          <strong>{{ reading.type }}</strong>
++          <p>{{ reading.roomId }} ┬À {{ reading.sensorId }}</p>
++          <span class="reading-value">
++            {{ reading.value }} {{ reading.unit }}
++          </span>
++        </article>
++      } @empty {
++        <p>Aucune mesure disponible pour le moment.</p>
++      }
++    </div>
++  </section>
+   <!-- Active Alerts -->
+   @if (activeAlerts().length > 0) {
+     <section class="section">
+diff --git a/Frontends/Front Office/src/app/features/dashboard/dashboard.ts b/Frontends/Front Office/src/app/features/dashboard/dashboard.ts
+index 91a1a06..5f92f23 100644
+--- a/Frontends/Front Office/src/app/features/dashboard/dashboard.ts	
++++ b/Frontends/Front Office/src/app/features/dashboard/dashboard.ts	
+@@ -5,6 +5,7 @@ import { IncidentService } from '../../core/services/incident.service';
+ import { BuildingService } from '../../core/services/building.service';
+ import { NotificationService } from '../../core/services/notification.service';
+ import { AuthService } from '../../core/auth/auth.service';
++import { ReadingService } from '../../core/services/reading.service';
+ 
+ @Component({
+   selector: 'app-dashboard',
+@@ -19,12 +20,14 @@ export class Dashboard {
+   private readonly incidentService = inject(IncidentService);
+   private readonly buildingService = inject(BuildingService);
+   private readonly notificationService = inject(NotificationService);
++  private readonly readingService = inject(ReadingService);
+ 
+   protected readonly user = this.authService.user;
+   protected readonly alerts = this.alertService.alerts;
+   protected readonly incidents = this.incidentService.incidents;
+   protected readonly buildings = this.buildingService.buildings;
+   protected readonly unreadNotifications = this.notificationService.unreadCount;
++  protected readonly latestReadings = this.readingService.latestReadings;
+ 
+   protected readonly activeAlerts = computed(() => this.alertService.getActiveAlerts());
+   protected readonly criticalAlerts = computed(() => this.alertService.getCriticalAlerts());
+diff --git a/Frontends/Front Office/src/app/features/incidents/incidents.ts b/Frontends/Front Office/src/app/features/incidents/incidents.ts
+index 58e5e9c..5942e0f 100644
+--- a/Frontends/Front Office/src/app/features/incidents/incidents.ts	
++++ b/Frontends/Front Office/src/app/features/incidents/incidents.ts	
+@@ -7,21 +7,22 @@ import { IncidentService } from '../../core/services/incident.service';
+   styleUrl: './incidents.scss'
+ })
+ export class Incidents {
+-
+   private readonly incidentService = inject(IncidentService);
+   protected readonly incidents = this.incidentService.incidents;
+ 
+   getStatusClass(status: string): string {
+     switch (status) {
+-      case 'IN_PROGRESS': return 'status-in-progress';
++      case 'OPEN':
+       case 'REPORTED': return 'status-reported';
+-      case 'CONTAINED': return 'status-contained';
++      case 'ACKNOWLEDGED':
++      case 'IN_PROGRESS': return 'status-in-progress';
+       case 'RESOLVED': return 'status-resolved';
++      case 'CONTAINED': return 'status-contained';
+       default: return 'status-closed';
+     }
+   }
+ 
+-  getPriorityClass(priority: string): string {
++  getPriorityClass(priority?: string): string {
+     switch (priority) {
+       case 'CRITICAL': return 'priority-critical';
+       case 'HIGH': return 'priority-high';
+@@ -40,13 +41,19 @@ export class Incidents {
+     }
+   }
+ 
+-  getTimeAgo(dateStr: string): string {
+-    const diff = Date.now() - new Date(dateStr).getTime();
+-    const minutes = Math.floor(diff / 60_000);
+-    if (minutes < 1) return 'Just now';
+-    if (minutes < 60) return `${minutes}m ago`;
++  getTimeAgo(dateValue?: string | number): string {
++    if (dateValue === undefined) return 'Date inconnue';
++
++    const diff = Date.now() - new Date(dateValue).getTime();
++    if (!Number.isFinite(diff)) return 'Date inconnue';
++
++    const minutes = Math.max(0, Math.floor(diff / 60000));
++    if (minutes < 1) return '├Ç lÔÇÖinstant';
++    if (minutes < 60) return `Il y a ${minutes} min`;
++
+     const hours = Math.floor(minutes / 60);
+-    if (hours < 24) return `${hours}h ago`;
+-    return `${Math.floor(hours / 24)}d ago`;
++    if (hours < 24) return `Il y a ${hours} h`;
++
++    return `Il y a ${Math.floor(hours / 24)} j`;
+   }
+-}
++}
+\ No newline at end of file
+diff --git a/Frontends/Front Office/src/app/features/login/login.html b/Frontends/Front Office/src/app/features/login/login.html
+index 2aee732..c3c3dcd 100644
+--- a/Frontends/Front Office/src/app/features/login/login.html	
++++ b/Frontends/Front Office/src/app/features/login/login.html	
+@@ -11,31 +11,30 @@
+     <form (ngSubmit)="onSubmit()" class="login-form">
+       @if (errorMessage()) {
+         <div class="error-banner">
+-          <span class="error-icon">ÔÜá´©Å</span>
+           {{ errorMessage() }}
+         </div>
+       }
+ 
+       <div class="form-group">
+-        <label for="email">Email</label>
++        <label for="username">Nom d'utilisateur</label>
+         <input
+-          id="email"
+-          type="email"
+-          placeholder="Enter your email"
+-          [ngModel]="email()"
+-          (ngModelChange)="email.set($event)"
+-          name="email"
++          id="username"
++          type="text"
++          placeholder="Entrez votre identifiant"
++          [ngModel]="username()"
++          (ngModelChange)="username.set($event)"
++          name="username"
+           required
+-          autocomplete="email"
++          autocomplete="username"
+         />
+       </div>
+ 
+       <div class="form-group">
+-        <label for="password">Password</label>
++        <label for="password">Mot de passe</label>
+         <input
+           id="password"
+           type="password"
+-          placeholder="Enter your password"
++          placeholder="Entrez votre mot de passe"
+           [ngModel]="password()"
+           (ngModelChange)="password.set($event)"
+           name="password"
+@@ -46,15 +45,16 @@
+ 
+       <button type="submit" class="btn-login" [disabled]="isLoading()">
+         @if (isLoading()) {
+-          <span class="spinner"></span> Signing in...
++          Connexion en cours...
+         } @else {
+-          Sign In
++          Se connecter
+         }
+       </button>
+ 
+       <p class="demo-hint">
+-        Demo: <strong>user&#64;smartbuilding.com</strong> / <strong>password</strong>
++        Compte occupant : <strong>occupant</strong> /
++        <strong>occupant123</strong>
+       </p>
+     </form>
+   </div>
+-</div>
++</div>
+\ No newline at end of file
+diff --git a/Frontends/Front Office/src/app/features/login/login.ts b/Frontends/Front Office/src/app/features/login/login.ts
+index a8402ea..1db2452 100644
+--- a/Frontends/Front Office/src/app/features/login/login.ts	
++++ b/Frontends/Front Office/src/app/features/login/login.ts	
+@@ -10,7 +10,7 @@ import { AuthService } from '../../core/auth/auth.service';
+   styleUrl: './login.scss'
+ })
+ export class Login {
+-  protected email = signal('');
++  protected username = signal('');
+   protected password = signal('');
+   protected errorMessage = signal('');
+   protected isLoading = signal(false);
+@@ -25,20 +25,29 @@ export class Login {
+   }
+ 
+   onSubmit(): void {
++    if (this.isLoading()) return;
++
+     this.isLoading.set(true);
+     this.errorMessage.set('');
+ 
+-    const success = this.authService.login({
+-      email: this.email(),
++    this.authService.login({
++      username: this.username().trim(),
+       password: this.password()
++    }).subscribe({
++      next: () => {
++        this.router.navigate(['/dashboard']);
++      },
++      error: (error) => {
++        this.isLoading.set(false);
++        this.errorMessage.set(
++          error.status === 401
++            ? 'Identifiant ou mot de passe incorrect.'
++            : 'Impossible de contacter le serveur IAM.'
++        );
++      },
++      complete: () => {
++        this.isLoading.set(false);
++      }
+     });
+-
+-    if (success) {
+-      this.router.navigate(['/dashboard']);
+-    } else {
+-      this.errorMessage.set('Invalid email or password. Try user@smartbuilding.com / password');
+-    }
+-
+-    this.isLoading.set(false);
+   }
+-}
++}
+\ No newline at end of file
+diff --git a/Frontends/Front Office/src/app/features/notifications/notifications.html b/Frontends/Front Office/src/app/features/notifications/notifications.html
+index 8f0499b..e94a2cc 100644
+--- a/Frontends/Front Office/src/app/features/notifications/notifications.html	
++++ b/Frontends/Front Office/src/app/features/notifications/notifications.html	
+@@ -1,26 +1,48 @@
+-<div class="page-container">
++´╗┐<div class="page-container">
+   <div class="page-header">
+-    <h1>­ƒöö Notifications</h1>
+-    <button class="mark-all-btn" (click)="markAllAsRead()">Mark all as read</button>
++    <div>
++      <h1>Notifications</h1>
++      <p>{{ unreadCount() }} notification(s) non lue(s)</p>
++    </div>
++
++    <button
++      class="mark-all-btn"
++      type="button"
++      (click)="markAllAsRead()"
++      [disabled]="unreadCount() === 0">
++      Tout marquer comme lu
++    </button>
+   </div>
+ 
+   <div class="notifications-list">
+     @for (notif of notifications(); track notif.id) {
+-      <div class="notif-card" [class.unread]="!notif.read" [class]="getSeverityClass(notif.severity)" (click)="markAsRead(notif.id)">
++      <button
++        type="button"
++        class="notif-card"
++        [class.unread]="!notif.read"
++        [class]=" 'notif-card ' + getSeverityClass(notif.severity) + (notif.read ? '' : ' unread')"
++        (click)="openNotification(notif)">
++
+         <div class="notif-header">
+           <h3>{{ notif.title }}</h3>
+-          <span class="notif-time">{{ getTimeAgo(notif.createdAt) }}</span>
++          <span class="notif-time">
++            {{ getTimeAgo(notif.createdAt) }}
++          </span>
+         </div>
++
+         <p>{{ notif.message }}</p>
++
+         @if (!notif.read) {
+           <span class="unread-dot"></span>
+         }
+-      </div>
++
++        <span class="notification-action">Voir les incidents</span>
++      </button>
+     } @empty {
+       <div class="empty-state">
+-        <span class="empty-icon">­ƒöò</span>
+-        <h3>No Notifications</h3>
+-        <p>You're all caught up.</p>
++        <span class="empty-icon">­ƒöö</span>
++        <h3>Aucun incident enregistr├®</h3>
++        <p>Les nouvelles notifications appara├«tront ici automatiquement.</p>
+       </div>
+     }
+   </div>
+diff --git a/Frontends/Front Office/src/app/features/notifications/notifications.ts b/Frontends/Front Office/src/app/features/notifications/notifications.ts
+index b9d9d61..ddd764b 100644
+--- a/Frontends/Front Office/src/app/features/notifications/notifications.ts	
++++ b/Frontends/Front Office/src/app/features/notifications/notifications.ts	
+@@ -1,4 +1,6 @@
+-import { Component, inject } from '@angular/core';
++´╗┐import { Component, inject } from '@angular/core';
++import { Router } from '@angular/router';
++import { AppNotification } from '../../core/models';
+ import { NotificationService } from '../../core/services/notification.service';
+ 
+ @Component({
+@@ -7,9 +9,11 @@ import { NotificationService } from '../../core/services/notification.service';
+   styleUrl: './notifications.scss'
+ })
+ export class Notifications {
+-
+   private readonly notificationService = inject(NotificationService);
++  private readonly router = inject(Router);
++
+   protected readonly notifications = this.notificationService.notifications;
++  protected readonly unreadCount = this.notificationService.unreadCount;
+ 
+   markAsRead(id: string): void {
+     this.notificationService.markAsRead(id);
+@@ -19,14 +23,26 @@ export class Notifications {
+     this.notificationService.markAllAsRead();
+   }
+ 
++  openNotification(notification: AppNotification): void {
++    this.markAsRead(notification.id);
++    void this.router.navigateByUrl(notification.link || '/incidents');
++  }
++
+   getTimeAgo(dateStr: string): string {
+-    const diff = Date.now() - new Date(dateStr).getTime();
+-    const minutes = Math.floor(diff / 60_000);
+-    if (minutes < 1) return 'Just now';
+-    if (minutes < 60) return `${minutes}m ago`;
++    const date = new Date(dateStr).getTime();
++
++    if (!Number.isFinite(date)) return 'Date inconnue';
++
++    const diff = Math.max(0, Date.now() - date);
++    const minutes = Math.floor(diff / 60000);
++
++    if (minutes < 1) return "├Ç l'instant";
++    if (minutes < 60) return `Il y a ${minutes} min`;
++
+     const hours = Math.floor(minutes / 60);
+-    if (hours < 24) return `${hours}h ago`;
+-    return `${Math.floor(hours / 24)}d ago`;
++    if (hours < 24) return `Il y a ${hours} h`;
++
++    return `Il y a ${Math.floor(hours / 24)} j`;
+   }
+ 
+   getSeverityClass(severity?: string): string {
+diff --git a/Frontends/Front Office/src/app/features/profile/profile.html b/Frontends/Front Office/src/app/features/profile/profile.html
+index d9008bb..2dd093a 100644
+--- a/Frontends/Front Office/src/app/features/profile/profile.html	
++++ b/Frontends/Front Office/src/app/features/profile/profile.html	
+@@ -1,35 +1,126 @@
+ <div class="page-container">
+   <div class="page-header">
+-    <h1>­ƒæñ Profile</h1>
++    <h1>My Profile</h1>
+   </div>
+ 
+   @if (user(); as u) {
+     <div class="profile-card">
+       <div class="avatar">
+-        {{ u.firstName[0] }}{{ u.lastName[0] }}
++        {{ u.firstName.charAt(0) || u.username.charAt(0) }}{{ u.lastName.charAt(0) }}
+       </div>
++
+       <h2>{{ u.firstName }} {{ u.lastName }}</h2>
+-      <p class="email">{{ u.email }}</p>
++      <p class="email">{{ u.email || u.username }}</p>
+       <span class="role-badge">{{ u.role }}</span>
+ 
+-      <div class="profile-details">
+-        <div class="detail-row">
+-          <span class="detail-label">Building</span>
+-          <span class="detail-value">{{ u.buildingId ?? 'ÔÇö' }}</span>
+-        </div>
+-        <div class="detail-row">
+-          <span class="detail-label">Floor</span>
+-          <span class="detail-value">{{ u.floorId ?? 'ÔÇö' }}</span>
+-        </div>
+-        <div class="detail-row">
+-          <span class="detail-label">Room</span>
+-          <span class="detail-value">{{ u.roomId ?? 'ÔÇö' }}</span>
++      <section class="location-preferences">
++        <h3>My building location</h3>
++        <p class="preference-note">
++          Select your usual building, floor and room. These preferences are
++          saved on this device.
++        </p>
++
++        <label for="profile-building">Building</label>
++        <select
++          id="profile-building"
++          [value]="selectedBuildingId()"
++          (change)="selectBuilding($any($event.target).value)"
++        >
++          <option value="" disabled>Select a building</option>
++          @for (building of buildings(); track building.id) {
++            <option [value]="building.id">{{ building.name }}</option>
++          }
++        </select>
++
++        <label for="profile-floor">Floor</label>
++        <select
++          id="profile-floor"
++          [value]="selectedFloorLevel() ?? ''"
++          (change)="selectFloor($any($event.target).value)"
++          [disabled]="floors().length === 0"
++        >
++          <option value="" disabled>Select a floor</option>
++          @for (floor of floors(); track floor.id) {
++            <option [value]="floor.level">{{ floor.name }}</option>
++          }
++        </select>
++
++        <label for="profile-room">Room</label>
++        <select
++          id="profile-room"
++          [value]="selectedRoomId()"
++          (change)="selectRoom($any($event.target).value)"
++          [disabled]="rooms().length === 0"
++        >
++          <option value="" disabled>Select a room</option>
++          @for (room of rooms(); track room.id) {
++            <option [value]="room.id">
++              {{ room.roomNumber }}
++            </option>
++          }
++        </select>
++
++        <div class="location-summary">
++          <strong>Selected location</strong>
++          <p>{{ selectedBuilding()?.name || 'No building selected' }}</p>
++          <p>{{ selectedFloor()?.name || 'No floor selected' }}</p>
++          <p>
++            Room {{ selectedRoom()?.roomNumber || 'Not selected' }}
++          </p>
++          @if (selectedRoom()?.exit; as exitName) {
++            <p>Recorded exit: {{ exitName }}</p>
++          }
+         </div>
+-      </div>
++      </section>
++
++      <section class="push-settings">
++        <h3>Emergency notifications</h3>
++        <p class="preference-note">
++          Receive emergency alerts for your selected room and building,
++          including when the application is in the background.
++        </p>
++
++        @if (!pushSupported) {
++          <p class="push-info">
++            Notifications disponibles dans la PWA de production.
++            Elles sont d├®sactiv├®es avec le serveur Angular de d├®veloppement.
++          </p>
++        } @else if (pushSubscribed()) {
++          <p class="push-enabled">
++            Notifications activ├®es sur ce navigateur.
++          </p>
++          <button
++            type="button"
++            class="push-disable-btn"
++            [disabled]="pushBusy()"
++            (click)="disablePush()"
++          >
++            {{ pushBusy() ? 'Please wait...' : 'Disable notifications' }}
++          </button>
++        } @else {
++          <button
++            type="button"
++            class="push-enable-btn"
++            [disabled]="pushBusy()"
++            (click)="enablePush()"
++          >
++            {{ pushBusy() ? 'Activating...' : 'Enable emergency notifications' }}
++          </button>
++        }
+ 
++        @if (locationError()) {
++          <p class="push-error" role="alert">{{ locationError() }}</p>
++        }
++        @if (pushError()) {
++          <p class="push-error" role="alert">{{ pushError() }}</p>
++        }
++        @if (pushSuccess()) {
++          <p class="push-success" role="status">{{ pushSuccess() }}</p>
++        }
++      </section>
+       <button class="logout-btn" (click)="logout()">
+         Sign Out
+       </button>
+     </div>
+   }
+-</div>
++</div>
+\ No newline at end of file
+diff --git a/Frontends/Front Office/src/app/features/profile/profile.scss b/Frontends/Front Office/src/app/features/profile/profile.scss
+index 27ec3be..76ea1a6 100644
+--- a/Frontends/Front Office/src/app/features/profile/profile.scss	
++++ b/Frontends/Front Office/src/app/features/profile/profile.scss	
+@@ -1,107 +1,121 @@
+-.page-container {
+-  padding: 1rem;
+-  max-width: 500px;
+-  margin: 0 auto;
++
++/* Occupant location preferences */
++.location-preferences {
++  margin-top: 1.5rem;
++  padding-top: 1.25rem;
++  border-top: 1px solid #334155;
++  text-align: left;
++}
++
++.location-preferences h3 {
++  margin: 0 0 0.5rem;
++  color: #f1f5f9;
++  font-size: 1rem;
+ }
+ 
+-.page-header {
+-  margin-bottom: 1.5rem;
++.preference-note {
++  margin: 0 0 1rem;
++  color: #94a3b8;
++  font-size: 0.8125rem;
++  line-height: 1.5;
++}
+ 
+-  h1 {
+-    font-size: 1.5rem;
+-    font-weight: 700;
+-    color: #f1f5f9;
+-    margin: 0;
+-  }
++.location-preferences label {
++  display: block;
++  margin: 0.85rem 0 0.35rem;
++  color: #cbd5e1;
++  font-size: 0.8125rem;
++  font-weight: 600;
+ }
+ 
+-.profile-card {
+-  background: #1e293b;
+-  border-radius: 16px;
+-  padding: 2rem;
+-  text-align: center;
++.location-preferences select {
++  width: 100%;
++  min-height: 42px;
++  padding: 0.6rem 0.75rem;
++  border: 1px solid #475569;
++  border-radius: 8px;
++  background: #0f172a;
++  color: #f1f5f9;
++  font: inherit;
++}
++
++.location-preferences select:disabled {
++  opacity: 0.55;
++  cursor: not-allowed;
++}
++
++.location-summary {
++  margin-top: 1.25rem;
++  padding: 0.9rem;
++  border-radius: 8px;
++  background: #0f172a;
+   border: 1px solid #334155;
++}
++
++.location-summary strong {
++  display: block;
++  margin-bottom: 0.4rem;
++  color: #93c5fd;
++}
+ 
+-  .avatar {
+-    width: 72px;
+-    height: 72px;
+-    border-radius: 50%;
+-    background: #3b82f6;
+-    display: flex;
+-    align-items: center;
+-    justify-content: center;
+-    font-size: 1.5rem;
+-    font-weight: 700;
+-    color: #fff;
+-    margin: 0 auto 1rem;
+-  }
+-
+-  h2 {
+-    font-size: 1.25rem;
+-    font-weight: 700;
+-    color: #f1f5f9;
+-    margin: 0;
+-  }
+-
+-  .email {
+-    font-size: 0.875rem;
+-    color: #94a3b8;
+-    margin: 0.25rem 0 0.75rem;
+-  }
+-
+-  .role-badge {
+-    display: inline-block;
+-    font-size: 0.75rem;
+-    font-weight: 600;
+-    padding: 0.25rem 0.75rem;
+-    border-radius: 9999px;
+-    background: rgba(59, 130, 246, 0.2);
+-    color: #93c5fd;
+-    text-transform: uppercase;
+-    margin-bottom: 1.5rem;
+-  }
+-
+-  .profile-details {
+-    text-align: left;
+-    border-top: 1px solid #334155;
+-    padding-top: 1.25rem;
+-    margin-bottom: 1.5rem;
+-
+-    .detail-row {
+-      display: flex;
+-      justify-content: space-between;
+-      padding: 0.5rem 0;
+-      border-bottom: 1px solid #334155;
+-
+-      &:last-child { border-bottom: none; }
+-
+-      .detail-label {
+-        font-size: 0.875rem;
+-        color: #94a3b8;
+-      }
+-
+-      .detail-value {
+-        font-size: 0.875rem;
+-        color: #f1f5f9;
+-        font-weight: 500;
+-      }
+-    }
+-  }
+-
+-  .logout-btn {
+-    width: 100%;
+-    padding: 0.75rem;
+-    border-radius: 8px;
+-    border: 1px solid #ef4444;
+-    background: rgba(239, 68, 68, 0.1);
+-    color: #fca5a5;
+-    font-size: 0.9375rem;
+-    font-weight: 600;
+-    cursor: pointer;
+-    transition: background 0.2s;
+-
+-    &:hover {
+-      background: rgba(239, 68, 68, 0.2);
+-    }
+-  }
++.location-summary p {
++  margin: 0.25rem 0;
++  color: #cbd5e1;
++  font-size: 0.875rem;
++}
++/* Emergency push notification controls */
++.push-settings {
++  margin-top: 1.5rem;
++  padding-top: 1.25rem;
++  border-top: 1px solid #334155;
++  text-align: left;
+ }
++
++.push-settings h3 {
++  margin: 0 0 0.5rem;
++  color: #f1f5f9;
++  font-size: 1rem;
++}
++
++.push-enable-btn,
++.push-disable-btn {
++  width: 100%;
++  min-height: 44px;
++  padding: 0.7rem 1rem;
++  border-radius: 8px;
++  font-size: 0.875rem;
++  font-weight: 600;
++  cursor: pointer;
++}
++
++.push-enable-btn {
++  border: 1px solid #2563eb;
++  background: #2563eb;
++  color: #fff;
++}
++
++.push-disable-btn {
++  border: 1px solid #ef4444;
++  background: rgba(239, 68, 68, 0.1);
++  color: #fca5a5;
++}
++
++.push-enable-btn:disabled,
++.push-disable-btn:disabled {
++  opacity: 0.6;
++  cursor: wait;
++}
++
++.push-info,
++.push-enabled,
++.push-error,
++.push-success {
++  margin: 0.65rem 0;
++  font-size: 0.8125rem;
++  line-height: 1.5;
++}
++
++.push-info { color: #94a3b8; }
++.push-enabled,
++.push-success { color: #86efac; }
++.push-error { color: #fca5a5; }
+\ No newline at end of file
+diff --git a/Frontends/Front Office/src/app/features/profile/profile.ts b/Frontends/Front Office/src/app/features/profile/profile.ts
+index 65280a8..b4fae88 100644
+--- a/Frontends/Front Office/src/app/features/profile/profile.ts	
++++ b/Frontends/Front Office/src/app/features/profile/profile.ts	
+@@ -1,5 +1,22 @@
+-import { Component, inject } from '@angular/core';
++import {
++  Component,
++  computed,
++  effect,
++  inject,
++  PLATFORM_ID,
++  signal
++} from '@angular/core';
++import { isPlatformBrowser } from '@angular/common';
+ import { AuthService } from '../../core/auth/auth.service';
++import { BuildingService } from '../../core/services/building.service';
++import { PushNotificationService } from '../../core/services/push-notification.service';
++import { BuildingView, Floor, RoomView } from '../../core/models';
++
++interface LocationPreference {
++  buildingId: string;
++  floorLevel: number | null;
++  roomId: string;
++}
+ 
+ @Component({
+   selector: 'app-profile',
+@@ -7,11 +24,162 @@ import { AuthService } from '../../core/auth/auth.service';
+   styleUrl: './profile.scss'
+ })
+ export class Profile {
+-
+   private readonly authService = inject(AuthService);
++  private readonly buildingService = inject(BuildingService);
++  private readonly pushService = inject(PushNotificationService);
++  private readonly platformId = inject(PLATFORM_ID);
++
+   protected readonly user = this.authService.user;
++  protected readonly buildings = this.buildingService.buildings;
++  protected readonly pushSupported = this.pushService.isSupported;
++  protected readonly pushSubscribed = this.pushService.isSubscribed;
++  protected readonly pushBusy = this.pushService.isBusy;
++  protected readonly pushError = this.pushService.errorMessage;
++  protected readonly pushSuccess = this.pushService.successMessage;
++  protected readonly locationError = signal<string | null>(null);
++
++  protected readonly selectedBuildingId = signal('');
++  protected readonly selectedFloorLevel = signal<number | null>(null);
++  protected readonly selectedRoomId = signal('');
++
++  protected readonly selectedBuilding = computed<BuildingView | undefined>(() =>
++    this.buildings().find(item => item.id === this.selectedBuildingId())
++  );
++
++  protected readonly floors = computed<Floor[]>(() =>
++    this.selectedBuilding()?.floors ?? []
++  );
++
++  protected readonly selectedFloor = computed<Floor | undefined>(() =>
++    this.floors().find(floor => floor.level === this.selectedFloorLevel())
++  );
++
++  protected readonly rooms = computed<RoomView[]>(() =>
++    this.selectedFloor()?.rooms ?? []
++  );
++
++  protected readonly selectedRoom = computed<RoomView | undefined>(() =>
++    this.rooms().find(room => room.id === this.selectedRoomId())
++  );
++
++  private initialized = false;
++
++  constructor() {
++    effect(() => {
++      const availableBuildings = this.buildings();
++
++      if (!availableBuildings.length || this.initialized) {
++        return;
++      }
++
++      this.initialized = true;
++      const saved = this.readPreference();
++
++      const building =
++        availableBuildings.find(item => item.id === saved?.buildingId) ??
++        availableBuildings[0];
++
++      this.selectedBuildingId.set(building.id);
++
++      const floor =
++        building.floors.find(item => item.level === saved?.floorLevel) ??
++        building.floors.find(item => item.rooms.length > 0) ??
++        building.floors[0];
++
++      if (floor) {
++        this.selectedFloorLevel.set(floor.level);
++
++        const room = floor.rooms.find(item => item.id === saved?.roomId);
++        this.selectedRoomId.set(room?.id ?? '');
++      }
++    });
++  }
++
++  selectBuilding(id: string): void {
++    const building = this.buildings().find(item => item.id === id);
++    if (!building) return;
++
++    this.selectedBuildingId.set(id);
++
++    const floor =
++      building.floors.find(item => item.rooms.length > 0) ??
++      building.floors[0];
++
++    this.selectedFloorLevel.set(floor?.level ?? null);
++    this.selectedRoomId.set('');
++    this.savePreference();
++  }
++
++  selectFloor(value: string): void {
++    const level = Number(value);
++    const floor = this.floors().find(item => item.level === level);
++    if (!floor) return;
++
++    this.selectedFloorLevel.set(level);
++    this.selectedRoomId.set('');
++    this.savePreference();
++  }
++
++  selectRoom(id: string): void {
++    if (!this.rooms().some(room => room.id === id)) return;
++
++    this.selectedRoomId.set(id);
++    this.savePreference();
++  }
++
++  async enablePush(): Promise<void> {
++    const floor = this.selectedFloorLevel();
++
++    if (!this.selectedBuildingId() || floor === null || !this.selectedRoomId()) {
++      this.locationError.set(
++        'S├®lectionnez un b├ótiment, un ├®tage et une salle avant de continuer.'
++      );
++      return;
++    }
++
++    this.locationError.set(null);
++
++    await this.pushService.enable({
++      buildingId: this.selectedBuildingId(),
++      floor,
++      roomId: this.selectedRoomId()
++    });
++  }
++
++  async disablePush(): Promise<void> {
++    await this.pushService.disable();
++  }
++  private readPreference(): LocationPreference | null {
++    if (!isPlatformBrowser(this.platformId)) return null;
++
++    try {
++      const raw = localStorage.getItem('smart-building-location-preference');
++      return raw ? JSON.parse(raw) as LocationPreference : null;
++    } catch {
++      return null;
++    }
++  }
++
++  private savePreference(): void {
++    if (!isPlatformBrowser(this.platformId)) return;
++
++    const preference: LocationPreference = {
++      buildingId: this.selectedBuildingId(),
++      floorLevel: this.selectedFloorLevel(),
++      roomId: this.selectedRoomId()
++    };
++
++    try {
++      localStorage.setItem(
++        'smart-building-location-preference',
++        JSON.stringify(preference)
++      );
++    } catch (error) {
++      console.warn('Unable to save local building preference.', error);
++    }
++  }
+ 
+   logout(): void {
+     this.authService.logout();
+   }
+-}
++}
+\ No newline at end of file
+diff --git a/Frontends/Front Office/src/app/shared/components/shell/shell.ts b/Frontends/Front Office/src/app/shared/components/shell/shell.ts
+index b8fae28..287a229 100644
+--- a/Frontends/Front Office/src/app/shared/components/shell/shell.ts	
++++ b/Frontends/Front Office/src/app/shared/components/shell/shell.ts	
+@@ -1,8 +1,10 @@
+-import { Component, computed, inject } from '@angular/core';
++import { Component, computed, inject, OnInit, OnDestroy } from '@angular/core';
+ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
++
+ import { AuthService } from '../../../core/auth/auth.service';
+ import { NotificationService } from '../../../core/services/notification.service';
+ import { AlertService } from '../../../core/services/alert.service';
++import { RealtimeService } from '../../../core/services/realtime.service';
+ 
+ @Component({
+   selector: 'app-shell',
+@@ -10,13 +12,24 @@ import { AlertService } from '../../../core/services/alert.service';
+   templateUrl: './shell.html',
+   styleUrl: './shell.scss'
+ })
+-export class Shell {
+-
++export class Shell implements OnInit, OnDestroy {
+   private readonly authService = inject(AuthService);
+   private readonly notificationService = inject(NotificationService);
+   private readonly alertService = inject(AlertService);
++  private readonly realtimeService = inject(RealtimeService);
+ 
+   protected readonly user = this.authService.user;
+   protected readonly unreadCount = this.notificationService.unreadCount;
+-  protected readonly criticalCount = computed(() => this.alertService.getCriticalAlerts().length);
+-}
++  protected readonly criticalCount = computed(
++    () => this.alertService.getCriticalAlerts().length
++  );
++  protected readonly realtimeConnected = this.realtimeService.connected$;
++
++  ngOnInit(): void {
++    this.realtimeService.connect();
++  }
++
++  ngOnDestroy(): void {
++    this.realtimeService.disconnect();
++  }
++}
+\ No newline at end of file
+diff --git a/Frontends/Front Office/src/index.html b/Frontends/Front Office/src/index.html
+index bf0604f..42c98f7 100644
+--- a/Frontends/Front Office/src/index.html	
++++ b/Frontends/Front Office/src/index.html	
+@@ -1,15 +1,17 @@
+ <!DOCTYPE html>
+ <html lang="en">
+ <head>
+-  <meta charset="utf-8" />
++  <meta charset="utf-8"/>
+   <title>SafeBuilding ÔÇö Client PWA</title>
+-  <base href="/" />
+-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+-  <meta name="description" content="Smart Building Emergency Safety System ÔÇö Occupant Dashboard" />
+-  <meta name="theme-color" content="#0f172a" />
+-  <link rel="icon" type="image/x-icon" href="favicon.ico" />
++  <base href="/"/>
++  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
++  <meta name="description" content="Smart Building Emergency Safety System ÔÇö Occupant Dashboard"/>
++  <meta name="theme-color" content="#0f172a"/>
++  <link rel="icon" type="image/x-icon" href="favicon.ico"/>
++  <link rel="manifest" href="manifest.webmanifest">
+ </head>
+ <body>
+   <app-root></app-root>
++  <noscript>Please enable JavaScript to continue using this application.</noscript>
+ </body>
+ </html>
+diff --git a/Middelware/api/src/main/java/com/smartbuilding/config/CorsFilter.java b/Middelware/api/src/main/java/com/smartbuilding/config/CorsFilter.java
+index 7480982..3edf04a 100644
+--- a/Middelware/api/src/main/java/com/smartbuilding/config/CorsFilter.java
++++ b/Middelware/api/src/main/java/com/smartbuilding/config/CorsFilter.java
+@@ -1,16 +1,20 @@
+ package com.smartbuilding.config;
+ 
+ import jakarta.ws.rs.container.ContainerRequestContext;
++import jakarta.ws.rs.container.ContainerRequestFilter;
+ import jakarta.ws.rs.container.ContainerResponseContext;
+ import jakarta.ws.rs.container.ContainerResponseFilter;
++import jakarta.ws.rs.container.PreMatching;
++import jakarta.ws.rs.core.Response;
+ import jakarta.ws.rs.ext.Provider;
+ import java.io.IOException;
++import java.net.URI;
+ import java.util.List;
+ 
+ @Provider
+-public class CorsFilter implements ContainerResponseFilter {
++@PreMatching
++public class CorsFilter implements ContainerRequestFilter, ContainerResponseFilter {
+ 
+-    // EXACTEMENT les origines autoris├®es (Front Office www:4200 et Back Office admin:4201)
+     private static final List<String> ALLOWED_ORIGINS = List.of(
+         "http://www.smartbuilding.local:4200",
+         "https://www.smartbuilding.local:4200",
+@@ -18,22 +22,104 @@ public class CorsFilter implements ContainerResponseFilter {
+         "https://admin.smartbuilding.local:4201"
+     );
+ 
++    private boolean isAllowedOrigin(String origin) {
++        if (origin == null) {
++            return false;
++        }
++
++        if (ALLOWED_ORIGINS.contains(origin)) {
++            return true;
++        }
++
++        try {
++            URI uri = URI.create(origin);
++            String host = uri.getHost();
++            String scheme = uri.getScheme();
++            int port = uri.getPort();
++
++            boolean localHost = "localhost".equalsIgnoreCase(host)
++                    || "127.0.0.1".equals(host);
++
++            boolean httpScheme = "http".equalsIgnoreCase(scheme)
++                    || "https".equalsIgnoreCase(scheme);
++
++            boolean validPort = port == -1 || (port >= 1 && port <= 65535);
++            boolean noPath = uri.getRawPath() == null || uri.getRawPath().isEmpty();
++
++            return localHost
++                    && httpScheme
++                    && validPort
++                    && noPath
++                    && uri.getRawQuery() == null
++                    && uri.getRawFragment() == null
++                    && uri.getRawUserInfo() == null;
++        } catch (IllegalArgumentException ex) {
++            return false;
++        }
++    }
++
++    private void addCorsHeaders(
++            Response.ResponseBuilder response,
++            String origin
++    ) {
++        response.header("Access-Control-Allow-Origin", origin);
++        response.header("Access-Control-Allow-Credentials", "true");
++        response.header(
++            "Access-Control-Allow-Methods",
++            "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD"
++        );
++        response.header(
++            "Access-Control-Allow-Headers",
++            "Content-Type, Authorization, Accept, Origin, X-Requested-With"
++        );
++        response.header("Access-Control-Max-Age", "3600");
++        response.header(
++            "Vary",
++            "Origin, Access-Control-Request-Method, Access-Control-Request-Headers"
++        );
++    }
++
++    @Override
++    public void filter(ContainerRequestContext requestContext) throws IOException {
++        if (!"OPTIONS".equalsIgnoreCase(requestContext.getMethod())) {
++            return;
++        }
++
++        String origin = requestContext.getHeaderString("Origin");
++
++        if (!isAllowedOrigin(origin)) {
++            requestContext.abortWith(
++                Response.status(Response.Status.FORBIDDEN).build()
++            );
++            return;
++        }
++
++        Response.ResponseBuilder response = Response.noContent();
++        addCorsHeaders(response, origin);
++        requestContext.abortWith(response.build());
++    }
++
+     @Override
+-    public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext) throws IOException {
++    public void filter(
++            ContainerRequestContext requestContext,
++            ContainerResponseContext responseContext
++    ) throws IOException {
+         String origin = requestContext.getHeaderString("Origin");
+ 
+-        // Autoriser UNIQUEMENT si l'origine fait partie de la liste stricte
+-        if (origin != null && ALLOWED_ORIGINS.contains(origin)) {
+-            responseContext.getHeaders().putSingle("Access-Control-Allow-Origin", origin);
+-            responseContext.getHeaders().putSingle("Access-Control-Allow-Credentials", "true");
++        if (isAllowedOrigin(origin)) {
++            responseContext.getHeaders().putSingle(
++                "Access-Control-Allow-Origin", origin
++            );
++            responseContext.getHeaders().putSingle(
++                "Access-Control-Allow-Credentials", "true"
++            );
++            responseContext.getHeaders().putSingle("Vary", "Origin");
+         }
+-        // AUCUN fallback : si l'origine est inconnue, le header n'est pas inject├®
+ 
+         responseContext.getHeaders().putSingle(
+             "Access-Control-Allow-Methods",
+-            "GET, POST, PUT, PATCH, DELETE, OPTIONS"
++            "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD"
+         );
+-
+         responseContext.getHeaders().putSingle(
+             "Access-Control-Allow-Headers",
+             "Content-Type, Authorization, Accept, Origin, X-Requested-With"
+diff --git a/Middelware/api/src/main/java/com/smartbuilding/resources/BuildingResource.java b/Middelware/api/src/main/java/com/smartbuilding/resources/BuildingResource.java
+index 5fc639a..878e31d 100644
+--- a/Middelware/api/src/main/java/com/smartbuilding/resources/BuildingResource.java
++++ b/Middelware/api/src/main/java/com/smartbuilding/resources/BuildingResource.java
+@@ -8,6 +8,7 @@ import com.smartbuilding.security.RequireRole;
+ import com.smartbuilding.services.ActuatorService;
+ import com.smartbuilding.services.BuildingManager;
+ import com.smartbuilding.services.IncidentService;
++import com.smartbuilding.services.ActuatorStateService;
+ import jakarta.enterprise.context.ApplicationScoped;
+ import jakarta.inject.Inject;
+ import jakarta.ws.rs.Consumes;
+@@ -35,7 +36,8 @@ public class BuildingResource {
+ 
+     @Inject
+     private ActuatorService actuatorService;
+-
++    @Inject
++    private ActuatorStateService actuatorStateService;
+     // GET /api/buildings (Connect├® requis : OCCUPANT ou ADMIN)
+     @GET
+     @Path("/buildings")
+@@ -73,6 +75,12 @@ public class BuildingResource {
+     public List<Sensor> getSensors(@QueryParam("roomId") String roomId) {
+         return buildingManager.getSensors(roomId);
+     }
++    // GET /api/rooms/{roomId}/actuators
++    @GET
++    @Path("/rooms/{roomId}/actuators")
++    public Response getActuatorStates(@PathParam("roomId") String roomId) {
++        return Response.ok(actuatorStateService.getStates(roomId)).build();
++    }
+ 
+     // POST /api/rooms/{roomId}/actuators (R├┤le ADMIN requis !)
+     @POST
+diff --git a/Middelware/core/pom.xml b/Middelware/core/pom.xml
+index cd5d59b..68e15c2 100644
+--- a/Middelware/core/pom.xml
++++ b/Middelware/core/pom.xml
+@@ -46,6 +46,7 @@
+             <groupId>org.bouncycastle</groupId>
+             <artifactId>bcprov-jdk18on</artifactId>
+             <version>1.78.1</version>
++            <scope>provided</scope>
+         </dependency>
+                 <!-- MicroProfile Config API -->
+         <dependency>
+diff --git a/Middelware/core/src/main/java/com/smartbuilding/services/PushService.java b/Middelware/core/src/main/java/com/smartbuilding/services/PushService.java
+index a157bfa..179d5f8 100644
+--- a/Middelware/core/src/main/java/com/smartbuilding/services/PushService.java
++++ b/Middelware/core/src/main/java/com/smartbuilding/services/PushService.java
+@@ -216,8 +216,7 @@ public class PushService {
+                 LOG.warning("├ëchec notification Push. HTTP " + status);
+ 
+                 if (status == 404 || status == 410) {
+-                    deleteSubscription(subscription.getEndpoint());
+-                    LOG.info("Abonnement expir├® supprim├®.");
++                    LOG.warning("Abonnement Push expir├® ou invalide : conservation de l'enregistrement MongoDB.");
+                 }
+             }
+ 
+diff --git a/Middelware/core/src/main/resources/META-INF/microprofile-config.properties b/Middelware/core/src/main/resources/META-INF/microprofile-config.properties
+index d373673..d55726a 100644
+--- a/Middelware/core/src/main/resources/META-INF/microprofile-config.properties
++++ b/Middelware/core/src/main/resources/META-INF/microprofile-config.properties
+@@ -1,5 +1,5 @@
+ jnosql.document.database=smartbuilding
+ jnosql.mongodb.host=localhost:27017
+-vapid.public.key=BFm1zBfqWf2Z45Ww43lK1sD1Z9lK_Q0F9eE3Y6mXw5pB0lK_8t_Y6mXw5pB0lK_8t_Y6mXw5pB0lK_8t_Y6mXw4
+-vapid.private.key=hK9sD2lM4nP8qR0tV2wX5yA7bC9dE1fG3hJ5kL7mN9p
++vapid.public.key=BKaCXKiGfpQEOTBsaFqHucYe6cMbIHy7ksBThgtwDGt6aAlA2uEl4qS2pkqdJhRks7mSFId9Nr11J0XMSLEvFPY
++vapid.private.key=cXT2dBGqEZz7FV420rRxhkKHx4pwHEWwRTNfVM0d0NQ
+ vapid.subject=mailto:admin@smartbuilding.com
+\ No newline at end of file

@@ -1,0 +1,111 @@
+{
+  "configVersion": 1,
+  "timestamp": 1794743300793,
+  "index": "/index.html",
+  "assetGroups": [
+    {
+      "name": "app",
+      "installMode": "prefetch",
+      "updateMode": "prefetch",
+      "cacheQueryOptions": {
+        "ignoreVary": true
+      },
+      "urls": [
+        "/chunk-2MGNB6ND.js",
+        "/chunk-4D57OBDK.js",
+        "/chunk-4SDT4OPJ.js",
+        "/chunk-5G7BM3EK.js",
+        "/chunk-5MP532WH.js",
+        "/chunk-6RCIBXHR.js",
+        "/chunk-CX5RK4KP.js",
+        "/chunk-DSMWVWQM.js",
+        "/chunk-EXCR5OHH.js",
+        "/chunk-ILXXUJ35.js",
+        "/chunk-MVC6CYG7.js",
+        "/chunk-MXDMLDNV.js",
+        "/chunk-PAXVFZDI.js",
+        "/chunk-TDOBDECD.js",
+        "/chunk-TH57JZ3E.js",
+        "/chunk-VUHBVKTM.js",
+        "/chunk-WYAULB4D.js",
+        "/favicon.ico",
+        "/index.html",
+        "/main-L3WTJNT5.js",
+        "/manifest.webmanifest",
+        "/styles-NSL3MVK4.css"
+      ],
+      "patterns": []
+    },
+    {
+      "name": "assets",
+      "installMode": "lazy",
+      "updateMode": "prefetch",
+      "cacheQueryOptions": {
+        "ignoreVary": true
+      },
+      "urls": [
+        "/icons/icon-128x128.png",
+        "/icons/icon-144x144.png",
+        "/icons/icon-152x152.png",
+        "/icons/icon-192x192.png",
+        "/icons/icon-384x384.png",
+        "/icons/icon-512x512.png",
+        "/icons/icon-72x72.png",
+        "/icons/icon-96x96.png"
+      ],
+      "patterns": []
+    }
+  ],
+  "dataGroups": [],
+  "hashTable": {
+    "/chunk-2MGNB6ND.js": "0dec12022939fe181c34b3e66f0d6c0181ab2dc3",
+    "/chunk-4D57OBDK.js": "b2422b33ef65e1458526641a8975cdbf7f49094c",
+    "/chunk-4SDT4OPJ.js": "8030dffa2209ae8aaf6547532408dd6ce4b0bb8c",
+    "/chunk-5G7BM3EK.js": "697f4f0459b71a3015655f39137af8c7be6b19c8",
+    "/chunk-5MP532WH.js": "a504eec6e98577db2e42327537863d878dfb8b00",
+    "/chunk-6RCIBXHR.js": "a2997787e25170d840b54be27e21103126fd6398",
+    "/chunk-CX5RK4KP.js": "99fdc97375d11f557a9d2ba87ae6e17cefe0995a",
+    "/chunk-DSMWVWQM.js": "bb794142713cafb785090e05d9b70deac5e66bf2",
+    "/chunk-EXCR5OHH.js": "0907392ed0538f7bfd29eb9ef45e46a9cf3641b0",
+    "/chunk-ILXXUJ35.js": "605f0dfb02be3069eeeccde9d0ca6f05d18231ca",
+    "/chunk-MVC6CYG7.js": "a1351165fb049ee1a5cf5204e27b7f87182d73db",
+    "/chunk-MXDMLDNV.js": "f740d22484c38a42b64bb3fe76b566b92d3675cc",
+    "/chunk-PAXVFZDI.js": "3018721704a19fe99692a2ff7957dccdcbd3aceb",
+    "/chunk-TDOBDECD.js": "ac849fcabccc0a81e880f4a94ff06f8e1f25bcc5",
+    "/chunk-TH57JZ3E.js": "b18b5a07396bc3cd600d943afb82bcac6cec6d91",
+    "/chunk-VUHBVKTM.js": "1215b241cfa25dc278fdd304f4e8a0c60e71603e",
+    "/chunk-WYAULB4D.js": "1d4cba9a808e3766e8f1a6ab1d79a5f5b7b8eda5",
+    "/favicon.ico": "9c39f434fe1261f68c5e3eefdf734630d99c5670",
+    "/icons/icon-128x128.png": "f912963bdc6d5a38d8f1dd0afbaab2ce8d657acb",
+    "/icons/icon-144x144.png": "b155fd5f2fd5d2ea7760721063003c4cd95fd783",
+    "/icons/icon-152x152.png": "eae6e0f0c8afb8aaae339e2a569b43e9238e5e6c",
+    "/icons/icon-192x192.png": "15c4180454633880d98674aa7394656196c91584",
+    "/icons/icon-384x384.png": "94a915751ef6c9282df9aea405ad679230631814",
+    "/icons/icon-512x512.png": "1de182f76f7329dfa8f9fcdd1fdcdd695bea6a99",
+    "/icons/icon-72x72.png": "aa88a6096bd973be7f6d7a5489bfa6bc2463f8c4",
+    "/icons/icon-96x96.png": "7fb8f59c30ce2ff12c700321a0b39e14b3dc8f95",
+    "/index.html": "2128175462b10b60b21f1ec23aa3bf18aaa9094d",
+    "/main-L3WTJNT5.js": "7280d70a29a4384093c602170abfe3f49dbc77b8",
+    "/manifest.webmanifest": "5132e68d6d97e0dd609c2ad1537e90e9ae23a617",
+    "/styles-NSL3MVK4.css": "d97e60144526a926623dbfca522b0af0054610a0"
+  },
+  "navigationUrls": [
+    {
+      "positive": true,
+      "regex": "^\\/.*$"
+    },
+    {
+      "positive": false,
+      "regex": "^\\/(?:.+\\/)?[^/]*\\.[^/]*$"
+    },
+    {
+      "positive": false,
+      "regex": "^\\/(?:.+\\/)?[^/]*__[^/]*$"
+    },
+    {
+      "positive": false,
+      "regex": "^\\/(?:.+\\/)?[^/]*__[^/]*\\/.*$"
+    }
+  ],
+  "navigationRequestStrategy": "performance"
+}
