@@ -41,6 +41,7 @@ import { OccupantProfileComponent } from '../components/occupant-profile/occupan
 import { AuthService } from '../core/auth/auth.service';
 import { AiAssistantComponent } from './ai-assistant/ai-assistant';
 
+import { ActuatorControlComponent } from './actuator-control/actuator-control';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
@@ -48,7 +49,7 @@ Chart.register(...registerables);
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [AsyncPipe, DatePipe, OccupantProfileComponent, AiAssistantComponent],
+  imports: [AsyncPipe, DatePipe, OccupantProfileComponent, AiAssistantComponent, ActuatorControlComponent],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss'
 })

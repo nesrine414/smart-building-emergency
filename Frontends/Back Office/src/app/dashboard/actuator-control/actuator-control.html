@@ -1,0 +1,100 @@
+﻿<section class="actuator-section" id="actuator-management">
+  <div class="actuator-heading">
+    <div>
+      <span class="section-label">ADMINISTRATION</span>
+      <h2>Gestion des actionneurs</h2>
+      <p>Commandes manuelles par salle et suivi des confirmations des appareils.</p>
+    </div>
+    <span class="admin-badge">ADMIN</span>
+  </div>
+
+  <div class="actuator-notice">
+    Les états affichés correspondent aux dernières confirmations reçues des appareils.
+    Une commande envoyée n'est pas nécessairement déjà exécutée.
+  </div>
+
+  @if (!rooms || rooms.length === 0) {
+    <p class="empty-rooms">Aucune salle disponible sur cet étage.</p>
+  }
+
+  <div class="room-actuator-grid">
+    @for (room of rooms; track room.id) {
+      <article class="room-actuator-card">
+        <div class="room-heading">
+          <div>
+            <span class="room-label">SALLE</span>
+            <h3>{{ room.name }}</h3>
+            <small>{{ room.id }}</small>
+          </div>
+
+          <button
+            type="button"
+            class="refresh-state"
+            (click)="refreshRoom(room.id)"
+            [disabled]="loadingRooms[room.id]"
+          >
+            {{ loadingRooms[room.id] ? 'Chargement...' : 'Actualiser' }}
+          </button>
+        </div>
+
+        @if (errors[room.id]) {
+          <p class="room-error" role="alert">
+            {{ errors[room.id] }}
+          </p>
+        }
+
+        <div class="actuator-list">
+          @for (item of actuators; track item.id) {
+            <div class="actuator-item">
+              <div class="actuator-info">
+                <strong>{{ item.label }}</strong>
+
+                <span class="state-pill" [class]="getStateClass(room.id, item.id)">
+                  {{ getStateLabel(room.id, item.id) }}
+                </span>
+              </div>
+
+              <div class="actuator-buttons">
+                <button
+                  type="button"
+                  class="command-on"
+                  (click)="sendCommand(room.id, item.id, item.firstAction, item.firstLabel)"
+                  [disabled]="isPending(room.id, item.id) || getState(room.id, item.id) === item.firstAction"
+                >
+                  {{ item.firstLabel }}
+                </button>
+
+                <button
+                  type="button"
+                  class="command-off"
+                  (click)="sendCommand(room.id, item.id, item.secondAction, item.secondLabel)"
+                  [disabled]="isPending(room.id, item.id) || getState(room.id, item.id) === item.secondAction"
+                >
+                  {{ item.secondLabel }}
+                </button>
+              </div>
+
+              @if (isPending(room.id, item.id)) {
+                <p class="pending-message">
+                  En attente de confirmation MQTT...
+                </p>
+              }
+
+              @if (messages[room.id + '::' + item.id]) {
+                <p class="command-message">
+                  {{ messages[room.id + '::' + item.id] }}
+                </p>
+              }
+
+              @if (errors[room.id + '::' + item.id]) {
+                <p class="command-error" role="alert">
+                  {{ errors[room.id + '::' + item.id] }}
+                </p>
+              }
+            </div>
+          }
+        </div>
+      </article>
+    }
+  </div>
+</section>

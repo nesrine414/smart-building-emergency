@@ -244,7 +244,7 @@
           </div>
 
           <div class="stat-number">
-            {{ incidents.length }}
+            {{ openIncidentCount }}
           </div>
 
           <div class="stat-description">
@@ -815,7 +815,8 @@
 
       </section>
 
-      <app-ai-assistant [incidents]="incidents"></app-ai-assistant>
+            <app-actuator-control [rooms]="selectedFloorRooms"></app-actuator-control>
+<app-ai-assistant [incidents]="incidents"></app-ai-assistant>
 
       <!-- FOOTER -->
       <footer class="page-footer">
@@ -835,5 +836,3 @@
     <p>Loading sensor readings...</p>
   </div>
 }
-
-

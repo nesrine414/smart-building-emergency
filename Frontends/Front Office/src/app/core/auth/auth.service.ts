@@ -1,3 +1,4 @@
+﻿
 import { Injectable, inject, signal, computed, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
@@ -14,11 +15,15 @@ export class AuthService {
 
   private readonly currentUser = signal<User | null>(null);
   private readonly token = signal<string | null>(null);
+  private readonly deniedMessage = signal('');
 
   readonly user = this.currentUser.asReadonly();
   readonly isAuthenticated = computed(
     () => this.currentUser() !== null && this.token() !== null
   );
+  readonly accessDeniedMessage = this.deniedMessage.asReadonly();
+
+  private expiryTimer: number | null = null;
 
   constructor() {
     this.loadFromStorage();
@@ -30,6 +35,12 @@ export class AuthService {
       request
     ).pipe(
       map(response => {
+        const expiresAt = Number(response.expiresAt);
+
+        if (!response.token || !Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+          throw new Error('Session invalide ou expirée.');
+        }
+
         const user: User = {
           id: request.username,
           username: request.username,
@@ -45,21 +56,21 @@ export class AuthService {
     );
   }
 
-  logout(): void {
-    this.currentUser.set(null);
-    this.token.set(null);
-
-    if (isPlatformBrowser(this.platformId)) {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('auth_user');
-      localStorage.removeItem('auth_expires_at');
-    }
-
-    this.router.navigate(['/login']);
-  }
-
   getToken(): string | null {
     return this.token();
+  }
+
+  notifyAccessDenied(): void {
+    this.deniedMessage.set('Réservé aux administrateurs.');
+  }
+
+  clearAccessDenied(): void {
+    this.deniedMessage.set('');
+  }
+
+  logout(): void {
+    this.clearSession();
+    this.router.navigate(['/login']);
   }
 
   private setSession(response: LoginResponse, user: User): void {
@@ -67,35 +78,64 @@ export class AuthService {
     this.token.set(response.token);
 
     if (isPlatformBrowser(this.platformId)) {
-      localStorage.setItem('auth_token', response.token);
-      localStorage.setItem('auth_user', JSON.stringify(user));
-      localStorage.setItem('auth_expires_at', String(response.expiresAt));
+      const expiresAt = Number(response.expiresAt);
+
+      sessionStorage.setItem('auth_token', response.token);
+      sessionStorage.setItem('auth_user', JSON.stringify(user));
+      sessionStorage.setItem('auth_expires_at', String(expiresAt));
+
+      this.scheduleExpiration(expiresAt);
     }
   }
 
   private loadFromStorage(): void {
-    if (!isPlatformBrowser(this.platformId)) {
-      return;
-    }
+    if (!isPlatformBrowser(this.platformId)) return;
 
-    const token = localStorage.getItem('auth_token');
-    const userJson = localStorage.getItem('auth_user');
-    const expiresAt = Number(localStorage.getItem('auth_expires_at'));
+    const token = sessionStorage.getItem('auth_token');
+    const userJson = sessionStorage.getItem('auth_user');
+    const expiresAt = Number(sessionStorage.getItem('auth_expires_at'));
 
-    if (!token || !userJson || !expiresAt || Date.now() >= expiresAt) {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('auth_user');
-      localStorage.removeItem('auth_expires_at');
+    if (!token || !userJson || !Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+      this.clearSession();
       return;
     }
 
     try {
-      this.currentUser.set(JSON.parse(userJson) as User);
+      const user = JSON.parse(userJson) as User;
+      this.currentUser.set(user);
       this.token.set(token);
+      this.scheduleExpiration(expiresAt);
     } catch {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('auth_user');
-      localStorage.removeItem('auth_expires_at');
+      this.clearSession();
+    }
+  }
+
+  private scheduleExpiration(expiresAt: number): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+
+    if (this.expiryTimer !== null) {
+      window.clearTimeout(this.expiryTimer);
+    }
+
+    this.expiryTimer = window.setTimeout(
+      () => this.logout(),
+      Math.max(0, expiresAt - Date.now())
+    );
+  }
+
+  private clearSession(): void {
+    this.currentUser.set(null);
+    this.token.set(null);
+
+    if (isPlatformBrowser(this.platformId)) {
+      if (this.expiryTimer !== null) {
+        window.clearTimeout(this.expiryTimer);
+        this.expiryTimer = null;
+      }
+
+      sessionStorage.removeItem('auth_token');
+      sessionStorage.removeItem('auth_user');
+      sessionStorage.removeItem('auth_expires_at');
     }
   }
 }

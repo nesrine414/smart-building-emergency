@@ -91,7 +91,16 @@
               "buildTarget": "client-pwa:build:development"
             }
           },
-          "defaultConfiguration": "development"
+          "defaultConfiguration": "development",
+          "options": {
+            "host": "127.0.0.1",
+            "port": 4200,
+            "ssl": true,
+            "allowedHosts": [
+              "www.smartbuilding.local",
+              "localhost"
+            ]
+          }
         }
       }
     }

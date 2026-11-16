@@ -1,0 +1,224 @@
+﻿:host {
+  display: block;
+  margin: 30px 0;
+  color: #e2e8f0;
+}
+
+.actuator-section {
+  padding: 24px;
+  border: 1px solid #334155;
+  border-radius: 16px;
+  background: #172033;
+}
+
+.actuator-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.section-label,
+.room-label {
+  color: #60a5fa;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+}
+
+.actuator-heading h2 {
+  margin: 7px 0;
+}
+
+.actuator-heading p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.admin-badge {
+  padding: 7px 12px;
+  border: 1px solid #1d4ed8;
+  border-radius: 20px;
+  background: rgba(37, 99, 235, .15);
+  color: #93c5fd;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.actuator-notice {
+  margin-bottom: 20px;
+  padding: 13px 15px;
+  border-left: 3px solid #f59e0b;
+  border-radius: 7px;
+  background: rgba(245, 158, 11, .09);
+  color: #fcd34d;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.room-actuator-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.room-actuator-card {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  background: #101a2d;
+}
+
+.room-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.room-heading h3 {
+  margin: 5px 0;
+}
+
+.room-heading small {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.refresh-state {
+  padding: 7px 10px;
+  border: 1px solid #475569;
+  border-radius: 7px;
+  background: #1e293b;
+  color: #cbd5e1;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.actuator-list {
+  display: grid;
+  gap: 10px;
+}
+
+.actuator-item {
+  display: grid;
+  gap: 10px;
+  padding: 13px;
+  border: 1px solid #26364e;
+  border-radius: 9px;
+  background: #172b42;
+}
+
+.actuator-info {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.state-pill {
+  padding: 5px 9px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.state-active {
+  background: rgba(22, 163, 74, .17);
+  color: #86efac;
+}
+
+.state-inactive {
+  background: rgba(100, 116, 139, .2);
+  color: #cbd5e1;
+}
+
+.state-unknown {
+  background: rgba(245, 158, 11, .15);
+  color: #fcd34d;
+}
+
+.actuator-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.actuator-buttons button {
+  flex: 1 1 100px;
+  padding: 9px 11px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.command-on {
+  background: #166534;
+  color: #dcfce7;
+}
+
+.command-off {
+  background: #7f1d1d;
+  color: #fee2e2;
+}
+
+.actuator-buttons button:disabled,
+.refresh-state:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+.pending-message,
+.command-message,
+.command-error,
+.room-error {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.pending-message {
+  color: #fcd34d;
+}
+
+.command-message {
+  color: #86efac;
+}
+
+.command-error,
+.room-error {
+  color: #fca5a5;
+}
+
+.empty-rooms {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+@media (max-width: 850px) {
+  .room-actuator-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 550px) {
+  .actuator-section {
+    padding: 14px;
+  }
+
+  .actuator-heading {
+    align-items: flex-start;
+  }
+
+  .room-heading {
+    align-items: flex-start;
+  }
+}
