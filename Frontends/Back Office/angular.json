@@ -60,7 +60,8 @@
             "security": {
               "allowedHosts": [
                 "admin.smartbuilding.local",
-                "localhost"
+                "localhost",
+		"dashboard.smartbuilding.local"
               ]
             },
             "ssr": {
@@ -109,7 +110,8 @@
             "ssl": true,
             "allowedHosts": [
               "admin.smartbuilding.local",
-              "localhost"
+              "localhost",
+	      "dashboard.smartbuilding.local"
             ]
           }
         }

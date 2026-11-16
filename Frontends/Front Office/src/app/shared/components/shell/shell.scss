@@ -1,133 +1,434 @@
-/* Top Bar */
+
+:host {
+  display: block;
+  min-height: 100vh;
+  color: #e8eef8;
+  background:
+    radial-gradient(ellipse at 15% 0%, rgba(37, 99, 235, 0.10), transparent 35%),
+    #0a1220;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
+/* =========================
+   TOP HEADER
+========================= */
+
 .top-bar {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 56px;
-  background: #0f172a;
-  border-bottom: 1px solid #1e293b;
+  inset: 0 0 auto 0;
+  z-index: 1000;
+  height: 76px;
+  padding: 0 clamp(18px, 4vw, 56px);
+
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 1rem;
-  z-index: 100;
+  gap: 20px;
+
+  background: rgba(10, 18, 32, 0.92);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 
-.top-bar-left {
+.brand {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 13px;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
 
-  .app-logo {
-    font-size: 1.25rem;
-  }
+.brand-icon {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
 
-  .app-name {
-    font-size: 1.125rem;
-    font-weight: 700;
-    color: #f1f5f9;
-  }
+  display: grid;
+  place-items: center;
+
+  font-size: 25px;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #1d4ed8, #0e7490);
+  box-shadow: 0 7px 22px rgba(29, 78, 216, 0.28);
+}
+
+.brand-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.app-name {
+  color: #f8fafc;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.45px;
+  line-height: 1.2;
+}
+
+.brand-tagline {
+  color: #8da3c0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.15px;
+  text-transform: uppercase;
 }
 
 .top-bar-right {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 14px;
 }
+
+/* =========================
+   CRITICAL ALERT BADGE
+========================= */
 
 .critical-badge {
-  background: rgba(239, 68, 68, 0.2);
-  border: 1px solid rgba(239, 68, 68, 0.4);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 9px 13px;
+  border: 1px solid rgba(248, 113, 113, 0.28);
+  border-radius: 999px;
+
+  background: rgba(127, 29, 29, 0.22);
   color: #fca5a5;
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 0.25rem 0.625rem;
-  border-radius: 9999px;
+
+  font-size: 12px;
+  font-weight: 750;
   text-decoration: none;
-  animation: pulse 2s infinite;
+
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+.critical-badge:hover {
+  background: rgba(127, 29, 29, 0.38);
+  border-color: rgba(248, 113, 113, 0.55);
 }
+
+.critical-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.75);
+  animation: critical-pulse 1.8s infinite;
+}
+
+@keyframes critical-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.55;
+    transform: scale(0.8);
+  }
+}
+
+/* =========================
+   NOTIFICATIONS
+========================= */
 
 .notif-btn {
   position: relative;
-  font-size: 1.25rem;
+  width: 43px;
+  height: 43px;
+
+  display: grid;
+  place-items: center;
+
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 13px;
+  background: rgba(30, 41, 59, 0.62);
+
+  color: #e2e8f0;
   text-decoration: none;
-  display: flex;
-  align-items: center;
 
-  .notif-count {
-    position: absolute;
-    top: -6px;
-    right: -8px;
-    background: #3b82f6;
-    color: #fff;
-    font-size: 0.625rem;
-    font-weight: 700;
-    min-width: 16px;
-    height: 16px;
-    border-radius: 9999px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 4px;
-  }
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
 
-/* Main Content */
+.notif-btn:hover,
+.notif-btn.selected {
+  background: rgba(37, 99, 235, 0.18);
+  border-color: rgba(96, 165, 250, 0.38);
+}
+
+.notif-icon {
+  font-size: 19px;
+}
+
+.notif-count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+
+  display: grid;
+  place-items: center;
+
+  border: 2px solid #0a1220;
+  border-radius: 999px;
+  background: #2563eb;
+  color: #fff;
+
+  font-size: 10px;
+  font-weight: 800;
+}
+
+/* =========================
+   MAIN CONTENT
+========================= */
+
 .main-content {
-  margin-top: 56px;
-  margin-bottom: 64px;
-  min-height: calc(100vh - 120px);
+  min-height: 100vh;
+  padding-top: 76px;
+  padding-bottom: 112px;
 }
 
-/* Bottom Navigation */
+/* =========================
+   BOTTOM NAVIGATION
+========================= */
+
 .bottom-nav {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 64px;
-  background: #0f172a;
-  border-top: 1px solid #1e293b;
+  z-index: 1000;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+
+  width: min(620px, calc(100% - 32px));
+  min-height: 72px;
+  padding: 8px;
+
   display: flex;
-  justify-content: space-around;
   align-items: center;
-  z-index: 100;
-  padding-bottom: env(safe-area-inset-bottom, 0);
+  justify-content: space-around;
+  gap: 5px;
+
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 22px;
+
+  background: rgba(15, 27, 46, 0.94);
+  box-shadow:
+    0 15px 45px rgba(0, 0, 0, 0.38),
+    0 2px 8px rgba(0, 0, 0, 0.2);
+
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .nav-item {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 54px;
+  padding: 7px 4px;
+
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.125rem;
+  justify-content: center;
+  gap: 4px;
+
+  border-radius: 15px;
+  color: #8495ad;
   text-decoration: none;
-  padding: 0.375rem 0.75rem;
-  border-radius: 8px;
-  transition: all 0.2s;
+
+  transition:
+    color 0.2s ease,
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.nav-icon {
+  font-size: 19px;
+  line-height: 1.2;
+  transition: transform 0.2s ease;
+}
+
+.nav-label {
+  overflow: hidden;
+  max-width: 100%;
+
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.1px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.nav-item:hover {
+  color: #dbeafe;
+  background: rgba(59, 130, 246, 0.10);
+}
+
+.nav-item.active {
+  color: #93c5fd;
+  background: linear-gradient(
+    145deg,
+    rgba(37, 99, 235, 0.25),
+    rgba(14, 116, 144, 0.16)
+  );
+}
+
+.nav-item.active::before {
+  content: "";
+  position: absolute;
+  top: 0;
+
+  width: 20px;
+  height: 3px;
+
+  border-radius: 0 0 5px 5px;
+  background: #60a5fa;
+  box-shadow: 0 0 10px rgba(96, 165, 250, 0.6);
+}
+
+.nav-item.active .nav-icon {
+  transform: translateY(-1px);
+}
+
+/* =========================
+   ACCESSIBILITY
+========================= */
+
+a:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* =========================
+   TABLET
+========================= */
+
+@media (max-width: 760px) {
+  .top-bar {
+    height: 68px;
+    padding: 0 16px;
+  }
+
+  .brand-icon {
+    width: 41px;
+    height: 41px;
+    flex-basis: 41px;
+    font-size: 22px;
+  }
+
+  .app-name {
+    font-size: 14px;
+  }
+
+  .brand-tagline {
+    font-size: 9px;
+    letter-spacing: 0.8px;
+  }
+
+  .main-content {
+    padding-top: 68px;
+    padding-bottom: 104px;
+  }
+
+  .bottom-nav {
+    min-height: 68px;
+    bottom: max(10px, env(safe-area-inset-bottom));
+  }
+}
+
+/* =========================
+   SMALL MOBILE
+========================= */
+
+@media (max-width: 420px) {
+  .top-bar {
+    padding: 0 11px;
+    gap: 8px;
+  }
+
+  .brand {
+    gap: 9px;
+  }
+
+  .brand-icon {
+    width: 36px;
+    height: 36px;
+    flex-basis: 36px;
+    font-size: 20px;
+    border-radius: 11px;
+  }
+
+  .app-name {
+    font-size: 12px;
+    letter-spacing: -0.25px;
+  }
+
+  .brand-tagline {
+    font-size: 8px;
+    letter-spacing: 0.5px;
+  }
+
+  .top-bar-right {
+    gap: 7px;
+  }
+
+  .critical-badge {
+    gap: 5px;
+    padding: 7px 8px;
+    font-size: 10px;
+  }
+
+  .notif-btn {
+    width: 37px;
+    height: 37px;
+    border-radius: 11px;
+  }
+
+  .bottom-nav {
+    width: calc(100% - 20px);
+    padding: 6px 4px;
+    gap: 1px;
+    border-radius: 18px;
+  }
+
+  .nav-item {
+    min-height: 52px;
+    padding: 6px 2px;
+    gap: 3px;
+  }
 
   .nav-icon {
-    font-size: 1.25rem;
+    font-size: 17px;
   }
 
   .nav-label {
-    font-size: 0.625rem;
-    font-weight: 500;
-    color: #64748b;
-  }
-
-  &.active {
-    .nav-label {
-      color: #3b82f6;
-    }
-  }
-
-  &:hover {
-    background: rgba(59, 130, 246, 0.08);
+    font-size: 9px;
   }
 }

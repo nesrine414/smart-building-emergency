@@ -99,6 +99,7 @@
             "allowedHosts": [
               "www.smartbuilding.local",
               "localhost"
+	      "dashboard.smartbuilding.local"
             ]
           }
         }

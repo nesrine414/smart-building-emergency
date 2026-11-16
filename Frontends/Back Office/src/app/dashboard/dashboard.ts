@@ -49,7 +49,13 @@ Chart.register(...registerables);
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [AsyncPipe, DatePipe, OccupantProfileComponent, AiAssistantComponent, ActuatorControlComponent],
+  imports: [
+    AsyncPipe,
+    DatePipe,
+    OccupantProfileComponent,
+    AiAssistantComponent,
+    ActuatorControlComponent
+  ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss'
 })
@@ -98,7 +104,7 @@ export class Dashboard implements AfterViewInit, OnDestroy {
 
   readings$ = this.readingService.watchReadings().pipe(
     catchError(error => {
-      console.error('Erreur lors de la rÃ©cupÃ©ration des mesures :', error);
+      console.error('Erreur lors de la récupération des mesures :', error);
       return of([]);
     }),
     shareReplay({ bufferSize: 1, refCount: true })
@@ -137,11 +143,11 @@ export class Dashboard implements AfterViewInit, OnDestroy {
         }
 
         this.buildingError = '';
-        console.log('BÃ¢timent chargÃ© :', this.building);
+        console.log('Bâtiment chargé :', this.building);
       },
       error: error => {
-        console.error('Erreur de chargement du bÃ¢timent :', error);
-        this.buildingError = 'Impossible de charger le bÃ¢timent.';
+        console.error('Erreur de chargement du bâtiment :', error);
+        this.buildingError = 'Impossible de charger le bâtiment.';
       }
     });
   }
@@ -228,7 +234,7 @@ export class Dashboard implements AfterViewInit, OnDestroy {
   loadIncidents(notifyNew = false): void {
     this.incidentService.getIncidents().subscribe({
       next: data => {
-        console.log('Incidents rÃ©cupÃ©rÃ©s depuis API :', data);
+        console.log('Incidents récupérés depuis API :', data);
 
         if (!this.initialIncidentsLoaded) {
           data.forEach(incident => {
@@ -239,7 +245,7 @@ export class Dashboard implements AfterViewInit, OnDestroy {
         } else if (notifyNew) {
           data.forEach(incident => {
             if (!this.knownIncidentIds.has(incident.id)) {
-              console.log('NOUVEL INCIDENT DÃ‰TECTÃ‰ :', incident);
+              console.log('NOUVEL INCIDENT DÉTECTÉ :', incident);
               this.showIncidentNotification(incident);
               this.knownIncidentIds.add(incident.id);
             }
@@ -269,17 +275,17 @@ export class Dashboard implements AfterViewInit, OnDestroy {
     }
 
     if (Notification.permission !== 'granted') {
-      console.warn('Autorisation de notification non accordÃ©e.');
+      console.warn('Autorisation de notification non accordée.');
       return;
     }
 
     try {
       const title = incident.type === 'GAS_LEAK'
-        ? 'ðŸš¨ Nouvelle fuite de gaz'
-        : 'ðŸ”¥ Nouvel incident incendie';
+        ? 'Nouvelle fuite de gaz'
+        : 'Nouvel incident incendie';
 
       const notification = new Notification(title, {
-        body: `${incident.description}\nGravitÃ© : ${incident.severity}`,
+        body: `${incident.description}\nGravité : ${incident.severity}`,
         icon: '/favicon.ico',
         tag: `incident-${incident.id}`,
         requireInteraction: true
@@ -291,7 +297,7 @@ export class Dashboard implements AfterViewInit, OnDestroy {
       };
 
     } catch (error) {
-      console.error('Impossible de crÃ©er la notification :', error);
+      console.error('Impossible de créer la notification :', error);
     }
   }
 
@@ -329,7 +335,7 @@ export class Dashboard implements AfterViewInit, OnDestroy {
 
     this.realtimeSubscription =
       this.realtimeService.events$.subscribe(event => {
-        console.log('Ã‰vÃ©nement WebSocket reÃ§u :', event);
+        console.log('Événement WebSocket reçu :', event);
         this.loadIncidents(true);
       });
   }
@@ -391,7 +397,7 @@ export class Dashboard implements AfterViewInit, OnDestroy {
       this.temperatureCanvas.nativeElement,
       readings,
       'TEMPERATURE',
-      'Temperature (Â°C)',
+      'Temperature (°C)',
       '#f59e0b',
       'temperature'
     );
@@ -533,8 +539,8 @@ export class Dashboard implements AfterViewInit, OnDestroy {
   }
 
   countActiveSensors(readings: SensorReading[]): number {
-    // Un capteur est considÃ©rÃ© actif dÃ¨s qu'une mesure valide
-    // est prÃ©sente dans le flux de mesures reÃ§u.
+    // A sensor is considered active as soon as a valid reading
+    // is present in the received readings stream.
     return this.getLatestReadingsBySensor(readings).filter(
       reading =>
         !!reading.sensorId &&
@@ -602,8 +608,8 @@ export class Dashboard implements AfterViewInit, OnDestroy {
     this.incidentService.updateStatus(id, 'ACKNOWLEDGED').subscribe({
       next: () => this.loadIncidents(),
       error: error => {
-        console.error('Erreur lors de lâ€™acquittement :', error);
-        this.incidentError = 'Impossible dâ€™acquitter cet incident.';
+        console.error("Erreur lors de l'acquittement :", error);
+        this.incidentError = "Impossible d'acquitter cet incident.";
       }
     });
   }
@@ -612,8 +618,8 @@ export class Dashboard implements AfterViewInit, OnDestroy {
     this.incidentService.updateStatus(id, 'RESOLVED').subscribe({
       next: () => this.loadIncidents(),
       error: error => {
-        console.error('Erreur lors de la rÃ©solution :', error);
-        this.incidentError = 'Impossible de rÃ©soudre cet incident.';
+        console.error('Erreur lors de la résolution :', error);
+        this.incidentError = 'Impossible de résoudre cet incident.';
       }
     });
   }
@@ -631,6 +637,7 @@ export class Dashboard implements AfterViewInit, OnDestroy {
     this.gasChart?.destroy();
     this.temperatureChart?.destroy();
   }
+
   protected logout(): void {
     this.realtimeService.disconnect();
     this.authService.logout();

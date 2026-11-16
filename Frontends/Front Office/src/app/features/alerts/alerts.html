@@ -1,45 +1,134 @@
-<div class="alerts-page">
-  <div class="page-header">
-    <h1>🚨 Alerts</h1>
-    <p>Real-time emergency alerts for your building</p>
-  </div>
 
-  <div class="alerts-list">
-    @for (alert of alerts(); track alert.id) {
-      <div class="alert-card" [class]="getSeverityClass(alert.severity)">
-        <div class="alert-header">
-          <span class="alert-icon">{{ getAlertIcon(alert.type) }}</span>
-          <div class="alert-title-row">
-            <h3>{{ alert.title }}</h3>
-            <span class="time">{{ getTimeAgo(alert.triggeredAt) }}</span>
-          </div>
-        </div>
-        <p class="alert-description">{{ alert.description }}</p>
-        <div class="alert-location">
-          📍 {{ alert.buildingName }} — {{ alert.floorName }} — {{ alert.roomName }}
-        </div>
-        <div class="alert-badges">
-          <span class="badge" [class]="getSeverityClass(alert.severity)">{{ alert.severity }}</span>
-          <span class="badge" [class]="getStatusClass(alert.status)">{{ alert.status }}</span>
-          <span class="badge type-badge">{{ alert.type }}</span>
-        </div>
-        @if (alert.recommendations && alert.recommendations.length > 0) {
-          <div class="recommendations">
-            <h4>⚡ Safety Recommendations</h4>
-            <ul>
-              @for (rec of alert.recommendations; track rec) {
-                <li>{{ rec }}</li>
-              }
-            </ul>
-          </div>
-        }
+<div class="alerts-page">
+  <header class="page-header">
+    <div class="header-copy">
+      <span class="eyebrow">SAFE BUILDING · MONITORING CENTER</span>
+      <h1>Emergency alerts</h1>
+      <p>Monitor incidents and safety notifications across your building.</p>
+    </div>
+
+    <div class="header-icon" aria-hidden="true">🚨</div>
+  </header>
+
+  <section class="overview-grid" aria-label="Alerts overview">
+    <article class="overview-card">
+      <div class="overview-top">
+        <span class="overview-label">Total alerts</span>
+        <span class="overview-icon icon-total">▤</span>
       </div>
-    } @empty {
-      <div class="empty-state">
-        <span class="empty-icon">✅</span>
-        <h3>No Alerts</h3>
-        <p>All systems are operating normally.</p>
+      <strong class="overview-value">{{ alerts().length }}</strong>
+      <span class="overview-caption">All recorded alerts</span>
+    </article>
+
+    <article class="overview-card critical-overview">
+      <div class="overview-top">
+        <span class="overview-label">Critical</span>
+        <span class="overview-icon icon-critical">!</span>
       </div>
-    }
-  </div>
+      <strong class="overview-value">{{ countBySeverity('CRITICAL') }}</strong>
+      <span class="overview-caption">Require immediate attention</span>
+    </article>
+
+    <article class="overview-card active-overview">
+      <div class="overview-top">
+        <span class="overview-label">Active</span>
+        <span class="overview-icon icon-active">●</span>
+      </div>
+      <strong class="overview-value">{{ countByStatus('ACTIVE') }}</strong>
+      <span class="overview-caption">Awaiting action</span>
+    </article>
+
+    <article class="overview-card resolved-overview">
+      <div class="overview-top">
+        <span class="overview-label">Acknowledged</span>
+        <span class="overview-icon icon-acknowledged">✓</span>
+      </div>
+      <strong class="overview-value">{{ countByStatus('ACKNOWLEDGED') }}</strong>
+      <span class="overview-caption">Already taken into account</span>
+    </article>
+  </section>
+
+  <section class="alerts-section">
+    <div class="section-heading">
+      <div>
+        <span class="section-eyebrow">LIVE MONITORING</span>
+        <h2>Alert activity</h2>
+      </div>
+      <span class="results-count">{{ alerts().length }} alert(s)</span>
+    </div>
+
+    <div class="alerts-list">
+      @for (alert of alerts(); track alert.id) {
+        <article class="alert-card" [class]="getSeverityClass(alert.severity)">
+          <div class="card-accent"></div>
+
+          <div class="alert-main">
+            <div class="alert-heading">
+              <div class="alert-icon" [class]="getSeverityClass(alert.severity)">
+                {{ getAlertIcon(alert.type) }}
+              </div>
+
+              <div class="alert-title-group">
+                <div class="alert-title-line">
+                  <h3>{{ alert.title }}</h3>
+                  <span class="alert-time">{{ getTimeAgo(alert.triggeredAt) }}</span>
+                </div>
+                <p class="alert-description">{{ alert.description }}</p>
+              </div>
+            </div>
+
+            <div class="alert-location">
+              <span class="location-icon">⌖</span>
+              <span>{{ alert.buildingName }}</span>
+              <span class="location-separator">/</span>
+              <span>{{ alert.floorName }}</span>
+              <span class="location-separator">/</span>
+              <strong>{{ alert.roomName }}</strong>
+            </div>
+
+            <div class="alert-badges">
+              <span class="badge severity-badge" [class]="getSeverityClass(alert.severity)">
+                <span class="badge-dot"></span>
+                {{ alert.severity }}
+              </span>
+
+              <span class="badge status-badge" [class]="getStatusClass(alert.status)">
+                {{ getStatusLabel(alert.status) }}
+              </span>
+
+              <span class="badge type-badge">
+                {{ getTypeLabel(alert.type) }}
+              </span>
+            </div>
+
+            @if (alert.recommendations && alert.recommendations.length > 0) {
+              <div class="recommendations">
+                <div class="recommendations-heading">
+                  <span class="recommendation-icon">✦</span>
+                  <h4>Safety recommendations</h4>
+                </div>
+                <ul>
+                  @for (rec of alert.recommendations; track rec) {
+                    <li>{{ rec }}</li>
+                  }
+                </ul>
+              </div>
+            }
+          </div>
+        </article>
+      } @empty {
+        <div class="empty-state">
+          <div class="empty-icon">✓</div>
+          <span class="empty-eyebrow">ALL CLEAR</span>
+          <h3>No alerts detected</h3>
+          <p>Your building is operating normally. New safety alerts will appear here.</p>
+        </div>
+      }
+    </div>
+  </section>
+
+  <footer class="page-footer">
+    <span>🏢 Smart Building Emergency</span>
+    <span>Powered by SafeBuilding</span>
+  </footer>
 </div>

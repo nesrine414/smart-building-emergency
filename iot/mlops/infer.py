@@ -300,7 +300,7 @@ class InferenceService:
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="Publie le score de risque ML de chaque salle (contrat 6)")
-    parser.add_argument("--host", default="localhost", help="adresse du broker (défaut : localhost)")
+    parser.add_argument("--host", default="mqtt.smartbuilding.local", help="adresse du broker (défaut : mqtt.smartbuilding.local)")
     parser.add_argument("--port", type=int, default=None, help="port (défaut : 8883 avec --tls, 1883 sinon)")
     parser.add_argument("--username", default=ML_ACCOUNT, help=f"compte MQTT (défaut : {ML_ACCOUNT})")
     parser.add_argument("--password", default=None, help="mot de passe (défaut : MQTT_ML_PASSWORD, variable ou .env)")

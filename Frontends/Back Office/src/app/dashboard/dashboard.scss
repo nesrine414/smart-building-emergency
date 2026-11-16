@@ -1291,3 +1291,110 @@ tbody tr:last-child td {
   width: 19px;
   height: 19px;
 }
+/* =========================
+   DASHBOARD VISUAL POLISH
+========================= */
+
+.main-content {
+  max-width: 1800px;
+  margin: 0 auto;
+}
+
+.panel,
+.stat-card {
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.panel:hover {
+  border-color: #354a67;
+}
+
+ading {
+  min-width: 0;
+}
+
+
+.form-group input,
+.floor-selector select {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-group input:focus,
+.floor-selector select:focus {
+  border-color: #60a5fa;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.12);
+}
+
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+input:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 3px;
+}
+
+.page-footer {
+  flex-wrap: wrap;
+  border-top: 1px solid #25334a;
+  margin-top: 28px;
+  padding-top: 18px;
+  line-height: 1.6;
+}
+
+.loading-screen h2 {
+  color: #f8fafc;
+  font-weight: 750;
+}
+
+@media (max-width: 1200px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .main-content {
+    max-width: none;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-card {
+    padding: 16px;
+  }
+
+  .topbar h1 {
+    font-size: 21px;
+  }
+
+  .panel {
+    border-radius: 10px;
+  }
+}
+
+@m.panel-heedia (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

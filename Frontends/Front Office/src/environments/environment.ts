@@ -1,7 +1,7 @@
-export const environment = {
+﻿export const environment = {
   production: false,
   useMock: false,
-  apiUrl: 'http://localhost:8081/api',
-  iamUrl: 'http://localhost:8081/iam/api',
-  wsUrl: 'ws://localhost:8081/api/ws/events'
+  apiUrl: 'https://api.smartbuilding.local:8444/api',
+  iamUrl: 'https://api.smartbuilding.local:8444/iam/api',
+  wsUrl: 'wss://api.smartbuilding.local:8444/api/ws/events'
 };

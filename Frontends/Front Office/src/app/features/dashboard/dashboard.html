@@ -1,130 +1,221 @@
+
 <div class="dashboard">
-  <!-- Safety Status Banner -->
+
+  <!-- Welcome heading -->
+  <section class="welcome-section">
+    <div class="welcome-copy">
+      <span class="eyebrow">SMART BUILDING · CONTROL CENTER</span>
+      <h1>Welcome back, {{ user()?.firstName ?? 'Occupant' }}</h1>
+      <p>Your building safety overview at a glance.</p>
+    </div>
+    <div class="welcome-mark" aria-hidden="true">🏢</div>
+  </section>
+
+  <!-- Current safety status -->
   <section class="safety-banner" [class]="statusConfig().class">
     <div class="status-content">
-      <span class="status-icon">{{ statusConfig().icon }}</span>
-      <div>
+      <div class="status-icon">{{ statusConfig().icon }}</div>
+      <div class="status-copy">
+        <span class="status-caption">CURRENT BUILDING STATUS</span>
         <h2 class="status-label">{{ statusConfig().label }}</h2>
         <p class="status-message">{{ statusConfig().message }}</p>
       </div>
     </div>
+    <span class="status-indicator"></span>
   </section>
 
-  <!-- Welcome -->
-  <section class="welcome-section">
-    <h1>Welcome, {{ user()?.firstName ?? 'User' }}</h1>
-    <p class="welcome-subtitle">Smart Building Emergency Dashboard</p>
-  </section>
+  <!-- Overview statistics -->
+  <section class="stats-grid" aria-label="Building overview">
 
-  <!-- Quick Stats -->
-  <section class="stats-grid">
-    <div class="stat-card stat-danger">
-      <div class="stat-icon">🚨</div>
+    <article class="stat-card stat-danger">
+      <div class="stat-top">
+        <span class="stat-icon">🚨</span>
+        <span class="stat-caption">LIVE</span>
+      </div>
       <div class="stat-info">
         <span class="stat-value">{{ activeAlerts().length }}</span>
         <span class="stat-label">Active Alerts</span>
       </div>
-    </div>
+    </article>
 
-    <div class="stat-card stat-warning">
-      <div class="stat-icon">📋</div>
+    <article class="stat-card stat-warning">
+      <div class="stat-top">
+        <span class="stat-icon">📋</span>
+        <span class="stat-caption">TRACKING</span>
+      </div>
       <div class="stat-info">
         <span class="stat-value">{{ activeIncidents().length }}</span>
         <span class="stat-label">Open Incidents</span>
       </div>
-    </div>
+    </article>
 
-    <div class="stat-card stat-info">
-      <div class="stat-icon">🏢</div>
+    <article class="stat-card stat-info">
+      <div class="stat-top">
+        <span class="stat-icon">🏢</span>
+        <span class="stat-caption">REGISTERED</span>
+      </div>
       <div class="stat-info">
         <span class="stat-value">{{ buildings().length }}</span>
         <span class="stat-label">Buildings</span>
       </div>
-    </div>
+    </article>
 
-    <div class="stat-card stat-notification">
-      <div class="stat-icon">🔔</div>
+    <article class="stat-card stat-notification">
+      <div class="stat-top">
+        <span class="stat-icon">🔔</span>
+        <span class="stat-caption">INBOX</span>
+      </div>
       <div class="stat-info">
         <span class="stat-value">{{ unreadNotifications() }}</span>
-        <span class="stat-label">Unread</span>
+        <span class="stat-label">Unread Notifications</span>
       </div>
-    </div>
+    </article>
+
   </section>
 
-  <!-- Latest Sensor Readings -->
-  <section class="section">
+  <!-- Sensor readings -->
+  <section class="section sensor-section">
     <div class="section-header">
-      <h2>Live sensor readings</h2>
-      <span>{{ latestReadings().length }} capteurs</span>
+      <div>
+        <span class="eyebrow">REAL-TIME MONITORING</span>
+        <h2>Live sensor readings</h2>
+        <p class="section-description">Latest measurements received from your building sensors.</p>
+      </div>
+      <span class="section-count">
+        <span class="live-dot"></span>
+        {{ latestReadings().length }} sensors
+      </span>
     </div>
 
     <div class="readings-grid">
       @for (reading of latestReadings(); track reading.sensorId) {
         <article class="reading-card">
-          <strong>{{ reading.type }}</strong>
-          <p>{{ reading.roomId }} · {{ reading.sensorId }}</p>
-          <span class="reading-value">
-            {{ reading.value }} {{ reading.unit }}
-          </span>
+          <div class="reading-top">
+            <span class="reading-type">{{ reading.type }}</span>
+            <span class="sensor-dot"></span>
+          </div>
+
+          <div class="reading-location">
+            <span class="location-icon">📍</span>
+            {{ reading.roomId }}
+          </div>
+
+          <div class="reading-value">
+            {{ reading.value }}
+            <span class="reading-unit">{{ reading.unit }}</span>
+          </div>
+
+          <div class="reading-footer">
+            <span>Sensor ID</span>
+            <span class="sensor-id">{{ reading.sensorId }}</span>
+          </div>
         </article>
       } @empty {
-        <p>Aucune mesure disponible pour le moment.</p>
+        <div class="empty-state">
+          <span class="empty-icon">📡</span>
+          <h3>No sensor data available</h3>
+          <p>Measurements will appear here when sensors send new readings.</p>
+        </div>
       }
     </div>
   </section>
-  <!-- Active Alerts -->
+
+  <!-- Active alerts -->
   @if (activeAlerts().length > 0) {
-    <section class="section">
+    <section class="section alerts-section">
       <div class="section-header">
-        <h2>🚨 Active Alerts</h2>
-        <a routerLink="/alerts" class="view-all">View All →</a>
+        <div>
+          <span class="eyebrow">ATTENTION REQUIRED</span>
+          <h2>Active alerts</h2>
+          <p class="section-description">Events that may require your attention.</p>
+        </div>
+        <a routerLink="/alerts" class="view-all">View all <span>→</span></a>
       </div>
+
       <div class="alerts-list">
         @for (alert of activeAlerts(); track alert.id) {
-          <div class="alert-card" [class]="getSeverityClass(alert.severity)">
+          <article class="alert-card" [class]="getSeverityClass(alert.severity)">
             <div class="alert-icon">{{ getAlertIcon(alert.type) }}</div>
+
             <div class="alert-content">
-              <h3>{{ alert.title }}</h3>
+              <div class="alert-heading">
+                <h3>{{ alert.title }}</h3>
+                <span class="badge" [class]="getSeverityClass(alert.severity)">
+                  {{ alert.severity }}
+                </span>
+              </div>
+
               <p>{{ alert.description }}</p>
+
               <div class="alert-meta">
-                <span class="badge" [class]="getSeverityClass(alert.severity)">{{ alert.severity }}</span>
-                <span class="time">{{ getTimeAgo(alert.triggeredAt) }}</span>
+                <span>🕒 {{ getTimeAgo(alert.triggeredAt) }}</span>
+                <span class="alert-type">{{ alert.type }}</span>
               </div>
             </div>
-          </div>
+          </article>
         }
       </div>
     </section>
   }
 
-  <!-- Quick Actions -->
-  <section class="section">
-    <h2>Quick Actions</h2>
+  <!-- Quick actions -->
+  <section class="section actions-section">
+    <div class="section-header">
+      <div>
+        <span class="eyebrow">QUICK ACCESS</span>
+        <h2>Quick actions</h2>
+        <p class="section-description">Go directly to the tools you need.</p>
+      </div>
+    </div>
+
     <div class="actions-grid">
-      <a routerLink="/alerts" class="action-card">
+      <a routerLink="/alerts" class="action-card action-alerts">
         <span class="action-icon">🚨</span>
         <span class="action-label">Alerts</span>
+        <span class="action-description">Monitor warnings</span>
+        <span class="action-arrow">↗</span>
       </a>
+
       <a routerLink="/building-map" class="action-card">
         <span class="action-icon">🗺️</span>
         <span class="action-label">Floor Plan</span>
+        <span class="action-description">Explore your building</span>
+        <span class="action-arrow">↗</span>
       </a>
+
       <a routerLink="/incidents" class="action-card">
         <span class="action-icon">📋</span>
         <span class="action-label">Incidents</span>
+        <span class="action-description">Review reported events</span>
+        <span class="action-arrow">↗</span>
       </a>
+
       <a routerLink="/ai-assistant" class="action-card">
         <span class="action-icon">🤖</span>
         <span class="action-label">AI Assistant</span>
+        <span class="action-description">Get safety assistance</span>
+        <span class="action-arrow">↗</span>
       </a>
+
       <a routerLink="/notifications" class="action-card">
         <span class="action-icon">🔔</span>
         <span class="action-label">Notifications</span>
+        <span class="action-description">View your updates</span>
+        <span class="action-arrow">↗</span>
       </a>
+
       <a routerLink="/profile" class="action-card">
         <span class="action-icon">👤</span>
-        <span class="action-label">Profile</span>
+        <span class="action-label">My Profile</span>
+        <span class="action-description">Manage your account</span>
+        <span class="action-arrow">↗</span>
       </a>
     </div>
   </section>
+
+  <footer class="dashboard-footer">
+    <span>🏢 Smart Building Emergency</span>
+    <span>Powered by SafeBuilding</span>
+  </footer>
+
 </div>
