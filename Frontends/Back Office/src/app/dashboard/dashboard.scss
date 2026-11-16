@@ -1398,3 +1398,20 @@ input:focus-visible {
     animation-iteration-count: 1 !important;
   }
 }
+
+/* =========================
+   NAVBAR - SECTION SCROLL
+========================= */
+
+html {
+  scroll-behavior: smooth;
+}
+
+.main-content {
+  scroll-behavior: smooth;
+}
+
+.main-content section,
+.main-content header[id] {
+  scroll-margin-top: 25px;
+}
