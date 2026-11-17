@@ -1,66 +1,277 @@
+
 <div class="ai-page">
-  <div class="page-header">
-    <h1>🤖 AI Safety Assistant</h1>
-    <p>Intelligent emergency guidance</p>
-  </div>
 
-  <!-- Quick Actions -->
-  <div class="quick-actions">
-    @for (action of quickActions; track action.label) {
-      <button class="quick-action-btn" (click)="sendQuickAction(action.prompt)">
-        {{ action.label }}
+  <!-- PAGE HEADER -->
+  <header class="page-header">
+    <div class="header-main">
+      <div class="assistant-icon">🤖</div>
+
+      <div class="header-text">
+        <div class="eyebrow">SAFE BUILDING · INTELLIGENCE</div>
+        <h1>Assistant intelligent</h1>
+        <p>Votre assistant dédié à la sécurité de votre bâtiment</p>
+      </div>
+    </div>
+
+    <div class="assistant-status">
+      <span class="status-dot"></span>
+      Assistant disponible
+    </div>
+  </header>
+
+  <!-- ROOM CONTEXT -->
+  <section class="room-context" role="status">
+    <div class="context-icon">📍</div>
+
+    <div class="context-content">
+      <span class="context-label">CONTEXTE DE LOCALISATION</span>
+      <strong>
+        Salle associée :
+        {{ currentRoomId() || 'Non renseignée' }}
+      </strong>
+
+      @if (!currentRoomId()) {
+        <span class="context-hint">
+          Configurez votre bâtiment, étage et salle dans votre profil
+          pour obtenir des réponses contextualisées.
+        </span>
+      }
+    </div>
+
+    <span class="context-badge">
+      {{ currentRoomId() ? 'Connectée' : 'À configurer' }}
+    </span>
+  </section>
+
+  <!-- QUICK ACTIONS -->
+  <section class="quick-actions-section">
+    <div class="section-heading">
+      <div>
+        <span class="section-eyebrow">DÉMARRER UNE CONVERSATION</span>
+        <h2>Comment puis-je vous aider ?</h2>
+      </div>
+      <span class="suggestion-count">Suggestions rapides</span>
+    </div>
+
+    <div class="quick-actions">
+      @for (action of quickActions; track action.label) {
+        <button
+          type="button"
+          class="quick-action-btn"
+          (click)="sendQuickAction(action.prompt)"
+          [disabled]="isTyping()"
+        >
+          <span class="quick-action-arrow">↗</span>
+          {{ action.label }}
+        </button>
+      }
+    </div>
+  </section>
+
+  <!-- CHAT -->
+  <section class="chat-panel">
+
+    <div class="chat-panel-header">
+      <div class="chat-panel-title">
+        <div class="chat-mini-icon">🤖</div>
+
+        <div>
+          <h2>Conversation</h2>
+          <span>Assistant IA SafeBuilding</span>
+        </div>
+      </div>
+
+      <div class="secure-indicator">
+        <span></span>
+        Assistance intelligente
+      </div>
+    </div>
+
+    <div class="chat-container" #chatContainer aria-live="polite">
+
+      @for (message of messages(); track message.id) {
+        <div class="chat-message" [class]="'msg-' + message.role">
+
+          <div class="msg-avatar">
+            {{ message.role === 'assistant' ? 'IA' : 'VO' }}
+          </div>
+
+          <div class="message-wrapper">
+
+            <div class="message-author">
+              {{ message.role === 'assistant' ? 'SafeBuilding AI' : 'Vous' }}
+            </div>
+
+            <div class="msg-bubble">
+              <div class="msg-content">{{ message.content }}</div>
+
+              <span class="msg-time">
+                {{ message.timestamp | date:'HH:mm' }}
+              </span>
+
+              @if (message.role === 'assistant' && message.interactionId) {
+
+                <div class="msg-metadata">
+                  @if (message.model) {
+                    <span>Modèle : {{ message.model }}</span>
+                  }
+
+                  @if (message.latencyMs !== undefined) {
+                    <span>Latence : {{ message.latencyMs }} ms</span>
+                  }
+                </div>
+
+                @if (message.toolsUsed?.length) {
+                  <div class="msg-tools">
+                    <strong>Outils consultés</strong>
+                    <p>{{ message.toolsUsed?.join(', ') ?? '' }}</p>
+                  </div>
+                } @else {
+                  <div class="msg-tools">
+                    Aucun outil n'a été signalé pour cette réponse.
+                  </div>
+                }
+
+                <div class="message-disclaimer">
+                  <span>⚠</span>
+                  Réponse générée par une IA. Suivez toujours les alarmes,
+                  les consignes officielles et les procédures d'évacuation.
+                </div>
+
+                <div class="feedback-row">
+                  @if (!message.vote) {
+                    <span class="feedback-question">
+                      Cette réponse vous a-t-elle aidé ?
+                    </span>
+
+                    <button
+                      type="button"
+                      class="feedback-positive"
+                      (click)="submitFeedback(message, 'UP')"
+                      [disabled]="feedbackBusy() !== null"
+                    >
+                      👍 Utile
+                    </button>
+
+                    <button
+                      type="button"
+                      class="feedback-negative"
+                      (click)="showNegativeFeedback(message.id)"
+                      [disabled]="feedbackBusy() !== null"
+                    >
+                      👎 Pas utile
+                    </button>
+                  } @else {
+                    <span class="feedback-success">
+                      ✓ Évaluation enregistrée :
+                      {{ message.vote === 'UP' ? 'Utile' : 'Pas utile' }}
+                    </span>
+                  }
+                </div>
+
+                @if (message.feedbackChoice === 'DOWN' && !message.vote) {
+                  <div class="feedback-comment">
+                    <label [for]="'comment-' + message.id">
+                      Commentaire facultatif
+                    </label>
+
+                    <textarea
+                      [id]="'comment-' + message.id"
+                      rows="3"
+                      maxlength="1000"
+                      placeholder="Expliquez pourquoi cette réponse est incorrecte..."
+                      [value]="message.feedbackComment ?? ''"
+                      (input)="setFeedbackComment(message.id, $any($event.target).value)"
+                    ></textarea>
+
+                    <button
+                      type="button"
+                      class="feedback-submit"
+                      (click)="submitFeedback(message, 'DOWN')"
+                      [disabled]="feedbackBusy() !== null"
+                    >
+                      {{ feedbackBusy() === message.id
+                        ? 'Enregistrement...'
+                        : 'Envoyer mon évaluation' }}
+                    </button>
+                  </div>
+                }
+
+                @if (message.feedbackError) {
+                  <p class="feedback-error" role="alert">
+                    {{ message.feedbackError }}
+                  </p>
+                }
+              }
+            </div>
+          </div>
+        </div>
+      }
+
+      @if (isTyping()) {
+        <div class="chat-message msg-assistant">
+          <div class="msg-avatar">IA</div>
+
+          <div class="message-wrapper">
+            <div class="message-author">SafeBuilding AI</div>
+
+            <div class="msg-bubble typing-indicator">
+              <span>L'assistant analyse votre demande</span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+            </div>
+          </div>
+        </div>
+      }
+
+    </div>
+
+    <!-- MESSAGE INPUT -->
+    <div class="chat-input-area">
+      <div class="input-wrapper">
+        <span class="input-icon">✦</span>
+
+        <input
+          type="text"
+          placeholder="Posez votre question sur la sécurité du bâtiment..."
+          [ngModel]="userInput()"
+          (ngModelChange)="userInput.set($event)"
+          (keydown.enter)="sendMessage()"
+          class="chat-input"
+          [disabled]="isTyping()"
+          aria-label="Votre question à l'assistant"
+        />
+
+        <span class="input-hint">Entrée ↵</span>
+      </div>
+
+      <button
+        type="button"
+        class="send-btn"
+        (click)="sendMessage()"
+        [disabled]="!userInput().trim() || isTyping()"
+        aria-label="Envoyer la question"
+      >
+        <span>Envoyer</span>
+        <span class="send-icon">➤</span>
       </button>
-    }
-  </div>
+    </div>
 
-  <!-- Chat Messages -->
-  <div class="chat-container" #chatContainer>
-    @for (message of messages(); track message.id) {
-      <div class="chat-message" [class]="'msg-' + message.role">
-        <div class="msg-avatar">
-          @if (message.role === 'assistant') {
-            🤖
-          } @else {
-            👤
-          }
-        </div>
-        <div class="msg-bubble">
-          <div class="msg-content">{{ message.content }}</div>
-          <span class="msg-time">
-            {{ message.timestamp | date:'HH:mm' }}
-          </span>
-        </div>
-      </div>
-    }
+    <div class="input-footer">
+      <span>✦ Propulsé par l'intelligence artificielle</span>
+      <span>Ne partagez pas d'informations sensibles.</span>
+    </div>
 
-    @if (isTyping()) {
-      <div class="chat-message msg-assistant">
-        <div class="msg-avatar">🤖</div>
-        <div class="msg-bubble typing-indicator">
-          <span class="dot"></span>
-          <span class="dot"></span>
-          <span class="dot"></span>
-        </div>
-      </div>
-    }
-  </div>
+  </section>
 
-  <!-- Input Area -->
-  <div class="chat-input-area">
-    <input
-      type="text"
-      placeholder="Ask about safety, alerts, routes..."
-      [ngModel]="userInput()"
-      (ngModelChange)="userInput.set($event)"
-      (keydown.enter)="sendMessage()"
-      class="chat-input"
-    />
-    <button class="send-btn" (click)="sendMessage()" [disabled]="!userInput().trim()">
-      ➤
-    </button>
-  </div>
+  <!-- DISCLAIMER -->
+  <footer class="ai-disclaimer">
+    <span class="disclaimer-icon">🛡️</span>
+    <p>
+      L'assistant IA est une aide à la décision. Il ne remplace jamais
+      les procédures officielles, les alarmes ni les consignes des secours.
+    </p>
+  </footer>
 
-  <p class="ai-disclaimer">
-    ⚠️ AI provides guidance only. Always follow official emergency procedures and deterministic alarm rules.
-  </p>
 </div>

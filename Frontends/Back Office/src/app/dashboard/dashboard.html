@@ -11,7 +11,7 @@
 </svg></div>
         <div class="brand-text">
           <h2>Smart Building</h2>
-          <span>Emergency System</span>
+          <h2>Emergency</h2>
         </div>
       </div>
 
@@ -98,7 +98,6 @@
         </div>
 
         <div class="sidebar-footer">
-          <span>SMART BUILDING</span>
           <small>Emergency Management · © 2026</small>
         </div>
       </div>
@@ -244,7 +243,7 @@
           </div>
 
           <div class="stat-number">
-            {{ incidents.length }}
+            {{ openIncidentCount }}
           </div>
 
           <div class="stat-description">
@@ -275,7 +274,7 @@
 
           <div class="building-map-header">
             <div>
-              <h3>ðŸ¢ {{ building.name }}</h3>
+              <h3>🏢 {{ building.name }}</h3>
               <p>{{ building.address }}</p>
             </div>
 
@@ -600,7 +599,7 @@
 
         } @else {
           <div class="no-alerts">
-            <span>âœ“</span>
+            <span>✓</span>
             No active alerts. All monitored readings are within configured limits.
           </div>
         }
@@ -815,25 +814,20 @@
 
       </section>
 
-      <app-ai-assistant [incidents]="incidents"></app-ai-assistant>
+            <app-actuator-control [rooms]="selectedFloorRooms"></app-actuator-control>
+<app-ai-assistant [incidents]="incidents"></app-ai-assistant>
 
-      <!-- FOOTER -->
       <footer class="page-footer">
         <div>
-          <strong>Smart Building Emergency System</strong>
           <span>Intelligent Building Monitoring & Emergency Management</span>
         </div>
-
         <span>Data refresh interval: 5 seconds · © 2026</span>
       </footer>
-
     </main>
   </div>
 } @else {
   <div class="loading-screen">
-    <h2>ðŸ¢ Smart Building Emergency System</h2>
+    <h2>🏢 Smart Building Emergency System</h2>
     <p>Loading sensor readings...</p>
   </div>
 }
-
-

@@ -14,6 +14,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
 import java.util.Map;
+import java.util.Locale;
 
 @Path("/ai")
 @ApplicationScoped
@@ -78,25 +79,69 @@ public class AiResource {
         }
     }
 
+
     // 3. POST /api/ai/feedback
     @POST
     @Path("/feedback")
     public Response submitFeedback(Map<String, String> payload) {
-        if (payload == null || !payload.containsKey("interactionId") || !payload.containsKey("vote")) {
+
+        // Vérifier les champs obligatoires
+        if (payload == null
+                || payload.get("interactionId") == null
+                || payload.get("interactionId").isBlank()
+                || payload.get("vote") == null
+                || payload.get("vote").isBlank()) {
+
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(Map.of("error", "interactionId et vote sont obligatoires"))
+                    .entity(Map.of("error",
+                            "interactionId et vote sont obligatoires"))
                     .build();
         }
 
-        String interactionId = payload.get("interactionId");
-        String vote = payload.get("vote");
+        // Récupérer l'identité authentifiée depuis le JWT
+        String userId = securityContext.getUserPrincipal() != null
+                ? securityContext.getUserPrincipal().getName()
+                : null;
+
+        if (userId == null || userId.isBlank()) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("error", "Utilisateur non authentifié"))
+                    .build();
+        }
+
+        String interactionId = payload.get("interactionId").trim();
+        String vote = payload.get("vote").trim().toUpperCase(Locale.ROOT);
         String comment = payload.get("comment");
 
-        boolean ok = aiService.registerFeedback(interactionId, vote, comment);
-        if (ok) {
-            return Response.noContent().build(); // 204 No Content
-        } else {
-            return Response.status(Response.Status.NOT_FOUND).entity(Map.of("error", "Interaction non trouvee")).build();
+        // Validation du vote
+        if (!"UP".equals(vote) && !"DOWN".equals(vote)) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "Le vote doit être UP ou DOWN"))
+                    .build();
+        }
+
+        try {
+            boolean ok = aiService.registerFeedback(
+                    interactionId, vote, comment, userId);
+
+            if (ok) {
+                return Response.noContent().build();
+            }
+
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("error", "Interaction non trouvee"))
+                    .build();
+
+        } catch (SecurityException e) {
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity(Map.of("error",
+                            "Vous ne pouvez modifier que vos propres interactions"))
+                    .build();
+
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", e.getMessage()))
+                    .build();
         }
     }
 

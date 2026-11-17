@@ -1,61 +1,104 @@
+
 <div class="map-page">
-  <div class="page-header">
-    <h1>Building Floor Plan</h1>
-    <p>Live building layout and incident locations</p>
-  </div>
+  <header class="page-header">
+    <div class="header-copy">
+      <span class="eyebrow">SAFE BUILDING · SPATIAL MONITORING</span>
+      <h1>Building map</h1>
+      <p>Explore your building layout and monitor incidents by location.</p>
+    </div>
+    <div class="header-icon" aria-hidden="true">🏢</div>
+  </header>
 
   @if (buildings().length === 0) {
     <div class="map-empty-state">
-      No building data is currently available.
+      <span class="empty-icon">🏢</span>
+      <h3>No building data available</h3>
+      <p>Building information will appear here when it becomes available.</p>
     </div>
   } @else {
-    <div class="building-selector" aria-label="Select building">
-      @for (building of buildings(); track building.id) {
-        <button
-          type="button"
-          class="building-btn"
-          [class.active]="selectedBuildingId() === building.id"
-          (click)="selectBuilding(building.id)"
-        >
-          <span
-            class="building-status-dot"
-            [class]="'dot-' + building.status.toLowerCase()"
-          ></span>
-          {{ building.name }}
-        </button>
-      }
-    </div>
+    <section class="selector-section">
+      <div class="section-heading">
+        <div>
+          <span class="section-eyebrow">YOUR ENVIRONMENT</span>
+          <h2>Select a building</h2>
+        </div>
+        <span class="selector-count">{{ buildings().length }} building(s)</span>
+      </div>
+
+      <div class="building-selector" aria-label="Select building">
+        @for (building of buildings(); track building.id) {
+          <button
+            type="button"
+            class="building-btn"
+            [class.active]="selectedBuildingId() === building.id"
+            (click)="selectBuilding(building.id)"
+          >
+            <span class="building-btn-icon">▦</span>
+            <span class="building-btn-name">{{ building.name }}</span>
+            <span
+              class="building-status-dot"
+              [class]="'dot-' + building.status.toLowerCase()"
+              [attr.aria-label]="'Building status: ' + building.status"
+            ></span>
+          </button>
+        }
+      </div>
+    </section>
   }
 
   @if (selectedBuilding(); as building) {
-    <div class="floor-tabs" aria-label="Select floor">
-      @for (floor of building.floors; track floor.id) {
-        <button
-          type="button"
-          class="floor-tab"
-          [class.active]="selectedFloorLevel() === floor.level"
-          (click)="selectFloor(floor.level)"
-        >
-          {{ floor.name }}
-        </button>
-      }
-    </div>
+    <section class="floor-selector-section">
+      <div class="section-heading">
+        <div>
+          <span class="section-eyebrow">BUILDING LEVELS</span>
+          <h2>Choose a floor</h2>
+        </div>
+      </div>
+
+      <div class="floor-tabs" aria-label="Select floor">
+        @for (floor of building.floors; track floor.id) {
+          <button
+            type="button"
+            class="floor-tab"
+            [class.active]="selectedFloorLevel() === floor.level"
+            (click)="selectFloor(floor.level)"
+          >
+            <span class="floor-tab-icon">▤</span>
+            {{ floor.name }}
+          </button>
+        }
+      </div>
+    </section>
   }
 
   @if (selectedFloor(); as floor) {
-    <div class="floor-plan-container">
+    <section class="floor-plan-container">
       <div class="floor-plan-header">
-        <h2>{{ selectedBuilding()?.name }} - {{ floor.name }}</h2>
+        <div>
+          <span class="section-eyebrow">LIVE FLOOR OVERVIEW</span>
+          <h2>{{ selectedBuilding()?.name }}</h2>
+          <p class="floor-subtitle">{{ floor.name }} · Level {{ floor.level }}</p>
+        </div>
+
         @if (floorAlerts().length > 0) {
-          <span class="alert-count-badge">
+          <span class="floor-status status-alert">
+            <span class="status-pulse"></span>
             {{ floorAlerts().length }} active incident(s)
           </span>
         } @else {
-          <span class="safe-badge">No active incidents reported</span>
+          <span class="floor-status status-safe">
+            <span class="status-pulse"></span>
+            No active incidents
+          </span>
         }
       </div>
 
       @if (floor.rooms.length > 0) {
+        <div class="map-instructions">
+          <span class="instruction-icon">ⓘ</span>
+          Select a room on the floor plan to view its details and active incidents.
+        </div>
+
         <div class="floor-plan-svg">
           <svg
             viewBox="0 0 100 60"
@@ -63,13 +106,20 @@
             [attr.aria-label]="'Floor plan for ' + floor.name"
             xmlns="http://www.w3.org/2000/svg"
           >
-            <rect x="0" y="0" width="100" height="60" fill="#0f172a" rx="2"/>
+            <defs>
+              <pattern id="map-grid" width="5" height="5" patternUnits="userSpaceOnUse">
+                <path d="M 5 0 L 0 0 0 5" class="grid-line" fill="none"/>
+              </pattern>
+            </defs>
+
+            <rect x="0" y="0" width="100" height="60" class="map-background" rx="2"/>
+            <rect x="0" y="0" width="100" height="60" fill="url(#map-grid)" rx="2"/>
             <rect
-              x="2" y="2"
-              width="96" height="56"
-              fill="none"
-              stroke="#64748b"
-              stroke-width="0.7"
+              x="2"
+              y="2"
+              width="96"
+              height="56"
+              class="map-outline"
               rx="1"
             />
 
@@ -82,6 +132,7 @@
                 (keydown.enter)="selectRoom(room.id)"
                 (keydown.space)="selectRoom(room.id); $event.preventDefault()"
                 [attr.aria-label]="'Room ' + room.roomNumber"
+                [attr.aria-pressed]="selectedRoomId() === room.id"
               >
                 <rect
                   class="room-rect"
@@ -132,77 +183,131 @@
         </div>
 
         <div class="map-legend">
-          <span><i class="legend-safe"></i> No active incident</span>
+          <span><i class="legend-safe"></i> Safe room</span>
           <span><i class="legend-warning"></i> Active incident</span>
           <span><i class="legend-danger"></i> Critical incident</span>
+          <span><i class="legend-selected"></i> Selected room</span>
         </div>
 
         @if (selectedRoom(); as room) {
-          <div class="selected-room-card">
-            <div>
-              <h3>Room {{ room.roomNumber }}</h3>
-              <p>Building: {{ selectedBuilding()?.name }}</p>
-              <p>Floor: {{ floor.level }}</p>
-              <p>Recorded exit: {{ room.exit || 'Not specified' }}</p>
+          <section class="selected-room-card">
+            <div class="room-card-header">
+              <div class="room-card-icon">▦</div>
+              <div>
+                <span class="section-eyebrow">ROOM DETAILS</span>
+                <h3>Room {{ room.roomNumber }}</h3>
+              </div>
+            </div>
+
+            <div class="room-details-grid">
+              <div class="room-detail">
+                <span>Building</span>
+                <strong>{{ selectedBuilding()?.name }}</strong>
+              </div>
+              <div class="room-detail">
+                <span>Floor</span>
+                <strong>{{ floor.level }}</strong>
+              </div>
+              <div class="room-detail">
+                <span>Recorded exit</span>
+                <strong>{{ room.exit || 'Not specified' }}</strong>
+              </div>
+              <div class="room-detail">
+                <span>Incident status</span>
+                <strong
+                  [class.room-status-danger]="getRoomAlerts(room.id).length > 0"
+                  [class.room-status-safe]="getRoomAlerts(room.id).length === 0"
+                >
+                  {{ getRoomAlerts(room.id).length > 0 ? 'Incident detected' : 'No active incident' }}
+                </strong>
+              </div>
             </div>
 
             @if (getRoomAlerts(room.id).length > 0) {
               <div class="room-alert-details">
-                <strong>Active incidents</strong>
+                <h4>Active incidents in this room</h4>
                 @for (alert of getRoomAlerts(room.id); track alert.id) {
-                  <p>{{ alert.type }} - {{ alert.severity }}</p>
-                  <p>{{ alert.description }}</p>
+                  <div class="room-alert-item">
+                    <strong>{{ getAlertIcon(alert.type) }} · {{ alert.type }} — {{ alert.severity }}</strong>
+                    <p>{{ alert.description }}</p>
+                  </div>
                 }
               </div>
             } @else {
-              <p>No active incident reported for this room.</p>
+              <p class="room-safe-message">✓ No active incident reported for this room.</p>
             }
-          </div>
+          </section>
         }
       } @else {
         <div class="map-empty-state">
-          No rooms are registered for this floor.
+          <span class="empty-icon">▤</span>
+          <h3>No rooms registered</h3>
+          <p>There are currently no rooms available for this floor.</p>
         </div>
       }
-    </div>
+    </section>
 
     @if (floorAlerts().length > 0) {
-      <div class="floor-alerts">
-        <h3>Active incidents on this floor</h3>
-        @for (alert of floorAlerts(); track alert.id) {
-          <div class="floor-alert-card">
-            <span class="alert-icon">{{ getAlertIcon(alert.type) }}</span>
-            <div class="alert-info">
-              <strong>{{ alert.type }} - {{ alert.severity }}</strong>
-              <p>{{ alert.roomId }} - {{ alert.description }}</p>
-            </div>
+      <section class="floor-alerts">
+        <div class="section-heading">
+          <div>
+            <span class="section-eyebrow">SAFETY NOTIFICATIONS</span>
+            <h2>Active incidents on this floor</h2>
           </div>
-        }
-      </div>
+          <span class="incident-count">{{ floorAlerts().length }}</span>
+        </div>
+
+        <div class="floor-alert-list">
+          @for (alert of floorAlerts(); track alert.id) {
+            <article class="floor-alert-card">
+              <span class="alert-icon">{{ getAlertIcon(alert.type) }}</span>
+              <div class="alert-info">
+                <strong>{{ alert.type }} — {{ alert.severity }}</strong>
+                <p>{{ alert.roomId }} · {{ alert.description }}</p>
+              </div>
+            </article>
+          }
+        </div>
+      </section>
     }
 
-    <div class="evacuation-section">
-      <h3>Recorded room exits</h3>
+    <section class="evacuation-section">
+      <div class="section-heading">
+        <div>
+          <span class="section-eyebrow">BUILDING INFORMATION</span>
+          <h2>Recorded room exits</h2>
+        </div>
+        <span class="exit-count">{{ floor.rooms.length }} room(s)</span>
+      </div>
+
       <p class="route-disclaimer">
-        These are the exit labels registered in the building data.
-        Their current safety and accessibility have not been verified by this map.
-        Follow official emergency instructions.
+        These are the exit labels registered in the building data. Their current safety
+        and accessibility have not been verified by this map. Always follow official
+        emergency instructions.
       </p>
 
       <div class="route-cards">
         @for (room of floor.rooms; track room.id) {
-          <div class="route-card">
-            <div>
+          <article class="route-card">
+            <div class="route-room-icon">↗</div>
+            <div class="route-room-info">
               <strong>Room {{ room.roomNumber }}</strong>
               <p>{{ room.exit || 'No exit recorded' }}</p>
             </div>
-          </div>
+          </article>
         }
       </div>
-    </div>
+    </section>
   } @else if (buildings().length > 0) {
     <div class="map-empty-state">
-      No floor is selected or available for this building.
+      <span class="empty-icon">▤</span>
+      <h3>No floor selected</h3>
+      <p>No floor is selected or available for this building.</p>
     </div>
   }
+
+  <footer class="page-footer">
+    <span>🏢 Smart Building Emergency</span>
+    <span>Powered by SafeBuilding</span>
+  </footer>
 </div>

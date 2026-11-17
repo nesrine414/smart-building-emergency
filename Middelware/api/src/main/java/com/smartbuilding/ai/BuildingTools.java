@@ -10,7 +10,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -24,15 +24,16 @@ public class BuildingTools {
     @Inject
     private RoomRepository roomRepository;
 
-    // Tracker réel des outils exécutés par thread
-    private final ThreadLocal<List<String>> executedToolsTracker = ThreadLocal.withInitial(ArrayList::new);
+    private final ThreadLocal<List<String>> executedToolsTracker =
+            ThreadLocal.withInitial(ArrayList::new);
 
     public void startTracking() {
         executedToolsTracker.get().clear();
     }
 
     public List<String> getTrackedTools() {
-        return Collections.unmodifiableList(new ArrayList<>(executedToolsTracker.get()));
+        return Collections.unmodifiableList(
+                new ArrayList<>(executedToolsTracker.get()));
     }
 
     public void stopTracking() {
@@ -47,64 +48,154 @@ public class BuildingTools {
     }
 
     /**
-     * Outil 1 : Récupérer un résumé court des dernières mesures de la salle.
+     * Retourne les mesures reelles, en conservant type, valeur et unite.
+     * GAS ne permet pas de determiner une espece chimique.
      */
-    @Tool("Fournit les dernieres mesures de capteurs (gaz, fumee, temperature, humidite, mouvement) pour une salle donnee")
-    public String getRecentReadings(@P("Identifiant de la salle, ex: room-101") String roomId) {
+    @Tool("Retourne les dernieres mesures reelles de la salle exacte. " +
+          "Chaque mesure contient son type technique exact, sa valeur, son unite et son capteur. " +
+          "Ne transforme jamais GAS en CO, CO2 ou methane.")
+    public String getRecentReadings(
+            @P("Identifiant exact de la salle, par exemple room-102") String roomId) {
+
         recordToolCall("getRecentReadings");
+
         if (roomId == null || roomId.isBlank()) {
-            return "Identifiant de salle non specifie.";
+            return "Identifiant de salle non specifie. Aucune mesure retournee.";
         }
 
-        List<SensorReading> readings = readingService.findLatest(100, null);
-        Map<String, String> latestPerType = new HashMap<>();
+        List<SensorReading> readings =
+                readingService.findLatestByRoomId(roomId, 100);
 
-        for (SensorReading r : readings) {
-            if (roomId.equalsIgnoreCase(r.getRoomId()) || (r.getSensorId() != null && r.getSensorId().contains(roomId.replace("room-", "")))) {
-                if (!latestPerType.containsKey(r.getType())) {
-                    latestPerType.put(r.getType(), r.getValue() + " " + (r.getUnit() != null ? r.getUnit() : ""));
-                }
+        // Conserver la mesure la plus recente pour chaque type et chaque capteur.
+        Map<String, SensorReading> latestPerSensor = new LinkedHashMap<>();
+
+        for (SensorReading reading : readings) {
+            // Double verification : aucune correspondance partielle de salle.
+            if (!roomId.equals(reading.getRoomId())) {
+                continue;
             }
+
+            String type = reading.getType() != null
+                    ? reading.getType()
+                    : "TYPE_NON_RENSEIGNE";
+
+            String sensorId = reading.getSensorId() != null
+                    ? reading.getSensorId()
+                    : "CAPTEUR_NON_RENSEIGNE";
+
+            String key = type + "|" + sensorId;
+
+            latestPerSensor.putIfAbsent(key, reading);
         }
 
-        if (latestPerType.isEmpty()) {
-            return "Aucune mesure recente disponible pour la salle " + roomId;
+        if (latestPerSensor.isEmpty()) {
+            return "Aucune mesure enregistree pour la salle exacte "
+                    + roomId + ". Ne pas supposer de valeur.";
         }
 
-        return "Mesures salle " + roomId + " : " + latestPerType.toString();
+        List<String> lines = new ArrayList<>();
+
+        for (SensorReading reading : latestPerSensor.values()) {
+            String type = reading.getType() != null
+                    ? reading.getType()
+                    : "TYPE_NON_RENSEIGNE";
+
+            String unit = reading.getUnit() != null
+                    && !reading.getUnit().isBlank()
+                    ? reading.getUnit()
+                    : "UNITE_NON_RENSEIGNEE";
+
+            String sensorId = reading.getSensorId() != null
+                    ? reading.getSensorId()
+                    : "CAPTEUR_NON_RENSEIGNE";
+
+            lines.add(
+                    "type=" + type
+                    + " | valeur=" + Double.toString(reading.getValue())
+                    + " | unite=" + unit
+                    + " | capteur=" + sensorId
+                    + " | timestamp=" + reading.getTimestamp()
+            );
+        }
+
+        return "MESURES REELLES DE LA SALLE " + roomId + " :\n"
+                + String.join("\n", lines)
+                + "\nIMPORTANT : GAS est uniquement le type technique enregistre. "
+                + "Il ne permet pas de deduire CO, CO2 ou methane. "
+                + "SMOKE ne doit pas etre transforme en une autre substance. "
+                + "Aucune mesure ne doit etre declaree normale ou sure "
+                + "sans reference de seuil appropriee.";
     }
 
     /**
-     * Outil 2 : Récupérer l'issue de secours conseillée pour cette salle.
+     * Retourne uniquement la sortie enregistree pour la salle.
      */
-    @Tool("Fournit l'issue de secours et l'escalier d'evacuation conseille pour une salle donnee")
-    public String getRoomEvacuationExit(@P("Identifiant de la salle, ex: room-101") String roomId) {
+    @Tool("Fournit la sortie de secours enregistree pour une salle. " +
+          "Ne garantit pas que le passage est libre en temps reel.")
+    public String getRoomEvacuationExit(
+            @P("Identifiant exact de la salle, par exemple room-102") String roomId) {
+
         recordToolCall("getRoomEvacuationExit");
+
         if (roomId == null || roomId.isBlank()) {
             return "Salle inconnue.";
         }
+
         Optional<Room> optRoom = roomRepository.findById(roomId);
+
         if (optRoom.isPresent()) {
             Room room = optRoom.get();
-            return "Salle " + roomId + " (Etage " + room.getFloor() + ") -> Sortie de secours recommandee : " + room.getExit();
+            String exit = room.getExit();
+
+            if (exit == null || exit.isBlank()) {
+                return "Aucune sortie d'evacuation enregistree pour "
+                        + roomId + ". Consulter le plan officiel sur place.";
+            }
+
+            return "Salle " + roomId
+                    + " | Etage=" + room.getFloor()
+                    + " | Sortie enregistree=" + exit
+                    + " | Disponibilite reelle du passage non verifiee.";
         }
-        return "Information d'evacuation non trouvee pour la salle " + roomId;
+
+        return "Information d'evacuation non trouvee pour " + roomId;
     }
 
     /**
-     * Outil 3 : Récupérer le score de risque prédit par le modèle ML de la Personne 1.
+     * Retourne le score RISK de la salle exacte, sans autre salle de substitution.
      */
-    @Tool("Fournit le score de risque d'incendie calcule par le modele Machine Learning (entre 0 et 1) pour une salle")
-    public String getRiskScore(@P("Identifiant de la salle, ex: room-101") String roomId) {
+    @Tool("Fournit le score de risque ML RISK de la salle exacte. " +
+          "Ne retourne jamais le score d'une autre salle.")
+    public String getRiskScore(
+            @P("Identifiant exact de la salle, par exemple room-102") String roomId) {
+
         recordToolCall("getRiskScore");
-        List<SensorReading> readings = readingService.findLatest(50, null);
-        for (SensorReading r : readings) {
-            if ("RISK".equalsIgnoreCase(r.getType())) {
-                if (roomId == null || roomId.equalsIgnoreCase(r.getRoomId()) || (r.getSensorId() != null && r.getSensorId().contains("101"))) {
-                    return "Score de risque ML incendie pour " + roomId + " : " + r.getValue() + "/1.0";
-                }
+
+        if (roomId == null || roomId.isBlank()) {
+            return "Score ML indisponible : identifiant de salle manquant.";
+        }
+
+        List<SensorReading> readings =
+                readingService.findLatestByRoomId(roomId, 100);
+
+        for (SensorReading reading : readings) {
+            if (roomId.equals(reading.getRoomId())
+                    && "RISK".equalsIgnoreCase(reading.getType())) {
+
+                String unit = reading.getUnit() != null
+                        ? reading.getUnit()
+                        : "unite non renseignee";
+
+                return "Score ML RISK de " + roomId
+                        + " : valeur=" + reading.getValue()
+                        + " | unite=" + unit
+                        + " | capteur=" + reading.getSensorId()
+                        + " | timestamp=" + reading.getTimestamp()
+                        + ". Ce score est une aide a la decision.";
             }
         }
-        return "Score de risque ML non disponible actuellement pour " + roomId + " (valeur normale estimee < 0.2)";
+
+        return "Score de risque ML indisponible pour "
+                + roomId + ". Aucune valeur ne peut etre supposee.";
     }
 }

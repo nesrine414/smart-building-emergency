@@ -1,126 +1,251 @@
-<div class="page-container">
-  <div class="page-header">
-    <h1>My Profile</h1>
-  </div>
+
+<div class="profile-page">
+
+  <header class="page-header">
+    <div>
+      <span class="eyebrow">ACCOUNT MANAGEMENT</span>
+      <h1>My Profile</h1>
+      <p>Manage your personal information, location and safety preferences.</p>
+    </div>
+    <div class="header-icon">👤</div>
+  </header>
 
   @if (user(); as u) {
-    <div class="profile-card">
-      <div class="avatar">
-        {{ u.firstName.charAt(0) || u.username.charAt(0) }}{{ u.lastName.charAt(0) }}
-      </div>
+    <div class="profile-layout">
 
-      <h2>{{ u.firstName }} {{ u.lastName }}</h2>
-      <p class="email">{{ u.email || u.username }}</p>
-      <span class="role-badge">{{ u.role }}</span>
+      <!-- USER IDENTITY -->
+      <section class="profile-card identity-card">
+        <div class="section-heading">
+          <div>
+            <span class="section-label">PERSONAL ACCOUNT</span>
+            <h2>Account information</h2>
+          </div>
+          <span class="status-indicator">
+            <span class="status-dot"></span>
+            Active
+          </span>
+        </div>
 
-      <section class="location-preferences">
-        <h3>My building location</h3>
-        <p class="preference-note">
-          Select your usual building, floor and room. These preferences are
-          saved on this device.
-        </p>
+        <div class="identity-content">
+          <div class="avatar">
+            {{ u.firstName.charAt(0) || u.username.charAt(0) }}{{ u.lastName.charAt(0) }}
+          </div>
 
-        <label for="profile-building">Building</label>
-        <select
-          id="profile-building"
-          [value]="selectedBuildingId()"
-          (change)="selectBuilding($any($event.target).value)"
-        >
-          <option value="" disabled>Select a building</option>
-          @for (building of buildings(); track building.id) {
-            <option [value]="building.id">{{ building.name }}</option>
-          }
-        </select>
+          <div class="identity-details">
+            <h3>{{ u.firstName }} {{ u.lastName }}</h3>
+            <p class="email">{{ u.email || u.username }}</p>
+            <span class="role-badge">{{ u.role }}</span>
+          </div>
+        </div>
 
-        <label for="profile-floor">Floor</label>
-        <select
-          id="profile-floor"
-          [value]="selectedFloorLevel() ?? ''"
-          (change)="selectFloor($any($event.target).value)"
-          [disabled]="floors().length === 0"
-        >
-          <option value="" disabled>Select a floor</option>
-          @for (floor of floors(); track floor.id) {
-            <option [value]="floor.level">{{ floor.name }}</option>
-          }
-        </select>
-
-        <label for="profile-room">Room</label>
-        <select
-          id="profile-room"
-          [value]="selectedRoomId()"
-          (change)="selectRoom($any($event.target).value)"
-          [disabled]="rooms().length === 0"
-        >
-          <option value="" disabled>Select a room</option>
-          @for (room of rooms(); track room.id) {
-            <option [value]="room.id">
-              {{ room.roomNumber }}
-            </option>
-          }
-        </select>
-
-        <div class="location-summary">
-          <strong>Selected location</strong>
-          <p>{{ selectedBuilding()?.name || 'No building selected' }}</p>
-          <p>{{ selectedFloor()?.name || 'No floor selected' }}</p>
-          <p>
-            Room {{ selectedRoom()?.roomNumber || 'Not selected' }}
-          </p>
-          @if (selectedRoom()?.exit; as exitName) {
-            <p>Recorded exit: {{ exitName }}</p>
-          }
+        <div class="account-note">
+          <span class="note-icon">🔒</span>
+          <p>Your account information is managed securely by the platform.</p>
         </div>
       </section>
 
-      <section class="push-settings">
-        <h3>Emergency notifications</h3>
-        <p class="preference-note">
-          Receive emergency alerts for your selected room and building,
-          including when the application is in the background.
-        </p>
+      <!-- LOCATION PREFERENCES -->
+      <section class="profile-card location-card">
+        <div class="section-heading">
+          <div>
+            <span class="section-label">PERSONALIZATION</span>
+            <h2>My building location</h2>
+            <p class="section-description">
+              Set your usual location to receive relevant building alerts.
+            </p>
+          </div>
+          <div class="section-icon">📍</div>
+        </div>
 
-        @if (!pushSupported) {
-          <p class="push-info">
-            Notifications disponibles dans la PWA de production.
-            Elles sont désactivées avec le serveur Angular de développement.
+        <div class="location-form">
+
+          <div class="form-group">
+            <label for="profile-building">Building</label>
+            <select
+              id="profile-building"
+              [value]="selectedBuildingId()"
+              (change)="selectBuilding($any($event.target).value)"
+            >
+              <option value="" disabled>Select a building</option>
+              @for (building of buildings(); track building.id) {
+                <option [value]="building.id">{{ building.name }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="profile-floor">Floor</label>
+            <select
+              id="profile-floor"
+              [value]="selectedFloorLevel() ?? ''"
+              (change)="selectFloor($any($event.target).value)"
+              [disabled]="floors().length === 0"
+            >
+              <option value="" disabled>Select a floor</option>
+              @for (floor of floors(); track floor.id) {
+                <option [value]="floor.level">{{ floor.name }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="profile-room">Room</label>
+            <select
+              id="profile-room"
+              [value]="selectedRoomId()"
+              (change)="selectRoom($any($event.target).value)"
+              [disabled]="rooms().length === 0"
+            >
+              <option value="" disabled>Select a room</option>
+              @for (room of rooms(); track room.id) {
+                <option [value]="room.id">{{ room.roomNumber }}</option>
+              }
+            </select>
+          </div>
+
+        </div>
+
+        <div class="location-summary">
+          <div class="summary-heading">
+            <span class="summary-icon">✓</span>
+            <strong>Selected location</strong>
+          </div>
+
+          <div class="summary-grid">
+            <div class="summary-item">
+              <span>BUILDING</span>
+              <p>{{ selectedBuilding()?.name || 'Not selected' }}</p>
+            </div>
+
+            <div class="summary-item">
+              <span>FLOOR</span>
+              <p>{{ selectedFloor()?.name || 'Not selected' }}</p>
+            </div>
+
+            <div class="summary-item">
+              <span>ROOM</span>
+              <p>{{ selectedRoom()?.roomNumber || 'Not selected' }}</p>
+            </div>
+          </div>
+
+          @if (selectedRoom()?.exit; as exitName) {
+            <div class="recorded-exit">
+              <span>Emergency exit</span>
+              <strong>{{ exitName }}</strong>
+            </div>
+          }
+
+          <p class="save-note">
+            <span>ⓘ</span>
+            Your location preferences are automatically saved on this device.
           </p>
-        } @else if (pushSubscribed()) {
-          <p class="push-enabled">
-            Notifications activées sur ce navigateur.
-          </p>
-          <button
-            type="button"
-            class="push-disable-btn"
-            [disabled]="pushBusy()"
-            (click)="disablePush()"
-          >
-            {{ pushBusy() ? 'Please wait...' : 'Disable notifications' }}
-          </button>
-        } @else {
-          <button
-            type="button"
-            class="push-enable-btn"
-            [disabled]="pushBusy()"
-            (click)="enablePush()"
-          >
-            {{ pushBusy() ? 'Activating...' : 'Enable emergency notifications' }}
-          </button>
-        }
+        </div>
+      </section>
+
+      <!-- EMERGENCY NOTIFICATIONS -->
+      <section class="profile-card notification-card">
+        <div class="section-heading">
+          <div>
+            <span class="section-label">SAFETY SETTINGS</span>
+            <h2>Emergency notifications</h2>
+            <p class="section-description">
+              Manage notifications for your selected building and room.
+            </p>
+          </div>
+          <div class="section-icon">🔔</div>
+        </div>
+
+        <div class="notification-info">
+          <div class="notification-symbol">🚨</div>
+          <div>
+            <strong>Stay informed. Stay safe.</strong>
+            <p>
+              Receive emergency alerts, including when the application is
+              running in the background.
+            </p>
+          </div>
+        </div>
+
+        <div class="notification-controls">
+          @if (!pushSupported) {
+            <div class="notice notice-info">
+              <span>ⓘ</span>
+              <p>
+                Notifications are available in the production PWA.
+                They are disabled when using the Angular development server.
+              </p>
+            </div>
+          } @else if (pushSubscribed()) {
+            <div class="notice notice-success">
+              <span>✓</span>
+              <p>Notifications are enabled on this browser.</p>
+            </div>
+
+            <button
+              type="button"
+              class="push-disable-btn"
+              [disabled]="pushBusy()"
+              (click)="disablePush()"
+            >
+              {{ pushBusy() ? 'Please wait...' : 'Disable notifications' }}
+            </button>
+          } @else {
+            <button
+              type="button"
+              class="push-enable-btn"
+              [disabled]="pushBusy()"
+              (click)="enablePush()"
+            >
+              <span>🔔</span>
+              {{ pushBusy() ? 'Activating...' : 'Enable emergency notifications' }}
+            </button>
+          }
+        </div>
 
         @if (locationError()) {
-          <p class="push-error" role="alert">{{ locationError() }}</p>
+          <div class="notice notice-error" role="alert">
+            <span>!</span>
+            <p>{{ locationError() }}</p>
+          </div>
         }
+
         @if (pushError()) {
-          <p class="push-error" role="alert">{{ pushError() }}</p>
+          <div class="notice notice-error" role="alert">
+            <span>!</span>
+            <p>{{ pushError() }}</p>
+          </div>
         }
+
         @if (pushSuccess()) {
-          <p class="push-success" role="status">{{ pushSuccess() }}</p>
+          <div class="notice notice-success" role="status">
+            <span>✓</span>
+            <p>{{ pushSuccess() }}</p>
+          </div>
         }
       </section>
-      <button class="logout-btn" (click)="logout()">
-        Sign Out
-      </button>
+
+      <!-- ACCOUNT ACTIONS -->
+      <section class="profile-card account-actions">
+        <div>
+          <span class="section-label">ACCOUNT SECURITY</span>
+          <h2>Sign out</h2>
+          <p class="section-description">
+            End your current session on this device.
+          </p>
+        </div>
+
+        <button type="button" class="logout-btn" (click)="logout()">
+          <span>↪</span>
+          Sign Out
+        </button>
+      </section>
+
     </div>
   }
+
+  <footer class="profile-footer">
+    <strong>SafeBuilding</strong>
+    <span>Smart Building Emergency · Smart Safety Platform</span>
+  </footer>
+
 </div>

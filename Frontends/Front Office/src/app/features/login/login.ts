@@ -1,3 +1,4 @@
+
 import { Component, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -19,7 +20,9 @@ export class Login {
     private readonly authService: AuthService,
     private readonly router: Router
   ) {
-    if (this.authService.isAuthenticated()) {
+    const user = this.authService.user();
+
+    if (this.authService.isAuthenticated() && user?.role === 'OCCUPANT') {
       this.router.navigate(['/dashboard']);
     }
   }
@@ -34,7 +37,16 @@ export class Login {
       username: this.username().trim(),
       password: this.password()
     }).subscribe({
-      next: () => {
+      next: (user) => {
+        if (user.role !== 'OCCUPANT') {
+          this.authService.logout();
+          this.errorMessage.set(
+            'Accès refusé : cette interface est réservée aux occupants.'
+          );
+          this.isLoading.set(false);
+          return;
+        }
+
         this.router.navigate(['/dashboard']);
       },
       error: (error) => {

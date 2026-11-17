@@ -28,10 +28,7 @@ public class ReadingService {
         }
 
         SensorReading saved = repository.save(reading);
-
-        // Diffuser l'événement CDI
         readingSavedEvent.fire(new ReadingSaved(saved));
-
         return saved;
     }
 
@@ -52,6 +49,25 @@ public class ReadingService {
                         .limit(max)
                         .toList();
             }
+        }
+    }
+
+    // Mesures limitees a la salle exacte demandee.
+    // Mesures filtrees par salle exacte depuis le flux existant.
+    public List<SensorReading> findLatestByRoomId(String roomId, int limit) {
+        if (roomId == null || roomId.isBlank()) {
+            return List.of();
+        }
+
+        int max = limit > 0 ? limit : 50;
+
+        try (var stream = repository.findAll()) {
+            return stream
+                    .filter(reading -> roomId.equals(reading.getRoomId()))
+                    .sorted(java.util.Comparator.comparingLong(
+                            SensorReading::getTimestamp).reversed())
+                    .limit(max)
+                    .toList();
         }
     }
 

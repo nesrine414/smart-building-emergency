@@ -15,4 +15,7 @@ public interface SensorReadingRepository extends CrudRepository<SensorReading, S
 
     @OrderBy(value = "timestamp", descending = true)
     List<SensorReading> findBySensorId(String sensorId);
+
+    @OrderBy(value = "timestamp", descending = true)
+    List<SensorReading> findByRoomId(String roomId);
 }
