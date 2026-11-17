@@ -12,9 +12,9 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>Middelware/core</module>
-        <module>Middelware/api</module>
-        <module>Middelware/iam</module>
+        <module>middleware/core</module>
+        <module>middleware/api</module>
+        <module>middleware/iam</module>
     </modules>
 
     <properties>
