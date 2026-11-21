@@ -29,14 +29,17 @@ mkdir -p "$OUT/wars"
 OUT="$(cd "$OUT" && pwd)"
 
 for module in iam api; do
-  war="$ROOT/$module/target/$module.war"
-  [[ -f "$war" ]] || die "$war introuvable : lancer d'abord mvn -B -ntp -DskipTests package"
+  war=""
+  for candidate in "$ROOT/middleware/$module/target/$module.war" "$ROOT/$module/target/$module.war"; do
+    if [[ -f "$candidate" ]]; then war="$candidate"; break; fi
+  done
+  [[ -n "$war" ]] || die "$module.war introuvable dans middleware/$module/target : lancer d'abord mvn -B -ntp package"
   cp "$war" "$OUT/wars/"
   echo "WAR   $module.war ($(du -h "$war" | cut -f1))"
 done
 
 build_pwa() {
-  local app="$1" target="$2" dir="$ROOT/frontend/$1"
+  local app="$1" target="$2" dir="$ROOT/$1"
   if [[ ! -f "$dir/package.json" ]]; then
     [[ "$REQUIRE_PWA" == "0" ]] || die "frontend/$app/package.json introuvable"
     echo "PWA   $app absente : ignorée (REQUIRE_PWA=0)"
@@ -62,8 +65,8 @@ build_pwa() {
 if [[ "$SKIP_PWA" == "1" ]]; then
   echo "PWA   ignorées (SKIP_PWA=1)"
 else
-  build_pwa client-pwa frontoffice
-  build_pwa admin-pwa backoffice
+  build_pwa frontends/frontoffice frontoffice
+  build_pwa frontends/backoffice backoffice
 fi
 
 {

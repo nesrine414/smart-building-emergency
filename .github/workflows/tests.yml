@@ -1,0 +1,63 @@
+# Pipeline des tests de Smart Building Emergency (étape 5, personne 1).
+#
+# Consigne de l'encadrant : les fichiers de tests vivent sur la branche « tests » (pas sur main).
+#   push sur tests    : tests Java (mvn verify) et tests Python (pytest). Rien n'est déployé.
+#   lancement manuel  : onglet Actions > Tests > Run workflow (choisir la branche tests).
+# La branche tests = main + les dossiers de tests : y fusionner main avant de pousser
+# (deploy/CI-CD.md, section 1).
+name: Tests
+
+on:
+  push:
+    branches: [tests]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-java:
+    name: Tests Java (mvn verify)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: mvn verify
+        run: mvn -B -ntp verify
+      - name: Rapports JUnit
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rapports-junit
+          path: '**/target/surefire-reports/'
+          retention-days: 7
+          if-no-files-found: ignore
+
+  test-python:
+    name: Tests Python (pytest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Dépendances (versions de l'image sbe-ml)
+        run: python -m pip install -r iot/mlops/requirements-docker.txt "pytest==9.2.0"
+      - name: pytest
+        run: |
+          dirs=()
+          for d in infra/mqtt/tests iot/mlops/tests iot/llm/tests deploy/tests; do
+            if [[ -d "$d" ]]; then dirs+=("$d"); else echo "::warning::$d absent de la branche ${GITHUB_REF_NAME}"; fi
+          done
+          if [[ ${#dirs[@]} -eq 0 ]]; then echo "::error::aucun dossier de tests Python sur ${GITHUB_REF_NAME}"; exit 1; fi
+          python -m pytest -q "${dirs[@]}"
