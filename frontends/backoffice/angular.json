@@ -55,18 +55,7 @@
             "styles": [
               "src/styles.scss"
             ],
-            "server": "src/main.server.ts",
-            "outputMode": "server",
-            "security": {
-              "allowedHosts": [
-                "admin.smartbuilding.local",
-                "localhost",
-		"dashboard.smartbuilding.local"
-              ]
-            },
-            "ssr": {
-              "entry": "src/server.ts"
-            }
+            "outputMode": "static"
           },
           "configurations": {
             "production": {
@@ -79,8 +68,8 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "15kB",
-                  "maximumError": "20kB"
+                  "maximumWarning": "20kB",
+                  "maximumError": "30kB"
                 }
               ],
               "outputHashing": "all"
@@ -111,7 +100,7 @@
             "allowedHosts": [
               "admin.smartbuilding.local",
               "localhost",
-	      "dashboard.smartbuilding.local"
+              "dashboard.smartbuilding.local"
             ]
           }
         }

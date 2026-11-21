@@ -2,34 +2,36 @@ package com.smartbuilding.security;
 
 import com.nimbusds.jwt.JWTClaimsSet;
 import jakarta.annotation.Priority;
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Priorities;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.container.ResourceInfo;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
 import jakarta.ws.rs.ext.Provider;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.security.Principal;
-import java.util.Map;
 import java.util.Optional;
 
 @Provider
 @Priority(Priorities.AUTHENTICATION)
+@ApplicationScoped
 public class SecurityFilter implements ContainerRequestFilter {
 
     @Context
     private ResourceInfo resourceInfo;
 
     @Inject
-    private JwtService jwtService;
+    private TokenValidator tokenValidator;
 
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
-        // Laisser passer les requêtes OPTIONS (pré-vérification CORS)
+        // Laisser passer les requêtes préliminaires CORS
         if ("OPTIONS".equalsIgnoreCase(requestContext.getMethod())) {
             return;
         }
@@ -37,44 +39,49 @@ public class SecurityFilter implements ContainerRequestFilter {
         Method method = resourceInfo.getResourceMethod();
         Class<?> resourceClass = resourceInfo.getResourceClass();
 
-        // Si la ressource ou la méthode est marquée @Public, accès libre
-        if (method != null && method.isAnnotationPresent(Public.class)) {
-            return;
-        }
-        if (resourceClass != null && resourceClass.isAnnotationPresent(Public.class)) {
+        // Si la méthode ou la classe porte @Public, accès libre
+        if ((method != null && method.isAnnotationPresent(Public.class))
+                || (resourceClass != null && resourceClass.isAnnotationPresent(Public.class))) {
             return;
         }
 
-        // Récupérer le header Authorization
-        String authHeader = requestContext.getHeaderString("Authorization");
+        // Extraction du header Authorization: Bearer <token>
+        String authHeader = requestContext.getHeaderString(HttpHeaders.AUTHORIZATION);
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(Map.of("error", "Jeton JWT manquant ou malformé (401)"))
-                    .build());
+            abortUnauthorized(requestContext, "En-tête Authorization manquant ou invalide.");
             return;
         }
 
-        String token = authHeader.substring("Bearer ".length()).trim();
-        Optional<JWTClaimsSet> optClaims = jwtService.validateToken(token);
+        String token = authHeader.substring(7).trim();
+        Optional<JWTClaimsSet> optClaims = tokenValidator.validate(token);
+
         if (optClaims.isEmpty()) {
-            requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(Map.of("error", "Jeton JWT invalide ou expiré (401)"))
-                    .build());
+            abortUnauthorized(requestContext, "Jeton JWT RS256 invalide ou expiré.");
             return;
         }
 
         JWTClaimsSet claims = optClaims.get();
-        String role = (String) claims.getClaim("role");
         String username = (String) claims.getClaim("username");
-        String userId = claims.getSubject(); // Vrai identifiant sub (UUID) du compte !
-        
-        requestContext.setProperty("userRole", role);
-        // Injecter le SecurityContext pour JAX-RS
-                // Injecter le SecurityContext personnalisé portant le vrai userId (sub) et le role
+        String role = (String) claims.getClaim("role");
+
+        // Vérification des rôles requis via @RequireRole
+        RequireRole requireRole = method != null ? method.getAnnotation(RequireRole.class) : null;
+        if (requireRole == null && resourceClass != null) {
+            requireRole = resourceClass.getAnnotation(RequireRole.class);
+        }
+
+        if (requireRole != null && !hasRequiredRole(role, requireRole.value())) {
+            requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
+                    .entity("{\"error\":\"forbidden\",\"message\":\"Rôle insuffisant pour cette ressource.\"}")
+                    .build());
+            return;
+        }
+
+        // Attacher le SecurityContext à la requête
         requestContext.setSecurityContext(new SecurityContext() {
             @Override
             public Principal getUserPrincipal() {
-                return () -> userId; // Le Principal retourne le vrai sub (UUID) du compte !
+                return () -> username != null ? username : claims.getSubject();
             }
 
             @Override
@@ -92,20 +99,17 @@ public class SecurityFilter implements ContainerRequestFilter {
                 return "Bearer";
             }
         });
+    }
 
-        // Vérifier si un rôle spécifique est requis (ex: @RequireRole("ADMIN"))
-        RequireRole requireRole = method != null ? method.getAnnotation(RequireRole.class) : null;
-        if (requireRole == null && resourceClass != null) {
-            requireRole = resourceClass.getAnnotation(RequireRole.class);
-        }
+    private boolean hasRequiredRole(String userRole, String requiredRole) {
+        if (userRole == null || requiredRole == null) return false;
+        return userRole.equalsIgnoreCase(requiredRole);
+    }
 
-        if (requireRole != null) {
-            String expectedRole = requireRole.value();
-            if (!expectedRole.equalsIgnoreCase(role)) {
-                requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
-                        .entity(Map.of("error", "Accès refusé : rôle " + expectedRole + " requis (403)"))
-                        .build());
-            }
-        }
+    private void abortUnauthorized(ContainerRequestContext ctx, String message) {
+        ctx.abortWith(Response.status(Response.Status.UNAUTHORIZED)
+                .header(HttpHeaders.WWW_AUTHENTICATE, "Bearer error=\"invalid_token\"")
+                .entity("{\"error\":\"unauthorized\",\"message\":\"" + message + "\"}")
+                .build());
     }
 }
