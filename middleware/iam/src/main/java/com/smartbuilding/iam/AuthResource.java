@@ -2,7 +2,6 @@ package com.smartbuilding.iam;
 
 import com.smartbuilding.entities.User;
 import com.smartbuilding.repositories.UserRepository;
-import com.smartbuilding.security.JwtService;
 import com.smartbuilding.security.PasswordUtil;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -30,11 +29,10 @@ public class AuthResource {
     private UserRepository userRepository;
 
     @Inject
-    private JwtService jwtService;
+    private OidcKeyService keyService;
 
     @PostConstruct
     public void initDemoUsers() {
-        // Initialiser les deux comptes de démonstration (Contrat 1)
         if (userRepository.findByUsername("admin").isEmpty()) {
             User admin = new User(
                     UUID.randomUUID().toString(),
@@ -80,8 +78,9 @@ public class AuthResource {
         }
 
         User user = optUser.get();
-        String token = jwtService.generateToken(user.getId(), user.getUsername(), user.getName(), user.getRole());
-        long expiresAt = System.currentTimeMillis() + (8 * 3600 * 1000L);
+        // Génération du vrai token RS256 avec audience sbe-api
+        String token = keyService.generateAccessToken("smartbuilding-iam", user.getId(), user.getUsername(), user.getName(), user.getRole());
+        long expiresAt = System.currentTimeMillis() + (15 * 60 * 1000L);
 
         return Response.ok(Map.of(
                 "token", token,
