@@ -7,7 +7,8 @@
 #
 # Le script peut être relancé sans danger (chaque étape vérifie si elle est déjà faite).
 # Il installe : Docker Engine + Compose, JDK 21 (WildFly et keytool), Python 3 + venv, Git,
-# Nginx, certbot ; crée l'utilisateur sbe (même clé SSH que ubuntu), /opt/sbe, 4 Go de swap ;
+# Nginx, certbot ; crée l'utilisateur sbe (même clé SSH que ubuntu), /opt/sbe, /opt/sbe/releases,
+# /var/opt/wildfly/frontoffice et backoffice (étape 5), 4 Go de swap ;
 # ferme la connexion SSH par mot de passe ; active les mises à jour de sécurité automatiques ;
 # configure le pare-feu ufw (22, 80, 443, 8883).
 #
@@ -61,6 +62,10 @@ if ! id "${SBE_USER}" >/dev/null 2>&1; then
 fi
 usermod -aG docker "${SBE_USER}"
 install -d -o "${SBE_USER}" -g "${SBE_USER}" -m 0750 "${SBE_HOME_DIR}"
+# Étape 5 : versions déployées par le pipeline, et PWA servies par Undertow (lisibles par WildFly)
+install -d -o "${SBE_USER}" -g "${SBE_USER}" -m 0750 "${SBE_HOME_DIR}/releases"
+install -d -o "${SBE_USER}" -g "${SBE_USER}" -m 0755 /var/opt/wildfly \
+  /var/opt/wildfly/frontoffice /var/opt/wildfly/backoffice
 # Même clé SSH que l'utilisateur par défaut de l'image (ubuntu)
 SBE_SSH_DIR="$(getent passwd "${SBE_USER}" | cut -d: -f6)/.ssh"
 if [[ -f /home/ubuntu/.ssh/authorized_keys && ! -f "${SBE_SSH_DIR}/authorized_keys" ]]; then
@@ -124,5 +129,6 @@ Serveur prêt.
   Java         : $(java -version 2>&1 | head -n 1)
   Docker       : $(docker --version)
 
-Étape suivante (en tant que ${SBE_USER}) : deploy/server/deploy-broker-ml.sh (voir deploy/README.md).
+Étape suivante (en tant que ${SBE_USER}) : deploy/server/deploy-broker-ml.sh (voir deploy/README.md),
+puis le runner du pipeline : sudo bash deploy/server/install-runner.sh <URL du dépôt> (deploy/CI-CD.md).
 EOF

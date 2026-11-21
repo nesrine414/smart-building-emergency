@@ -1,0 +1,4 @@
+# Configuration d'actionlint (étape 5) : étiquette du runner installé sur le serveur.
+self-hosted-runner:
+  labels:
+    - sbe-server

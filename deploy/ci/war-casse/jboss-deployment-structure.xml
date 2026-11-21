@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Démonstration du retour automatique (étape 5) : NE PAS FUSIONNER POUR DE BON.
+  Copié dans api/src/main/webapp/WEB-INF/, ce fichier demande à WildFly un module qui n'existe pas :
+  mvn verify passe (les tests ne démarrent pas WildFly), mais le déploiement échoue
+  (api.war.failed), et deploy-app.sh remet la version précédente en ligne.
+-->
+<jboss-deployment-structure xmlns="urn:jboss:deployment-structure:1.2">
+  <deployment>
+    <dependencies>
+      <module name="org.sbe.module.inexistant.demo"/>
+    </dependencies>
+  </deployment>
+</jboss-deployment-structure>

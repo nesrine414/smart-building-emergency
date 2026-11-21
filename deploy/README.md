@@ -13,6 +13,12 @@ Ce dossier met en ligne la partie de la personne 1 sur un serveur AWS : le socle
 | `check_ports.py` | votre PC | Les 5 noms pointent vers l'IP fixe, 80/443/8883 répondent, les ports internes sont fermés |
 | `../docker-compose.prod.yml` | serveur | MongoDB sur `127.0.0.1` avec mot de passe, HiveMQ en TLS seul, service `sbe-ml` |
 | `../demo/` | PC de soutenance | `incendie`, `fuite-gaz`, `retour-normal` (`.cmd` à double-cliquer), plan B par SSH |
+| `server/install-runner.sh` | serveur, avec sudo, une fois | Runner GitHub Actions `sbe-server` du pipeline (étape 5) |
+| `server/deploy-app.sh` | serveur, par le pipeline | Mise en ligne des WAR et des PWA, contrôles, retour arrière (étape 5) |
+| `ci/build-artifacts.sh` | machines de GitHub | Assemble `api.war`, `iam.war` et les builds Angular (étape 5) |
+
+**Étape 5 : le pipeline CI/CD** (tests, build et mise en ligne à chaque push sur `main`) est décrit
+dans [`CI-CD.md`](CI-CD.md).
 
 ## 1. Compte AWS (console, une fois)
 
@@ -105,8 +111,9 @@ powershell -ExecutionPolicy Bypass -File infra\mqtt\tls-report.ps1  # rapport HT
 
 - **Arrêter l'instance** en fin de séance (EC2 > Instance state > Stop) : elle consomme des crédits.
   La démarrer une heure avant la soutenance. Docker, HiveMQ, MongoDB et `sbe-ml` repartent seuls.
-- **Mettre à jour** : `git pull` puis `bash deploy/server/deploy-broker-ml.sh` (le modèle n'est
-  réentraîné que s'il manque).
+- **Mettre à jour** : depuis l'étape 5, le pipeline le fait à chaque push sur `main` (`CI-CD.md`).
+  Le broker reste à part : après un changement dans `infra/mqtt/`, `bash deploy/server/deploy-broker-ml.sh`
+  (le modèle n'est réentraîné que s'il manque).
 - **Journaux** : `bash deploy/compose.sh logs -f sbe-ml` (ou `hivemq`) ; état : `bash deploy/compose.sh ps`.
 - **Nouveau modèle** : `bash deploy/compose.sh run --rm sbe-ml python train.py --notes "..."`, puis
   `bash deploy/compose.sh restart sbe-ml`.
