@@ -22,11 +22,22 @@ public class CorsFilter implements ContainerRequestFilter, ContainerResponseFilt
         "https://admin.smartbuilding.local:4201"
     );
 
-    private boolean isAllowedOrigin(String origin) {
-        if (origin == null) {
+        private boolean isAllowedOrigin(String origin) {
+        if (origin == null || origin.isBlank()) {
             return false;
         }
 
+        // 1. Variable d'environnement CORS_ORIGINS (ex: "https://site1.com,https://site2.com")
+        String envOrigins = System.getenv("CORS_ORIGINS");
+        if (envOrigins != null && !envOrigins.isBlank()) {
+            for (String allowed : envOrigins.split(",")) {
+                if (origin.equalsIgnoreCase(allowed.trim())) {
+                    return true;
+                }
+            }
+        }
+
+        // 2. Liste d'origines par défaut
         if (ALLOWED_ORIGINS.contains(origin)) {
             return true;
         }
@@ -35,24 +46,23 @@ public class CorsFilter implements ContainerRequestFilter, ContainerResponseFilt
             URI uri = URI.create(origin);
             String host = uri.getHost();
             String scheme = uri.getScheme();
-            int port = uri.getPort();
 
-            boolean localHost = "localhost".equalsIgnoreCase(host)
-                    || "127.0.0.1".equals(host);
+            boolean httpScheme = "http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme);
+            if (!httpScheme || host == null) {
+                return false;
+            }
 
-            boolean httpScheme = "http".equalsIgnoreCase(scheme)
-                    || "https".equalsIgnoreCase(scheme);
+            // 3. Autoriser localhost / 127.0.0.1
+            if ("localhost".equalsIgnoreCase(host) || "127.0.0.1".equals(host)) {
+                return true;
+            }
 
-            boolean validPort = port == -1 || (port >= 1 && port <= 65535);
-            boolean noPath = uri.getRawPath() == null || uri.getRawPath().isEmpty();
+            // 4. Autoriser tous les sous-domaines du projet (dev et prod)
+            if (host.endsWith("smartbuilding.local") || host.endsWith("smartbuilding.me")) {
+                return true;
+            }
 
-            return localHost
-                    && httpScheme
-                    && validPort
-                    && noPath
-                    && uri.getRawQuery() == null
-                    && uri.getRawFragment() == null
-                    && uri.getRawUserInfo() == null;
+            return false;
         } catch (IllegalArgumentException ex) {
             return false;
         }
