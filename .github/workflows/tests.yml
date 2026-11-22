@@ -1,15 +1,18 @@
 # Pipeline des tests de Smart Building Emergency (étape 5, personne 1).
 #
-# Consigne de l'encadrant : les fichiers de tests vivent sur la branche « tests » (pas sur main).
-#   push sur tests    : tests Java (mvn verify) et tests Python (pytest). Rien n'est déployé.
-#   lancement manuel  : onglet Actions > Tests > Run workflow (choisir la branche tests).
-# La branche tests = main + les dossiers de tests : y fusionner main avant de pousser
-# (deploy/CI-CD.md, section 1).
+# Consigne de l'encadrant : les fichiers de tests ne vont pas sur main. Ils vivent sur la branche
+# « tests », qui ne contient QUE les tests (historique séparé de main). Ce pipeline prend donc le
+# code de main et pose par-dessus les tests de la branche tests, puis lance mvn verify et pytest.
+# Ce fichier existe sur les deux branches (sur tests, il sert de déclencheur).
+#   push sur tests : les tests poussés, contre le code actuel de main.
+#   push sur main  : le nouveau code de main, contre les tests actuels.
+#   manuel         : onglet Actions > Tests > Run workflow.
+# Rien n'est déployé, et un échec ici ne bloque pas le pipeline « Livraison ».
 name: Tests
 
 on:
   push:
-    branches: [tests]
+    branches: [main, tests]
   workflow_dispatch:
 
 permissions:
@@ -26,6 +29,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: main
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
@@ -47,7 +52,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - name: Code de main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+      - name: Tests de la branche tests
+        uses: actions/checkout@v7
+        with:
+          # Sur un push de tests : exactement ce commit ; sinon le dernier état de la branche tests.
+          ref: ${{ github.ref_name == 'tests' && github.sha || 'tests' }}
+          path: .branche-tests
+      - name: Tests posés sur le code
+        run: |
+          tar -C .branche-tests --exclude=.git --exclude=.github -cf - . | tar -xf -
+          rm -rf .branche-tests
       - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
@@ -57,7 +75,7 @@ jobs:
         run: |
           dirs=()
           for d in infra/mqtt/tests iot/mlops/tests iot/llm/tests deploy/tests; do
-            if [[ -d "$d" ]]; then dirs+=("$d"); else echo "::warning::$d absent de la branche ${GITHUB_REF_NAME}"; fi
+            if [[ -d "$d" ]]; then dirs+=("$d"); else echo "::warning::$d absent de la branche tests"; fi
           done
-          if [[ ${#dirs[@]} -eq 0 ]]; then echo "::error::aucun dossier de tests Python sur ${GITHUB_REF_NAME}"; exit 1; fi
+          if [[ ${#dirs[@]} -eq 0 ]]; then echo "::error::aucun dossier de tests Python sur la branche tests"; exit 1; fi
           python -m pytest -q "${dirs[@]}"
