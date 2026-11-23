@@ -1,5 +1,4 @@
-
-import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
+﻿import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, throwError } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
@@ -8,8 +7,11 @@ import { environment } from '../../../environments/environment';
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
 
-  // Envoyer le JWT uniquement aux requêtes vers l'API métier.
-  if (!req.url.startsWith(environment.apiUrl)) {
+  const isBusinessApiRequest =
+    req.url === environment.apiUrl ||
+    req.url.startsWith(`${environment.apiUrl}/`);
+
+  if (!isBusinessApiRequest) {
     return next(req);
   }
 

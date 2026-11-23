@@ -12,28 +12,27 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
+
 import java.security.KeyStore;
 import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
-import java.util.Base64;
 import java.util.Date;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 @ApplicationScoped
 public class OidcKeyService {
 
     private static final Logger LOG = Logger.getLogger(OidcKeyService.class.getName());
 
-    private static final String KEYSTORE_RESOURCE = "oidc-keystore.p12";
+    private static final String KEYSTORE_PATH_ENV = "OIDC_KEYSTORE_PATH";
+    private static final String KEYSTORE_PASSWORD_ENV = "OIDC_KEYSTORE_PASSWORD";
     private static final String KEY_ALIAS = "sbe-oidc";
-
     private RSAPrivateKey privateKey;
     private RSAPublicKey publicKey;
     private String keyId; // kid : empreinte SHA-256 de la clé publique
@@ -41,50 +40,112 @@ public class OidcKeyService {
 
     @PostConstruct
     public void init() {
+        char[] password = null;
+
         try {
-            // Lecture du mot de passe (priorité variable d'environnement, sinon valeur par défaut)
-            String password = System.getenv("OIDC_KEYSTORE_PASSWORD");
-            if (password == null || password.isBlank()) {
-                password = "sbeSecret2026!";
+            String keystorePath = System.getenv(KEYSTORE_PATH_ENV);
+            String passwordValue = System.getenv(KEYSTORE_PASSWORD_ENV);
+
+            if (keystorePath == null || keystorePath.isBlank()) {
+                throw new IllegalStateException(
+                    "La variable OIDC_KEYSTORE_PATH est obligatoire."
+                );
             }
+
+            if (passwordValue == null || passwordValue.isBlank()) {
+                throw new IllegalStateException(
+                    "La variable OIDC_KEYSTORE_PASSWORD est obligatoire."
+                );
+            }
+
+            Path path = Paths.get(keystorePath);
+
+            if (!path.isAbsolute()) {
+                throw new IllegalStateException(
+                    "OIDC_KEYSTORE_PATH doit être un chemin absolu."
+                );
+            }
+
+            if (!Files.isRegularFile(path) || !Files.isReadable(path)) {
+                throw new IllegalStateException(
+                    "Keystore introuvable ou illisible : " + path
+                );
+            }
+
+            password = passwordValue.toCharArray();
 
             KeyStore keyStore = KeyStore.getInstance("PKCS12");
-            try (InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(KEYSTORE_RESOURCE)) {
-                if (is == null) {
-                    throw new IllegalStateException("Fichier " + KEYSTORE_RESOURCE + " introuvable dans le classpath.");
-                }
-                keyStore.load(is, password.toCharArray());
+
+            try (java.io.InputStream is = Files.newInputStream(path)) {
+                keyStore.load(is, password);
             }
 
-            PrivateKey key = (PrivateKey) keyStore.getKey(KEY_ALIAS, password.toCharArray());
+            if (!keyStore.containsAlias(KEY_ALIAS)) {
+                throw new IllegalStateException(
+                    "Alias OIDC introuvable dans le keystore : " + KEY_ALIAS
+                );
+            }
+
+            java.security.Key key = keyStore.getKey(KEY_ALIAS, password);
             Certificate cert = keyStore.getCertificate(KEY_ALIAS);
 
-            if (!(key instanceof RSAPrivateKey) || !(cert.getPublicKey() instanceof RSAPublicKey)) {
-                throw new IllegalStateException("La clé trouvée dans le keystore n'est pas une paire RSA valide.");
+            if (!(key instanceof RSAPrivateKey) || cert == null
+                    || !(cert.getPublicKey() instanceof RSAPublicKey)) {
+                throw new IllegalStateException(
+                    "Le keystore ne contient pas une paire de clés RSA valide."
+                );
             }
 
-            this.privateKey = (RSAPrivateKey) key;
-            this.publicKey = (RSAPublicKey) cert.getPublicKey();
+            RSAPrivateKey loadedPrivateKey = (RSAPrivateKey) key;
+            RSAPublicKey loadedPublicKey = (RSAPublicKey) cert.getPublicKey();
 
-            // Calcul du kid (Empreinte SHA-256 en hexadécimal de la clé publique, exigé par le contrat)
+            if (loadedPublicKey.getModulus().bitLength() < 2048) {
+                throw new IllegalStateException(
+                    "La clé RSA doit avoir une taille minimale de 2048 bits."
+                );
+            }
+
+            if (!loadedPrivateKey.getModulus().equals(loadedPublicKey.getModulus())) {
+                throw new IllegalStateException(
+                    "La clé privée et le certificat ne correspondent pas."
+                );
+            }
+
+            this.privateKey = loadedPrivateKey;
+            this.publicKey = loadedPublicKey;
+
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hash = digest.digest(this.publicKey.getEncoded());
             this.keyId = bytesToHex(hash);
 
-            // Construction du JWK Set public (RFC 7517)
             RSAKey rsaJWK = new RSAKey.Builder(this.publicKey)
                     .keyUse(KeyUse.SIGNATURE)
                     .algorithm(JWSAlgorithm.RS256)
                     .keyID(this.keyId)
                     .build();
 
-            this.jwksJson = new JWKSet(rsaJWK).toJSONObject().toString();
+            this.jwksJson = new JWKSet(rsaJWK).toString();
 
-            LOG.info("OidcKeyService initialisé avec succès. Algorithme: RS256 | kid: " + this.keyId);
+            LOG.info(
+                "OidcKeyService initialisé avec succès. Algorithme: RS256 | kid: "
+                + this.keyId
+            );
 
         } catch (Exception e) {
-            LOG.log(Level.SEVERE, "Erreur fatale lors du chargement du keystore RSA OIDC", e);
-            throw new IllegalStateException("Impossible de charger les clés RSA pour OIDC", e);
+            LOG.log(
+                Level.SEVERE,
+                "Erreur fatale lors du chargement du keystore RSA OIDC",
+                e
+            );
+
+            throw new IllegalStateException(
+                "Impossible de charger les clés RSA pour OIDC", e
+            );
+
+        } finally {
+            if (password != null) {
+                java.util.Arrays.fill(password, '\0');
+            }
         }
     }
 

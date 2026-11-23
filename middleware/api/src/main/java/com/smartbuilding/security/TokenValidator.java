@@ -14,6 +14,7 @@ import com.nimbusds.jwt.proc.DefaultJWTProcessor;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.net.URL;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -63,6 +64,11 @@ public class TokenValidator {
                 init();
             }
 
+            if (this.jwtProcessor == null) {
+                LOG.warning("Validation JWT impossible : processeur non initialisé.");
+                return Optional.empty();
+            }
+
             JWTClaimsSet claims = this.jwtProcessor.process(token, null);
 
             // Vérification de l'audience requise par le contrat (sbe-api)
@@ -70,7 +76,14 @@ public class TokenValidator {
                 LOG.warning("Jeton rejeté : audience 'sbe-api' manquante.");
                 return Optional.empty();
             }
+            // Vérification de l'émetteur OIDC attendu
+            String expectedIssuer = OidcIssuerConfig.getIssuer();
+            String actualIssuer = claims.getIssuer();
 
+            if (actualIssuer == null || !Objects.equals(expectedIssuer, actualIssuer)) {
+                LOG.warning("Jeton rejeté : issuer incorrect ou manquant.");
+                return Optional.empty();
+            }
             return Optional.of(claims);
 
         } catch (Exception e) {

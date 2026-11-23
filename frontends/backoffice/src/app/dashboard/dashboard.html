@@ -18,7 +18,7 @@
       <div class="menu-label">MAIN MENU</div>
 
       <nav class="navigation">
-        <a href="#overview" class="nav-link active">
+        <a href="#overview" (click)="scrollToSection($event, 'overview')" class="nav-link active">
           <span class="nav-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
   <rect x="3" y="3" width="8" height="8" rx="1"/>
   <rect x="13" y="3" width="8" height="5" rx="1"/>
@@ -28,7 +28,7 @@
           <span>Dashboard</span>
         </a>
 
-        <a href="#building-map" class="nav-link">
+        <a href="#building-map" (click)="scrollToSection($event, 'building-map')" class="nav-link">
           <span class="nav-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
   <path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3z"/>
   <path d="M9 3v15M15 6v15"/>
@@ -36,7 +36,7 @@
           <span>Building Map</span>
         </a>
 
-        <a href="#sensors" class="nav-link">
+        <a href="#sensors" (click)="scrollToSection($event, 'sensors')" class="nav-link">
           <span class="nav-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
   <path d="M12 3v3M12 18v3M3 12h3M18 12h3"/>
   <circle cx="12" cy="12" r="5"/>
@@ -45,7 +45,7 @@
           <span>Sensors</span>
         </a>
 
-        <a href="#alerts" class="nav-link">
+        <a href="#alerts" (click)="scrollToSection($event, 'alerts')" class="nav-link">
           <span class="nav-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
   <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
   <path d="M10 21h4"/>
@@ -56,14 +56,14 @@
           }
         </a>
 
-        <a href="#incidents" class="nav-link">
+        <a href="#incidents" (click)="scrollToSection($event, 'incidents')" class="nav-link">
           <span class="nav-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
   <path d="M12 3 21 8v5c0 5-4 7-9 8-5-1-9-3-9-8V8z"/>
   <path d="M12 8v5M12 17h.01"/>
 </svg></span>
           <span>Incidents</span>
         </a>
-        <a href="#ai-assistant" class="nav-link">
+        <a href="#ai-assistant" (click)="scrollToSection($event, 'ai-assistant')" class="nav-link">
           <span class="nav-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
   <path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>
   <path d="m19 15 .9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/>
@@ -71,7 +71,7 @@
           <span>Assistant IA / LLMOps</span>
         </a>
 
-        <a href="#occupant-profile" class="nav-link">
+        <a href="#occupant-profile" (click)="scrollToSection($event, 'occupant-profile')" class="nav-link">
           <span class="nav-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
   <circle cx="12" cy="8" r="4"/>
   <path d="M4 21c0-4 3-7 8-7s8 3 8 7"/>

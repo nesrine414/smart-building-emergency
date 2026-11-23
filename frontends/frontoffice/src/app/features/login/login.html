@@ -1,3 +1,4 @@
+
 <div class="login-container">
   <div class="login-card">
     <div class="login-header">
@@ -8,53 +9,31 @@
       </div>
     </div>
 
-    <form (ngSubmit)="onSubmit()" class="login-form">
+    <div class="login-form">
       @if (errorMessage()) {
-        <div class="error-banner">
+        <div class="error-banner" role="alert">
           {{ errorMessage() }}
         </div>
       }
 
-      <div class="form-group">
-        <label for="username">Nom d'utilisateur</label>
-        <input
-          id="username"
-          type="text"
-          placeholder="Entrez votre identifiant"
-          [ngModel]="username()"
-          (ngModelChange)="username.set($event)"
-          name="username"
-          required
-          autocomplete="username"
-        />
-      </div>
+      <p class="subtitle">
+        Connectez-vous avec votre compte Smart Building.
+        Vous serez redirigé vers le serveur sécurisé IAM.
+      </p>
 
-      <div class="form-group">
-        <label for="password">Mot de passe</label>
-        <input
-          id="password"
-          type="password"
-          placeholder="Entrez votre mot de passe"
-          [ngModel]="password()"
-          (ngModelChange)="password.set($event)"
-          name="password"
-          required
-          autocomplete="current-password"
-        />
-      </div>
-
-      <button type="submit" class="btn-login" [disabled]="isLoading()">
+      <button
+        type="button"
+        class="btn-login"
+        [disabled]="isLoading()"
+        (click)="onSubmit()"
+      >
         @if (isLoading()) {
+          <span class="spinner"></span>
           Connexion en cours...
         } @else {
-          Se connecter
+          Se connecter avec IAM
         }
       </button>
-
-      <p class="demo-hint">
-        Compte occupant : <strong>occupant</strong> /
-        <strong>occupant123</strong>
-      </p>
-    </form>
+    </div>
   </div>
 </div>

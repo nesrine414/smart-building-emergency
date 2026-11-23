@@ -637,7 +637,20 @@ export class Dashboard implements AfterViewInit, OnDestroy {
     this.gasChart?.destroy();
     this.temperatureChart?.destroy();
   }
+    scrollToSection(event: Event, sectionId: string): void {
+    event.preventDefault();
 
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
+    const section = document.getElementById(sectionId);
+
+    section?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
+  }
   protected logout(): void {
     this.realtimeService.disconnect();
     this.authService.logout();
