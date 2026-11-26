@@ -1,5 +1,12 @@
 package com.smartbuilding.iam;
-
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.KeyUse;
+import com.nimbusds.jose.jwk.RSAKey;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
 import com.smartbuilding.entities.User;
 import com.smartbuilding.repositories.UserRepository;
 import com.smartbuilding.security.PasswordUtil;
@@ -32,10 +39,9 @@ public class OAuth2ResourceTest {
 
     @BeforeEach
     public void setUp() throws Exception {
-        // 1. Initialiser le vrai service de clés RSA
+        // 1. Initialiser le service avec une paire RSA temporaire de test
         keyService = new OidcKeyService();
-        keyService.init();
-
+        initializeTestKeyService();
         // 2. Mocker le UserRepository avec un utilisateur de test
         userRepository = Mockito.mock(UserRepository.class);
         User testUser = new User(
@@ -50,7 +56,7 @@ public class OAuth2ResourceTest {
                 // 3. Mocker UriInfo
         uriInfo = Mockito.mock(UriInfo.class);
         when(uriInfo.getBaseUriBuilder()).thenAnswer(inv -> UriBuilder.fromUri("http://localhost:8081/iam/api/"));
-        // 4. Instancier la ressource OAuth2 et injecter les dépendances
+        // 4. Instancier la ressource OAuth2 et injecter les dÃ©pendances
         oauth2Resource = new OAuth2Resource();
         injectField(oauth2Resource, "keyService", keyService);
         injectField(oauth2Resource, "userRepository", userRepository);
@@ -75,7 +81,7 @@ public class OAuth2ResourceTest {
                 "occupant",
                 "occupant123",
                 "sbe-front",
-                "http://localhost:4200/callback",
+                "https://www.sbe-team.me/callback",
                 "state123",
                 "nonce123",
                 codeChallenge,
@@ -93,7 +99,7 @@ public class OAuth2ResourceTest {
                 return param.substring(5);
             }
         }
-        fail("Code non trouvé dans la redirection");
+        fail("Code non trouvÃ© dans la redirection");
         return null;
     }
 
@@ -104,7 +110,7 @@ public class OAuth2ResourceTest {
         Response tokenResponse = oauth2Resource.exchangeToken(
                 "authorization_code",
                 code,
-                "http://localhost:4200/callback",
+                "https://www.sbe-team.me/callback",
                 "sbe-front",
                 codeVerifier,
                 null,
@@ -128,7 +134,7 @@ public class OAuth2ResourceTest {
         Response tokenResponse = oauth2Resource.exchangeToken(
                 "authorization_code",
                 code,
-                "http://localhost:4200/callback",
+                "https://www.sbe-team.me/callback",
                 "sbe-front",
                 "mauvais-code-verifier-attaque",
                 null,
@@ -144,11 +150,11 @@ public class OAuth2ResourceTest {
     public void testAttaque_CodeReutilise_RejeteAuDeuxiemeEssai() {
         String code = getValidAuthorizationCode();
 
-        // 1er essai : succès
+        // 1er essai : succÃ¨s
         Response tokenResponse1 = oauth2Resource.exchangeToken(
                 "authorization_code",
                 code,
-                "http://localhost:4200/callback",
+                "https://www.sbe-team.me/callback",
                 "sbe-front",
                 codeVerifier,
                 null,
@@ -156,11 +162,11 @@ public class OAuth2ResourceTest {
         );
         assertEquals(Response.Status.OK.getStatusCode(), tokenResponse1.getStatus());
 
-        // 2e essai avec le même code : doit être rejeté (usage unique)
+        // 2e essai avec le mÃªme code : doit Ãªtre rejetÃ© (usage unique)
         Response tokenResponse2 = oauth2Resource.exchangeToken(
                 "authorization_code",
                 code,
-                "http://localhost:4200/callback",
+                "https://www.sbe-team.me/callback",
                 "sbe-front",
                 codeVerifier,
                 null,
@@ -199,4 +205,38 @@ public class OAuth2ResourceTest {
         assertTrue(body.contains("RSA"));
         assertTrue(body.contains("RS256"));
     }
+    private void initializeTestKeyService() throws Exception {
+    KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
+    generator.initialize(2048);
+
+    KeyPair pair = generator.generateKeyPair();
+
+    RSAPrivateKey privateKey = (RSAPrivateKey) pair.getPrivate();
+    RSAPublicKey publicKey = (RSAPublicKey) pair.getPublic();
+
+    MessageDigest digest = MessageDigest.getInstance("SHA-256");
+    byte[] hash = digest.digest(publicKey.getEncoded());
+
+    StringBuilder hex = new StringBuilder();
+    for (byte b : hash) {
+        hex.append(String.format("%02x", b & 0xff));
+    }
+
+    String keyId = hex.toString();
+
+    RSAKey rsaJWK = new RSAKey.Builder(publicKey)
+            .keyUse(KeyUse.SIGNATURE)
+            .algorithm(JWSAlgorithm.RS256)
+            .keyID(keyId)
+            .build();
+
+    String jwksJson = new JWKSet(rsaJWK).toString();
+
+    injectField(keyService, "privateKey", privateKey);
+    injectField(keyService, "publicKey", publicKey);
+    injectField(keyService, "keyId", keyId);
+    injectField(keyService, "jwksJson", jwksJson);
+
 }
+}
+

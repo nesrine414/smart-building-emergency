@@ -56,8 +56,10 @@ export class RealtimeService {
       return;
     }
 
-    const separator = environment.wsUrl.includes('?') ? '&' : '?';
-    const url = `${environment.wsUrl}${separator}token=${encodeURIComponent(token)}`;
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsBaseUrl = `${protocol}//${window.location.host}${environment.wsUrl}`;
+    const separator = wsBaseUrl.includes('?') ? '&' : '?';
+    const url = `${wsBaseUrl}${separator}token=${encodeURIComponent(token)}`;
 
     const socket = webSocket<RealtimeMessage>({
       url,
@@ -66,7 +68,7 @@ export class RealtimeService {
         next: () => this.zone.run(() => {
           this.reconnectDelay = 1000;
           this.connectedSubject.next(true);
-          console.log('WebSocket connectÃƒÂ©.');
+          console.log('WebSocket connectÃƒÆ’Ã‚Â©.');
         })
       }
     });
@@ -98,7 +100,7 @@ export class RealtimeService {
         this.actuatorsSubject.next({ data: message.data });
         break;
       default:
-        console.warn('Ãƒâ€°vÃƒÂ©nement WebSocket inconnu.', message);
+        console.warn('ÃƒÆ’Ã¢â‚¬Â°vÃƒÆ’Ã‚Â©nement WebSocket inconnu.', message);
     }
   }
 

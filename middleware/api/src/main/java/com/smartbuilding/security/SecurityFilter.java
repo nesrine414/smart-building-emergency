@@ -76,7 +76,7 @@ public class SecurityFilter implements ContainerRequestFilter {
                     .build());
             return;
         }
-
+	SecurityContext originalSecurityContext = 	requestContext.getSecurityContext();
         // Attacher le SecurityContext à la requête
         requestContext.setSecurityContext(new SecurityContext() {
             @Override
@@ -89,9 +89,9 @@ public class SecurityFilter implements ContainerRequestFilter {
                 return role != null && role.equalsIgnoreCase(r);
             }
 
-            @Override
+	    @Override
             public boolean isSecure() {
-                return requestContext.getSecurityContext().isSecure();
+    		return originalSecurityContext != null &&                 originalSecurityContext.isSecure();
             }
 
             @Override

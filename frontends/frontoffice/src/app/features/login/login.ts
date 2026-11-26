@@ -1,65 +1,48 @@
 
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/auth/auth.service';
 
 @Component({
   selector: 'app-login',
-  imports: [FormsModule],
+  standalone: true,
   templateUrl: './login.html',
   styleUrl: './login.scss'
 })
 export class Login {
-  protected username = signal('');
-  protected password = signal('');
-  protected errorMessage = signal('');
-  protected isLoading = signal(false);
+  protected readonly errorMessage = signal('');
+  protected readonly isLoading = signal(false);
 
-  constructor(
-    private readonly authService: AuthService,
-    private readonly router: Router
-  ) {
-    const user = this.authService.user();
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
 
-    if (this.authService.isAuthenticated() && user?.role === 'OCCUPANT') {
-      this.router.navigate(['/dashboard']);
+  constructor() {
+    if (
+      this.authService.isAuthenticated() &&
+      this.authService.user()?.role === 'OCCUPANT'
+    ) {
+      void this.router.navigateByUrl('/dashboard');
     }
   }
 
-  onSubmit(): void {
-    if (this.isLoading()) return;
+  async onSubmit(): Promise<void> {
+    if (this.isLoading()) {
+      return;
+    }
 
     this.isLoading.set(true);
     this.errorMessage.set('');
 
-    this.authService.login({
-      username: this.username().trim(),
-      password: this.password()
-    }).subscribe({
-      next: (user) => {
-        if (user.role !== 'OCCUPANT') {
-          this.authService.logout();
-          this.errorMessage.set(
-            'Accès refusé : cette interface est réservée aux occupants.'
-          );
-          this.isLoading.set(false);
-          return;
-        }
+    try {
+      await this.authService.beginLogin();
+    } catch (error) {
+      console.error('OIDC login initialization failed:', error);
 
-        this.router.navigate(['/dashboard']);
-      },
-      error: (error) => {
-        this.isLoading.set(false);
-        this.errorMessage.set(
-          error.status === 401
-            ? 'Identifiant ou mot de passe incorrect.'
-            : 'Impossible de contacter le serveur IAM.'
-        );
-      },
-      complete: () => {
-        this.isLoading.set(false);
-      }
-    });
+      this.errorMessage.set(
+        'Impossible de démarrer la connexion sécurisée avec IAM. Vérifiez que le serveur IAM est disponible.'
+      );
+
+      this.isLoading.set(false);
+    }
   }
 }

@@ -1,4 +1,7 @@
-﻿import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
+import {
+  HttpErrorResponse,
+  HttpInterceptorFn
+} from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, throwError } from 'rxjs';
 import { AuthService } from './auth.service';
@@ -6,9 +9,14 @@ import { environment } from '../../../environments/environment';
 
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const auth = inject(AuthService);
+  const apiBase = environment.apiUrl.replace(/\/+$/, '');
 
-  // Ne pas ajouter le JWT à la requête de connexion IAM.
-  if (!request.url.startsWith(environment.apiUrl)) {
+  // Only protect API requests. Never send the access token to IAM.
+  const isApiRequest =
+    request.url === apiBase ||
+    request.url.startsWith(`${apiBase}/`);
+
+  if (!isApiRequest) {
     return next(request);
   }
 
@@ -16,7 +24,9 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
 
   const outgoingRequest = token
     ? request.clone({
-        setHeaders: { Authorization: `Bearer ${token}` }
+        setHeaders: {
+          Authorization: `Bearer ${token}`
+        }
       })
     : request;
 

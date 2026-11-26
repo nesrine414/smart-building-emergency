@@ -1,18 +1,24 @@
-﻿import { Component, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import {
+  Component,
+  inject,
+  signal
+} from '@angular/core';
+
+import {
+  ActivatedRoute,
+  Router
+} from '@angular/router';
+
 import { AuthService } from '../core/auth/auth.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule],
   templateUrl: './login.html',
   styleUrl: './login.scss'
 })
 export class LoginComponent {
-  protected readonly username = signal('');
-  protected readonly password = signal('');
+
   protected readonly errorMessage = signal('');
   protected readonly isLoading = signal(false);
 
@@ -25,49 +31,68 @@ export class LoginComponent {
 
     const reason = this.route.snapshot.queryParamMap.get('reason');
 
-    if (reason === 'forbidden') {
-      this.errorMessage.set('Réservé aux administrateurs.');
-    } else if (reason === 'expired') {
-      this.errorMessage.set('Votre session a expiré. Veuillez vous reconnecter.');
+    switch (reason) {
+      case 'forbidden':
+        this.errorMessage.set(
+          'Access is restricted to administrators.'
+        );
+        break;
+
+      case 'expired':
+        this.errorMessage.set(
+          'Your session has expired. Please sign in again.'
+        );
+        break;
+
+      case 'oauth_error':
+        this.errorMessage.set(
+          'Authentication failed. Please try again.'
+        );
+        break;
     }
 
+    // Do not restart OAuth if an admin session already exists.
     if (this.auth.isAdmin()) {
-      void this.router.navigateByUrl('/dashboard');
+      void this.router.navigateByUrl('/dashboard', {
+        replaceUrl: true
+      });
     }
   }
 
-  onSubmit(): void {
+  async startLogin(): Promise<void> {
+
+    // Prevent multiple clicks.
     if (this.isLoading()) {
+      return;
+    }
+
+    // Do not start a new authentication flow if already authenticated.
+    if (this.auth.isAdmin()) {
+      await this.router.navigateByUrl('/dashboard', {
+        replaceUrl: true
+      });
       return;
     }
 
     this.isLoading.set(true);
     this.errorMessage.set('');
 
-    this.auth.login({
-      username: this.username().trim(),
-      password: this.password()
-    }).subscribe({
-      next: () => {
-        void this.router.navigateByUrl('/dashboard');
-      },
-      error: (error: unknown) => {
-        this.isLoading.set(false);
+    try {
+      // Keep the IAM navigation in the current browser tab.
+      await this.auth.beginLogin();
 
-        if (error instanceof Error && error.message.startsWith('Accès réservé')) {
-          this.errorMessage.set(error.message);
-        } else if (
-          typeof error === 'object' &&
-          error !== null &&
-          'status' in error &&
-          error.status === 401
-        ) {
-          this.errorMessage.set('Identifiant ou mot de passe incorrect.');
-        } else {
-          this.errorMessage.set('Connexion impossible. Vérifiez le serveur IAM.');
-        }
-      },
-      complete: () => this.isLoading.set(false)
-    });
+    } catch (error: unknown) {
+
+      console.error(
+        '[LOGIN] OAuth2 sign-in initialization failed:',
+        error
+      );
+
+      this.isLoading.set(false);
+
+      this.errorMessage.set(
+        'Unable to start authentication. Please check that the IAM server is available.'
+      );
+    }
   }
 }
