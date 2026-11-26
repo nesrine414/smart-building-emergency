@@ -62,7 +62,7 @@ if ($command) {
 $San = 'dns:localhost,ip:127.0.0.1,dns:hivemq,dns:mqtt.smartbuilding.local'
 if (-not [string]::IsNullOrEmpty($LanIp)) {
     if ($LanIp -notmatch '^[0-9]{1,3}(\.[0-9]{1,3}){3}$') { throw "MQTT_BROKER_LAN_IP n'est pas une adresse IPv4 : $LanIp" }
-    $San = "$San,ip:$LanIp"
+    $San = "$San,ip:$LanIp,dns:$LanIp"
 }
 if (-not [string]::IsNullOrEmpty($PublicHost)) {
     if ($PublicHost -notmatch '^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)+$') {
