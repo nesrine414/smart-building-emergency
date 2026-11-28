@@ -2,7 +2,7 @@
 # Prépare un serveur Ubuntu 24.04 neuf pour Smart Building Emergency (étape 4, personne 1).
 # À lancer UNE fois, en root, juste après la création de l'instance :
 #
-#     scp -i cle.pem deploy/server/bootstrap.sh ubuntu@<IP>:/tmp/
+#     scp -i cle.pem deploy/server/bootstrap.sh deploy/server/certbot-deploy-hook.sh ubuntu@<IP>:/tmp/
 #     ssh -i cle.pem ubuntu@<IP> "sudo bash /tmp/bootstrap.sh"
 #
 # Le script peut être relancé sans danger (chaque étape vérifie si elle est déjà faite).
@@ -120,6 +120,16 @@ ufw status verbose
 
 log "8/8 Nginx démarré (sa configuration est la tâche de la personne 3)"
 systemctl enable --now nginx
+# Étape 6 : recharger Nginx après chaque renouvellement Let's Encrypt (sinon l'ancien certificat
+# reste servi jusqu'à expiration). Le hook est copié dans /tmp avec ce script.
+HOOK_SRC="$(dirname "$(readlink -f "$0")")/certbot-deploy-hook.sh"
+if [[ -f "$HOOK_SRC" ]]; then
+  install -d -m 0755 /etc/letsencrypt/renewal-hooks/deploy
+  install -m 0755 "$HOOK_SRC" /etc/letsencrypt/renewal-hooks/deploy/sbe-reload-nginx.sh
+  echo "Hook certbot installé : /etc/letsencrypt/renewal-hooks/deploy/sbe-reload-nginx.sh"
+else
+  echo "ATTENTION : certbot-deploy-hook.sh absent à côté de ce script : hook de renouvellement non installé"
+fi
 
 cat <<EOF
 
@@ -131,5 +141,6 @@ Serveur prêt.
   Docker       : $(docker --version)
 
 Étape suivante (en tant que ${SBE_USER}) : deploy/server/deploy-broker-ml.sh (voir deploy/README.md),
+WildFly en service : sudo bash deploy/server/install-wildfly.sh (deploy/MISE-EN-PRODUCTION.md),
 puis le runner du pipeline : sudo bash deploy/server/install-runner.sh <URL du dépôt> (deploy/CI-CD.md).
 EOF

@@ -14,6 +14,10 @@ Ce dossier met en ligne la partie de la personne 1 sur un serveur AWS : le socle
 | `../docker-compose.prod.yml` | serveur | MongoDB sur `127.0.0.1` avec mot de passe, HiveMQ en TLS seul, service `sbe-ml` |
 | `../demo/` | PC de soutenance | `incendie`, `fuite-gaz`, `retour-normal` (`.cmd` à double-cliquer), plan B par SSH |
 | `server/install-runner.sh` | serveur, avec sudo, une fois | Runner GitHub Actions `sbe-server` du pipeline (étape 5) |
+| `server/add-ssh-key.sh` | serveur, avec sudo | Accès SSH d'une personne avec sa propre clé ; `--list`, `--remove` (étape 6) |
+| `server/install-wildfly.sh` + `server/wildfly.service` | serveur, avec sudo, une fois | WildFly en service systemd, utilisateur `wildfly`, dossier de déploiement partagé avec le pipeline (étape 6) |
+| `server/certbot-deploy-hook.sh` | installé par `bootstrap.sh` | Recharge Nginx après chaque renouvellement Let's Encrypt (étape 6) |
+| `audit_securite.py` | votre PC | Audit TLS : HSTS, chaîne TLS-CA, redirection 80, CAA, broker MQTT ; rapport Markdown (étape 6) |
 | `server/deploy-app.sh` | serveur, par le pipeline | Mise en ligne des WAR et des PWA, contrôles, retour arrière (étape 5) |
 | `ci/build-artifacts.sh` | machines de GitHub | Assemble `api.war`, `iam.war` et les builds Angular (étape 5) |
 

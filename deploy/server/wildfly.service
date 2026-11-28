@@ -1,0 +1,35 @@
+# Service systemd de WildFly (étape 6). Installé par deploy/server/install-wildfly.sh dans
+# /etc/systemd/system/wildfly.service ; ne pas le copier à la main.
+#
+# - Utilisateur wildfly (pas root, pas sbe : sbe est dans le groupe docker, presque root).
+# - Groupe supplémentaire sbe : traverser /opt/sbe (0750) pour lire le truststore MQTT, et partager
+#   standalone/deployments (wildfly:sbe, 2775) avec le runner du pipeline qui y dépose les WAR.
+# - Écoute sur 127.0.0.1 seulement : Nginx relaie 443 vers 8080 ; 8080 et 9990 restent fermés dehors.
+# - Variables : /opt/sbe/wildfly-mqtt.env (écrit par deploy-broker-ml.sh) et /opt/sbe/wildfly-app.env
+#   (IAM, CORS : personne 2). Lus par systemd en root : ils restent en droits 600.
+[Unit]
+Description=WildFly - Smart Building Emergency (api.war, iam.war, PWA)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=wildfly
+Group=wildfly
+SupplementaryGroups=sbe
+EnvironmentFile=-/opt/sbe/wildfly-mqtt.env
+EnvironmentFile=-/opt/sbe/wildfly-app.env
+Environment="JAVA_OPTS=-Xms256m -Xmx1536m -XX:MetaspaceSize=96M -XX:MaxMetaspaceSize=512m -Djava.net.preferIPv4Stack=true -Djboss.modules.system.pkgs=org.jboss.byteman -Djava.awt.headless=true"
+ExecStart=/opt/wildfly/bin/standalone.sh -b 127.0.0.1 -bmanagement 127.0.0.1
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=180
+TimeoutStopSec=60
+LimitNOFILE=65536
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
